@@ -14,6 +14,7 @@ import * as Haptics from "expo-haptics";
 
 import { BottomSheet } from "@/src/components/common/BottomSheet";
 import { resolveArtworkUrl } from "@/src/lib/artwork";
+import { useShallow } from "zustand/react/shallow";
 import { useLibraryStore, type PlaylistRow } from "@/src/stores/library";
 import { useSourcesStore } from "@/src/stores/sources";
 import { colors } from "@/src/theme";
@@ -62,8 +63,16 @@ function TrackActionSheetContent({
   onDismiss: () => void;
 }) {
   const { toggleFavourite, playlists, loadPlaylists, addTrackToPlaylist, createPlaylist } =
-    useLibraryStore();
-  const { getAdapter } = useSourcesStore();
+    useLibraryStore(
+      useShallow((s) => ({
+        toggleFavourite: s.toggleFavourite,
+        playlists: s.playlists,
+        loadPlaylists: s.loadPlaylists,
+        addTrackToPlaylist: s.addTrackToPlaylist,
+        createPlaylist: s.createPlaylist,
+      })),
+    );
+  const getAdapter = useSourcesStore((s) => s.getAdapter);
   const [isFav, setIsFav] = useState(track.isFavourite);
   const [addedToPlaylists, setAddedToPlaylists] = useState<Set<string>>(new Set());
 

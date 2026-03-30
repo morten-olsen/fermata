@@ -21,8 +21,9 @@ interface SearchResults {
 }
 
 export default function SearchScreen() {
-  const { search, toggleFavourite } = useLibraryStore();
-  const { playTrack } = usePlaybackStore();
+  const search = useLibraryStore((s) => s.search);
+  const toggleFavourite = useLibraryStore((s) => s.toggleFavourite);
+  const playTrack = usePlaybackStore((s) => s.playTrack);
   const { showTrackActions } = useTrackActions();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);

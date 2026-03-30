@@ -18,8 +18,8 @@ import { useLibraryStore } from "@/src/stores/library";
 import { colors } from "@/src/theme";
 
 export default function AddSourceScreen() {
-  const { addSource } = useSourcesStore();
-  const { syncOne } = useSyncStore();
+  const addSource = useSourcesStore((s) => s.addSource);
+  const syncOne = useSyncStore((s) => s.syncOne);
 
   const [name, setName] = useState("");
   const [serverUrl, setServerUrl] = useState("");

@@ -3,6 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
+import { useShallow } from "zustand/react/shallow";
 import { useSourcesStore } from "@/src/stores/sources";
 import { useSyncStore } from "@/src/stores/sync";
 import { useLibraryStore } from "@/src/stores/library";
@@ -50,10 +51,36 @@ function SettingsRow({
 }
 
 export default function SettingsScreen() {
-  const { sources, removeSource, getAllAdapters } = useSourcesStore();
-  const { isSyncing, progress, syncAll } = useSyncStore();
-  const { stats, refreshAll } = useLibraryStore();
-  const { stats: dlStats, removeAll: removeAllDownloads, retryFailed, refreshStats: refreshDlStats } = useDownloadStore();
+  const { sources, removeSource, getAllAdapters } = useSourcesStore(
+    useShallow((s) => ({
+      sources: s.sources,
+      removeSource: s.removeSource,
+      getAllAdapters: s.getAllAdapters,
+    })),
+  );
+  const { isSyncing, progress, syncAll } = useSyncStore(
+    useShallow((s) => ({
+      isSyncing: s.isSyncing,
+      progress: s.progress,
+      syncAll: s.syncAll,
+    })),
+  );
+  const { stats, refreshAll } = useLibraryStore(
+    useShallow((s) => ({ stats: s.stats, refreshAll: s.refreshAll })),
+  );
+  const {
+    stats: dlStats,
+    removeAll: removeAllDownloads,
+    retryFailed,
+    refreshStats: refreshDlStats,
+  } = useDownloadStore(
+    useShallow((s) => ({
+      stats: s.stats,
+      removeAll: s.removeAll,
+      retryFailed: s.retryFailed,
+      refreshStats: s.refreshStats,
+    })),
+  );
 
   const handleSync = async () => {
     await syncAll(getAllAdapters());

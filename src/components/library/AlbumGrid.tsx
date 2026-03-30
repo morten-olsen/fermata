@@ -1,11 +1,16 @@
 import { useCallback, useMemo, useRef, useState, ReactElement } from "react";
 import { View, FlatList, Dimensions, StyleProp, ViewStyle } from "react-native";
-import { AlbumCard } from "./AlbumCard";
+import Animated, {
+  useSharedValue,
+  useAnimatedScrollHandler,
+} from "react-native-reanimated";
+import { AnimatedAlbumCard } from "./AnimatedAlbumCard";
 import { AlphabetScrubber } from "@/src/components/common/AlphabetScrubber";
 import { extractLetters } from "@/src/lib/alphabet";
 import type { AlbumRow } from "@/src/stores/library";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
+const SCREEN_HEIGHT = Dimensions.get("window").height;
 const COLUMNS = 2;
 const GAP = 12;
 const PADDING = 16;
@@ -15,6 +20,8 @@ const CARD_WIDTH =
 
 // Approximate row height: card is square + text below + margin
 const ROW_HEIGHT = CARD_WIDTH + 48;
+
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<AlbumRow>);
 
 interface AlbumGridProps {
   albums: AlbumRow[];
@@ -31,50 +38,63 @@ export function AlbumGrid({
 }: AlbumGridProps) {
   const listRef = useRef<FlatList>(null);
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const scrollY = useSharedValue(0);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
 
   const { letters, indices } = useMemo(
     () =>
       extractLetters(
         albums.map((a) => ({ key: a.title })),
-        (item) => item.key
+        (item) => item.key,
       ),
-    [albums]
+    [albums],
   );
 
   const handleSelect = useCallback(
     (letter: string) => {
       const itemIndex = indices[letter];
       if (itemIndex == null || !listRef.current) return;
-      // FlatList with numColumns groups items into rows
       const rowIndex = Math.floor(itemIndex / COLUMNS);
       listRef.current.scrollToOffset({
         offset: rowIndex * ROW_HEIGHT,
         animated: true,
       });
     },
-    [indices]
+    [indices],
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: AlbumRow }) => (
-      <View style={{ width: CARD_WIDTH }}>
-        <AlbumCard
-          id={item.id}
-          title={item.title}
-          artistName={item.artistName}
-          year={item.year}
-          sourceId={item.sourceId}
-          artworkSourceItemId={item.artworkSourceItemId}
-          onPress={() => onAlbumPress(item.id)}
-        />
-      </View>
+    ({ item, index }: { item: AlbumRow; index: number }) => (
+      <AnimatedAlbumCard
+        item={item}
+        index={index}
+        scrollY={scrollY}
+        rowHeight={ROW_HEIGHT}
+        cardWidth={CARD_WIDTH}
+        numColumns={COLUMNS}
+        headerHeight={headerHeight}
+        viewportHeight={SCREEN_HEIGHT}
+        onPress={onAlbumPress}
+      />
     ),
-    [onAlbumPress]
+    [onAlbumPress, scrollY, headerHeight],
   );
+
+  const wrappedHeader = ListHeaderComponent ? (
+    <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
+      {ListHeaderComponent}
+    </View>
+  ) : undefined;
 
   return (
     <View style={[{ flex: 1 }, style]}>
-      <FlatList
+      <AnimatedFlatList
         ref={listRef}
         style={{ flex: 1 }}
         scrollEnabled={scrollEnabled}
@@ -89,7 +109,9 @@ export function AlbumGrid({
           paddingLeft: PADDING,
           paddingRight: SCRUBBER_WIDTH,
         }}
-        ListHeaderComponent={ListHeaderComponent}
+        ListHeaderComponent={wrappedHeader}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
       />
       {letters.length > 1 && (
         <AlphabetScrubber

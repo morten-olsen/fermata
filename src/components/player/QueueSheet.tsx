@@ -1,6 +1,7 @@
 import { View, Text, FlatList, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheet } from "@/src/components/common/BottomSheet";
+import { useShallow } from "zustand/react/shallow";
 import { usePlaybackStore } from "@/src/stores/playback";
 import { formatDuration } from "@/src/lib/utils";
 import { colors } from "@/src/theme";
@@ -11,7 +12,9 @@ interface QueueSheetProps {
 }
 
 export function QueueSheet({ visible, onDismiss }: QueueSheetProps) {
-  const { queue, currentTrack, skipToIndex } = usePlaybackStore();
+  const { queue, currentTrack, skipToIndex } = usePlaybackStore(
+    useShallow((s) => ({ queue: s.queue, currentTrack: s.currentTrack, skipToIndex: s.skipToIndex })),
+  );
 
   const currentIndex = currentTrack
     ? queue.findIndex((t) => t.id === currentTrack.id)

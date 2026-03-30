@@ -9,6 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
+import { useShallow } from "zustand/react/shallow";
 import { useLibraryStore } from "@/src/stores/library";
 import { useSourcesStore } from "@/src/stores/sources";
 import { usePlaybackStore } from "@/src/stores/playback";
@@ -31,19 +32,26 @@ const SEGMENTS = ["Albums", "Artists", "Playlists", "Tracks"];
 
 export default function LibraryScreen() {
   const {
-    albums,
-    artists,
-    playlists,
-    stats,
-    refreshAll,
-    getTracks,
-    createPlaylist,
-    toggleFavourite,
-  } = useLibraryStore();
-  const { playTrack } = usePlaybackStore();
-  const { getAllAdapters } = useSourcesStore();
+    albums, artists, playlists, stats,
+    refreshAll, getTracks, createPlaylist, toggleFavourite,
+  } = useLibraryStore(
+    useShallow((s) => ({
+      albums: s.albums,
+      artists: s.artists,
+      playlists: s.playlists,
+      stats: s.stats,
+      refreshAll: s.refreshAll,
+      getTracks: s.getTracks,
+      createPlaylist: s.createPlaylist,
+      toggleFavourite: s.toggleFavourite,
+    })),
+  );
+  const playTrack = usePlaybackStore((s) => s.playTrack);
+  const getAllAdapters = useSourcesStore((s) => s.getAllAdapters);
   const { showTrackActions } = useTrackActions();
-  const { offlineMode, setOfflineMode } = useDownloadStore();
+  const { offlineMode, setOfflineMode } = useDownloadStore(
+    useShallow((s) => ({ offlineMode: s.offlineMode, setOfflineMode: s.setOfflineMode })),
+  );
   const [selectedSegment, setSelectedSegment] = useState(0);
   const [tracks, setTracks] = useState<TrackRowType[]>([]);
 

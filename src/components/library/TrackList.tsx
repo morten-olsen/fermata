@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, ReactElement } from "react";
+import { useCallback, useMemo, useRef, useState, memo, ReactElement } from "react";
 import { View, FlatList, StyleProp, ViewStyle } from "react-native";
 import { TrackRow } from "./TrackRow";
 import { AlphabetScrubber } from "@/src/components/common/AlphabetScrubber";
@@ -53,18 +53,12 @@ export function TrackList({
 
   const renderItem = useCallback(
     ({ item }: { item: TrackRowType }) => (
-      <TrackRow
-        title={item.title}
-        artistName={item.artistName}
-        duration={item.duration}
-        trackNumber={item.trackNumber}
+      <TrackListItem
+        item={item}
         isPlaying={currentTrackId === item.id}
-        isFavourite={!!item.isFavourite}
-        onPress={() => onTrackPress(item.id)}
-        onMorePress={onTrackMorePress ? () => onTrackMorePress(item) : undefined}
-        onToggleFavourite={
-          onToggleFavourite ? () => onToggleFavourite(item) : undefined
-        }
+        onTrackPress={onTrackPress}
+        onTrackMorePress={onTrackMorePress}
+        onToggleFavourite={onToggleFavourite}
       />
     ),
     [onTrackPress, onTrackMorePress, onToggleFavourite, currentTrackId]
@@ -79,6 +73,7 @@ export function TrackList({
         data={tracks}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        getItemLayout={getTrackItemLayout}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingBottom: 100,
@@ -98,3 +93,48 @@ export function TrackList({
     </View>
   );
 }
+
+const getTrackItemLayout = (_data: unknown, index: number) => ({
+  length: TRACK_ROW_HEIGHT,
+  offset: TRACK_ROW_HEIGHT * index,
+  index,
+});
+
+/** Memoized wrapper — holds callbacks stable per item so TrackRow's memo is effective */
+const TrackListItem = memo(function TrackListItem({
+  item,
+  isPlaying,
+  onTrackPress,
+  onTrackMorePress,
+  onToggleFavourite,
+}: {
+  item: TrackRowType;
+  isPlaying: boolean;
+  onTrackPress: (trackId: string) => void;
+  onTrackMorePress?: (track: TrackRowType) => void;
+  onToggleFavourite?: (track: TrackRowType) => void;
+}) {
+  const handlePress = useCallback(() => onTrackPress(item.id), [onTrackPress, item.id]);
+  const handleMore = useCallback(
+    () => onTrackMorePress?.(item),
+    [onTrackMorePress, item],
+  );
+  const handleFav = useCallback(
+    () => onToggleFavourite?.(item),
+    [onToggleFavourite, item],
+  );
+
+  return (
+    <TrackRow
+      title={item.title}
+      artistName={item.artistName}
+      duration={item.duration}
+      trackNumber={item.trackNumber}
+      isPlaying={isPlaying}
+      isFavourite={!!item.isFavourite}
+      onPress={handlePress}
+      onMorePress={onTrackMorePress ? handleMore : undefined}
+      onToggleFavourite={onToggleFavourite ? handleFav : undefined}
+    />
+  );
+});

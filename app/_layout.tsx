@@ -15,6 +15,8 @@ import { usePlaybackStore, setAdapterResolver } from "@/src/stores/playback";
 import { useDownloadStore } from "@/src/stores/downloads";
 import { setDownloadAdapterResolver } from "@/src/services/download-manager";
 import { TrackActionsProvider } from "@/src/components/library/TrackActionSheet";
+import { PlayerOverlay } from "@/src/components/player/PlayerOverlay";
+import { initArtworkCache } from "@/src/services/artwork-cache";
 
 // Register background playback service once (safe if native module missing)
 let _playbackServiceRegistered = false;
@@ -46,6 +48,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (success) {
+      initArtworkCache();
       Promise.all([loadSources(), initializePlayer(), initializeDownloads()]).then(() => {
         const getAdapter = (sourceId: string) =>
           useSourcesStore.getState().getAdapter(sourceId);
@@ -86,15 +89,9 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="player"
-            options={{
-              presentation: "modal",
-              animation: "slide_from_bottom",
-            }}
-          />
+          <Stack.Screen name="(tabs)" />
         </Stack>
+        <PlayerOverlay />
       </TrackActionsProvider>
       <StatusBar style="light" />
     </ThemeProvider>

@@ -1,8 +1,10 @@
+import { memo } from "react";
 import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { colors } from "@/src/theme";
 import { formatDuration } from "@/src/lib/utils";
+import { EqualizerBars } from "@/src/components/common/EqualizerBars";
 
 interface TrackRowProps {
   title: string;
@@ -18,7 +20,7 @@ interface TrackRowProps {
   onToggleFavourite?: () => void;
 }
 
-export function TrackRow({
+export const TrackRow = memo(function TrackRow({
   title,
   artistName,
   duration,
@@ -48,7 +50,7 @@ export function TrackRow({
       {/* Track number or playing indicator */}
       <View style={{ width: 32, alignItems: "center" }}>
         {isPlaying ? (
-          <Ionicons name="volume-high" size={16} color={colors.accent} />
+          <EqualizerBars size={16} color={colors.accent} />
         ) : trackNumber ? (
           <Text style={{ color: colors.muted, fontSize: 14 }}>{trackNumber}</Text>
         ) : null}
@@ -101,7 +103,7 @@ export function TrackRow({
       )}
     </Pressable>
   );
-}
+});
 
 // Re-export for backwards compat
 export { formatDuration } from "@/src/lib/utils";

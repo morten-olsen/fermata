@@ -13,6 +13,8 @@ import {
 import { db } from "./client";
 import { sources } from "./schema";
 import { eq } from "drizzle-orm";
+import { prefetchArtwork } from "../services/artwork-cache";
+import { log } from "../lib/log";
 
 export interface SyncProgress {
   sourceId: string;
@@ -94,6 +96,20 @@ export async function syncSource(
   await upsertAlbums(albumRows);
 
   emitProgress(onProgress, sid, adapter.name, "albums", "completed", albumRows.length);
+
+  // ── Prefetch album artwork in background ──
+  const artworkItems = remoteAlbums
+    .filter((a) => a.artworkSourceItemId)
+    .map((a) => ({
+      sourceId: a.sourceId,
+      itemId: a.artworkSourceItemId!,
+      remoteUrl: adapter.getArtworkUrl(a.artworkSourceItemId!, "medium"),
+    }));
+
+  // Fire and forget — don't block sync for artwork downloads
+  prefetchArtwork(artworkItems, "medium").then((count) => {
+    log(`Artwork prefetch: ${count}/${artworkItems.length} album covers cached`);
+  });
 
   // ── Build album lookup ──
   const albumIdLookup = (sourceItemId: string) =>

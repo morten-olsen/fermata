@@ -1,7 +1,9 @@
-import { View, Text, Pressable } from "react-native";
+import { memo } from "react";
+import { View, Text } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { resolveArtworkUrl } from "@/src/lib/artwork";
+import { PressableScale } from "@/src/components/common/PressableScale";
 import { colors } from "@/src/theme";
 
 interface AlbumCardProps {
@@ -15,7 +17,7 @@ interface AlbumCardProps {
   onPress: () => void;
 }
 
-export function AlbumCard({
+export const AlbumCard = memo(function AlbumCard({
   title,
   artistName,
   year,
@@ -27,13 +29,15 @@ export function AlbumCard({
   const artworkUrl = resolveArtworkUrl(sourceId, artworkSourceItemId);
 
   return (
-    <Pressable onPress={onPress} className="mb-4">
+    <PressableScale onPress={onPress} className="mb-4">
       <View className="aspect-square rounded-xl bg-fermata-surface overflow-hidden mb-2">
         {artworkUrl ? (
           <Image
             source={{ uri: artworkUrl }}
             style={{ width: "100%", height: "100%" }}
             contentFit="cover"
+            cachePolicy="disk"
+            recyclingKey={artworkUrl}
             transition={200}
           />
         ) : (
@@ -64,6 +68,6 @@ export function AlbumCard({
         {artistName}
         {year ? ` · ${year}` : ""}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
-}
+});

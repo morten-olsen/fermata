@@ -1,16 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, memo } from "react";
 import { View, Text, FlatList, Pressable, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import Animated, { FadeInRight } from "react-native-reanimated";
 
+import { useShallow } from "zustand/react/shallow";
 import {
   useLibraryStore,
   type PlaylistDetail,
   type PlaylistTrackRow,
 } from "@/src/stores/library";
 import { usePlaybackStore } from "@/src/stores/playback";
+import { PressableScale } from "@/src/components/common/PressableScale";
 import { TrackRow } from "@/src/components/library/TrackRow";
 import { useTrackActions } from "@/src/components/library/TrackActionSheet";
 import { toActionTarget } from "@/src/lib/track-actions";
@@ -18,9 +21,17 @@ import { colors } from "@/src/theme";
 
 export default function PlaylistDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { playTracks, currentTrack } = usePlaybackStore();
-  const { getPlaylist, getPlaylistTracks, toggleFavourite, deletePlaylist } =
-    useLibraryStore();
+  const { playTracks, currentTrack } = usePlaybackStore(
+    useShallow((s) => ({ playTracks: s.playTracks, currentTrack: s.currentTrack })),
+  );
+  const { getPlaylist, getPlaylistTracks, toggleFavourite, deletePlaylist } = useLibraryStore(
+    useShallow((s) => ({
+      getPlaylist: s.getPlaylist,
+      getPlaylistTracks: s.getPlaylistTracks,
+      toggleFavourite: s.toggleFavourite,
+      deletePlaylist: s.deletePlaylist,
+    })),
+  );
   const { showTrackActions } = useTrackActions();
   const [playlist, setPlaylist] = useState<PlaylistDetail>();
   const [tracks, setTracks] = useState<PlaylistTrackRow[]>([]);
@@ -30,6 +41,8 @@ export default function PlaylistDetailScreen() {
     getPlaylist(id).then((result) => result && setPlaylist(result));
     getPlaylistTracks(id).then(setTracks);
   }, [id]);
+
+  const trackIds = useMemo(() => tracks.map((t) => t.track.id), [tracks]);
 
   const handleDelete = useCallback(() => {
     if (!id || !playlist) return;
@@ -107,7 +120,7 @@ export default function PlaylistDetailScreen() {
             {/* Play / Shuffle */}
             {tracks.length > 0 && (
               <View className="flex-row px-4 mb-4 gap-3">
-                <Pressable
+                <PressableScale
                   onPress={() => playTracks(tracks.map((t) => t.track.id))}
                   className="flex-1 flex-row items-center justify-center bg-fermata-text py-3 rounded-xl"
                 >
@@ -115,8 +128,8 @@ export default function PlaylistDetailScreen() {
                   <Text className="text-fermata-bg font-semibold text-base ml-2">
                     Play
                   </Text>
-                </Pressable>
-                <Pressable
+                </PressableScale>
+                <PressableScale
                   onPress={() => {
                     const shuffled = [...tracks];
                     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -131,7 +144,7 @@ export default function PlaylistDetailScreen() {
                   <Text className="text-fermata-text font-semibold text-base ml-2">
                     Shuffle
                   </Text>
-                </Pressable>
+                </PressableScale>
               </View>
             )}
 
@@ -147,28 +160,61 @@ export default function PlaylistDetailScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <View className="px-4">
-            <TrackRow
-              title={item.track.title}
-              artistName={item.track.artistName}
-              duration={item.track.duration}
-              trackNumber={item.position + 1}
-              isPlaying={currentTrack?.id === item.track.id}
-              isFavourite={!!item.track.isFavourite}
-              onPress={() =>
-                playTracks(
-                  tracks.map((t) => t.track.id),
-                  item.position
-                )
-              }
-              onMorePress={() =>
-                showTrackActions(toActionTarget(item.track))
-              }
-              onToggleFavourite={() => toggleFavourite(item.track.id)}
-            />
-          </View>
+          <MixtapeTrackItem
+            item={item}
+            currentTrackId={currentTrack?.id}
+            trackIds={trackIds}
+            playTracks={playTracks}
+            showTrackActions={showTrackActions}
+            toggleFavourite={toggleFavourite}
+          />
         )}
       />
     </SafeAreaView>
   );
 }
+
+const MixtapeTrackItem = memo(function MixtapeTrackItem({
+  item,
+  currentTrackId,
+  trackIds,
+  playTracks,
+  showTrackActions,
+  toggleFavourite,
+}: {
+  item: PlaylistTrackRow;
+  currentTrackId: string | undefined;
+  trackIds: string[];
+  playTracks: (ids: string[], startIndex?: number) => Promise<void>;
+  showTrackActions: (target: ReturnType<typeof toActionTarget>) => void;
+  toggleFavourite: (id: string) => Promise<boolean>;
+}) {
+  const handlePress = useCallback(
+    () => playTracks(trackIds, item.position),
+    [playTracks, trackIds, item.position],
+  );
+  const handleMore = useCallback(
+    () => showTrackActions(toActionTarget(item.track)),
+    [showTrackActions, item.track],
+  );
+  const handleFav = useCallback(
+    () => toggleFavourite(item.track.id),
+    [toggleFavourite, item.track.id],
+  );
+
+  return (
+    <View className="px-4">
+      <TrackRow
+        title={item.track.title}
+        artistName={item.track.artistName}
+        duration={item.track.duration}
+        trackNumber={item.position + 1}
+        isPlaying={currentTrackId === item.track.id}
+        isFavourite={!!item.track.isFavourite}
+        onPress={handlePress}
+        onMorePress={handleMore}
+        onToggleFavourite={handleFav}
+      />
+    </View>
+  );
+});

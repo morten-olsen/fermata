@@ -10,7 +10,7 @@ import { colors } from "@/src/theme";
 
 export default function ArtistDetailScreen() {
   const { name } = useLocalSearchParams<{ name: string }>();
-  const { getAlbumsByArtist } = useLibraryStore();
+  const getAlbumsByArtist = useLibraryStore((s) => s.getAlbumsByArtist);
   const [albums, setAlbums] = useState<AlbumRow[]>([]);
 
   useEffect(() => {

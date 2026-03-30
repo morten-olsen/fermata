@@ -1,7 +1,8 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { resolveArtworkUrl } from "@/src/lib/artwork";
+import { PressableScale } from "@/src/components/common/PressableScale";
 import { colors } from "@/src/theme";
 
 interface ArtistRowProps {
@@ -20,9 +21,10 @@ export function ArtistRow({
   const artworkUrl = resolveArtworkUrl(sourceId, artworkSourceItemId, "small");
 
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       className="flex-row items-center py-3 px-1"
+      scaleValue={0.98}
     >
       <View className="w-12 h-12 rounded-full bg-fermata-surface overflow-hidden">
         {artworkUrl ? (
@@ -30,6 +32,8 @@ export function ArtistRow({
             source={{ uri: artworkUrl }}
             style={{ width: 48, height: 48 }}
             contentFit="cover"
+            cachePolicy="disk"
+            recyclingKey={artworkUrl}
             transition={200}
           />
         ) : (
@@ -42,6 +46,6 @@ export function ArtistRow({
         {name}
       </Text>
       <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-    </Pressable>
+    </PressableScale>
   );
 }

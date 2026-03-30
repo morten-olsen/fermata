@@ -1,5 +1,7 @@
-import { View, Text, Pressable } from "react-native";
+import { memo } from "react";
+import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { PressableScale } from "@/src/components/common/PressableScale";
 import { colors } from "@/src/theme";
 
 interface PlaylistRowProps {
@@ -10,7 +12,7 @@ interface PlaylistRowProps {
   onPress: () => void;
 }
 
-export function PlaylistRow({
+export const PlaylistRow = memo(function PlaylistRow({
   name,
   trackCount,
   isFavourite,
@@ -18,8 +20,9 @@ export function PlaylistRow({
   onPress,
 }: PlaylistRowProps) {
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
+      scaleValue={0.98}
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -63,6 +66,6 @@ export function PlaylistRow({
       )}
 
       <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-    </Pressable>
+    </PressableScale>
   );
-}
+});

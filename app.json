@@ -48,6 +48,12 @@
       "expo-image",
       "expo-web-browser"
     ],
+    "updates": {
+      "url": "https://u.expo.dev/abe51b52-d7b4-477d-b64b-27a43d0ec379"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "experiments": {
       "typedRoutes": true
     },
