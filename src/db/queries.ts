@@ -1,4 +1,4 @@
-import { eq, like, or, sql, desc, asc, and } from "drizzle-orm";
+import { eq, like, or, sql, desc, asc, and, exists } from "drizzle-orm";
 import { db } from "./client";
 import {
   sources,
@@ -7,6 +7,7 @@ import {
   tracks,
   playlists,
   playlistTracks,
+  downloads,
 } from "./schema";
 
 // ── ID Generation ──────────────────────────────────────
@@ -59,7 +60,16 @@ export async function deleteSource(id: string) {
 
 // ── Artists ────────────────────────────────────────────
 
-export async function getAllArtists() {
+export async function getAllArtists(offlineOnly = false) {
+  if (offlineOnly) {
+    return db
+      .select()
+      .from(artists)
+      .where(
+        sql`EXISTS (SELECT 1 FROM tracks t INNER JOIN downloads d ON d.track_id = t.id WHERE t.artist_name = ${artists.name} AND d.status = 'complete')`
+      )
+      .orderBy(asc(artists.name));
+  }
   return db.select().from(artists).orderBy(asc(artists.name));
 }
 
@@ -84,7 +94,16 @@ export async function upsertArtists(rows: (typeof artists.$inferInsert)[]) {
 
 // ── Albums ─────────────────────────────────────────────
 
-export async function getAllAlbums() {
+export async function getAllAlbums(offlineOnly = false) {
+  if (offlineOnly) {
+    return db
+      .select()
+      .from(albums)
+      .where(
+        sql`EXISTS (SELECT 1 FROM downloads d INNER JOIN tracks t ON d.track_id = t.id WHERE t.album_id = ${albums.id} AND d.status = 'complete')`
+      )
+      .orderBy(asc(albums.title));
+  }
   return db.select().from(albums).orderBy(asc(albums.title));
 }
 
@@ -126,7 +145,17 @@ export async function upsertAlbums(rows: (typeof albums.$inferInsert)[]) {
 
 const DEFAULT_TRACK_LIMIT = 200;
 
-export async function getTracks(limit = DEFAULT_TRACK_LIMIT, offset = 0) {
+export async function getTracks(limit = DEFAULT_TRACK_LIMIT, offset = 0, offlineOnly = false) {
+  if (offlineOnly) {
+    return db
+      .select({ tracks })
+      .from(tracks)
+      .innerJoin(downloads, and(eq(downloads.trackId, tracks.id), eq(downloads.status, sql`'complete'`)))
+      .orderBy(asc(tracks.title))
+      .limit(limit)
+      .offset(offset)
+      .then((rows) => rows.map((r) => r.tracks));
+  }
   return db
     .select()
     .from(tracks)

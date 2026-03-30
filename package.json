@@ -18,6 +18,7 @@
     "expo-build-properties": "~55.0.10",
     "expo-constants": "~55.0.9",
     "expo-dev-client": "~55.0.19",
+    "expo-file-system": "~55.0.12",
     "expo-font": "~55.0.4",
     "expo-haptics": "~55.0.9",
     "expo-image": "~55.0.6",
@@ -54,7 +55,9 @@
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {
-        "exclude": ["react-native-track-player"]
+        "exclude": [
+          "react-native-track-player"
+        ]
       }
     }
   }

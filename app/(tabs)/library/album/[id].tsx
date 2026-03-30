@@ -7,6 +7,8 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useLibraryStore, type AlbumRow, type TrackRow as TrackRowType } from "@/src/stores/library";
 import { usePlaybackStore } from "@/src/stores/playback";
+import { useDownloadStore } from "@/src/stores/downloads";
+import { isTrackDownloaded, isTrackQueued } from "@/src/services/download-manager";
 import { useTrackActions } from "@/src/components/library/TrackActionSheet";
 import { toActionTarget } from "@/src/lib/track-actions";
 import { resolveArtworkUrl } from "@/src/lib/artwork";
@@ -18,6 +20,8 @@ export default function AlbumDetailScreen() {
   const { getAlbum, getTracksByAlbum, toggleFavourite } = useLibraryStore();
   const { playAlbum, shuffleAlbum, currentTrack } = usePlaybackStore();
   const { showTrackActions } = useTrackActions();
+  const { pinForOffline, unpinOffline, isPinned } = useDownloadStore();
+  const [isOfflinePinned, setIsOfflinePinned] = useState(false);
 
   const [album, setAlbum] = useState<AlbumRow>();
   const [tracks, setTracks] = useState<TrackRowType[]>([]);
@@ -26,6 +30,7 @@ export default function AlbumDetailScreen() {
     if (!id) return;
     getAlbum(id).then(setAlbum);
     getTracksByAlbum(id).then(setTracks);
+    isPinned("album", id).then(setIsOfflinePinned);
   }, [id]);
 
   const handleToggleFavourite = useCallback(
@@ -64,12 +69,30 @@ export default function AlbumDetailScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
           <View>
-            <Pressable
-              onPress={() => router.back()}
-              className="px-4 py-3"
-            >
-              <Ionicons name="chevron-back" size={26} color={colors.text} />
-            </Pressable>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 }}>
+              <Pressable onPress={() => router.back()}>
+                <Ionicons name="chevron-back" size={26} color={colors.text} />
+              </Pressable>
+              <Pressable
+                onPress={async () => {
+                  if (!id || !album) return;
+                  if (isOfflinePinned) {
+                    await unpinOffline("album", id);
+                    setIsOfflinePinned(false);
+                  } else {
+                    await pinForOffline("album", id, album.sourceId);
+                    setIsOfflinePinned(true);
+                  }
+                }}
+                style={{ padding: 8 }}
+              >
+                <Ionicons
+                  name={isOfflinePinned ? "cloud-done" : "cloud-download-outline"}
+                  size={22}
+                  color={isOfflinePinned ? colors.accent : colors.muted}
+                />
+              </Pressable>
+            </View>
 
             <View className="items-center px-8 mb-6">
               <View className="w-64 h-64 rounded-2xl bg-fermata-surface overflow-hidden shadow-lg">
@@ -107,6 +130,12 @@ export default function AlbumDetailScreen() {
               <Text className="text-sm text-fermata-text-secondary mt-1">
                 {album.year ? `${album.year} · ` : ""}
                 {tracks.length} {tracks.length === 1 ? "track" : "tracks"}
+                {isOfflinePinned && (() => {
+                  const dlCount = tracks.filter(t => isTrackDownloaded(t.id)).length;
+                  return dlCount < tracks.length
+                    ? ` · ${dlCount}/${tracks.length} downloaded`
+                    : " · Downloaded";
+                })()}
               </Text>
             </View>
 
@@ -143,6 +172,8 @@ export default function AlbumDetailScreen() {
               trackNumber={item.trackNumber}
               isPlaying={currentTrack?.id === item.id}
               isFavourite={!!item.isFavourite}
+              isDownloaded={isTrackDownloaded(item.id)}
+              isQueued={isTrackQueued(item.id)}
               onPress={() => id && playAlbum(id, index)}
               onMorePress={() => showTrackActions(trackToAction(item))}
               onToggleFavourite={() => handleToggleFavourite(item)}

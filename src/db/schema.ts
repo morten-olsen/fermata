@@ -137,6 +137,50 @@ export const playlistTracks = sqliteTable(
   ]
 );
 
+// ── Offline Downloads ─────────────────────────────────
+
+/** User intent: "I want this entity available offline" */
+export const offlinePins = sqliteTable(
+  "offline_pins",
+  {
+    id: text("id").primaryKey(),
+    entityType: text("entity_type").notNull(), // 'track' | 'album' | 'artist' | 'playlist'
+    entityId: text("entity_id").notNull(),
+    sourceId: text("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    createdAt: text("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("offline_pins_unique").on(table.entityType, table.entityId),
+    index("offline_pins_source_idx").on(table.sourceId),
+  ]
+);
+
+/** Per-track download state and file reference */
+export const downloads = sqliteTable(
+  "downloads",
+  {
+    trackId: text("track_id")
+      .primaryKey()
+      .references(() => tracks.id, { onDelete: "cascade" }),
+    sourceId: text("source_id")
+      .notNull()
+      .references(() => sources.id, { onDelete: "cascade" }),
+    status: text("status").notNull(), // 'pending' | 'downloading' | 'complete' | 'error'
+    filePath: text("file_path"),
+    fileSize: integer("file_size"),
+    downloadedAt: text("downloaded_at"),
+    syncedAt: text("synced_at"), // track's syncedAt at download time — for staleness detection
+    errorMessage: text("error_message"),
+    retryCount: integer("retry_count").default(0),
+  },
+  (table) => [
+    index("downloads_status_idx").on(table.status),
+    index("downloads_source_idx").on(table.sourceId),
+  ]
+);
+
 // ── Relations ──────────────────────────────────────────
 
 export const sourcesRelations = relations(sources, ({ many }) => ({
@@ -188,5 +232,16 @@ export const playlistTracksRelations = relations(playlistTracks, ({ one }) => ({
   track: one(tracks, {
     fields: [playlistTracks.trackId],
     references: [tracks.id],
+  }),
+}));
+
+export const downloadsRelations = relations(downloads, ({ one }) => ({
+  track: one(tracks, {
+    fields: [downloads.trackId],
+    references: [tracks.id],
+  }),
+  source: one(sources, {
+    fields: [downloads.sourceId],
+    references: [sources.id],
   }),
 }));

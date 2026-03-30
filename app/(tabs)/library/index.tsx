@@ -19,6 +19,7 @@ import { PlaylistRow } from "@/src/components/library/PlaylistRow";
 import { EmptyState } from "@/src/components/common/EmptyState";
 import { SegmentedControl } from "@/src/components/common/SegmentedControl";
 import { useTrackActions } from "@/src/components/library/TrackActionSheet";
+import { useDownloadStore } from "@/src/stores/downloads";
 import { toActionTarget } from "@/src/lib/track-actions";
 import { colors } from "@/src/theme";
 import type {
@@ -42,6 +43,7 @@ export default function LibraryScreen() {
   const { playTrack } = usePlaybackStore();
   const { getAllAdapters } = useSourcesStore();
   const { showTrackActions } = useTrackActions();
+  const { offlineMode, setOfflineMode } = useDownloadStore();
   const [selectedSegment, setSelectedSegment] = useState(0);
   const [tracks, setTracks] = useState<TrackRowType[]>([]);
 
@@ -129,10 +131,24 @@ export default function LibraryScreen() {
 
   const listHeader = (
     <View>
-      <View style={{ paddingHorizontal: 16 }}>
+      <View style={{ paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <Text className="text-3xl font-bold text-fermata-text mt-4 mb-4">
           Library
         </Text>
+        <Pressable
+          onPress={() => {
+            setOfflineMode(!offlineMode);
+            // Refresh library with new filter
+            refreshAll();
+          }}
+          style={{ padding: 8 }}
+        >
+          <Ionicons
+            name={offlineMode ? "cloud-offline" : "cloud-offline-outline"}
+            size={22}
+            color={offlineMode ? colors.accent : colors.muted}
+          />
+        </Pressable>
       </View>
 
       <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>

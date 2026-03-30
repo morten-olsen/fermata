@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSourcesStore } from "@/src/stores/sources";
 import { useSyncStore } from "@/src/stores/sync";
 import { useLibraryStore } from "@/src/stores/library";
+import { useDownloadStore } from "@/src/stores/downloads";
 import { colors } from "@/src/theme";
 
 function SettingsRow({
@@ -52,6 +53,7 @@ export default function SettingsScreen() {
   const { sources, removeSource, getAllAdapters } = useSourcesStore();
   const { isSyncing, progress, syncAll } = useSyncStore();
   const { stats, refreshAll } = useLibraryStore();
+  const { stats: dlStats, removeAll: removeAllDownloads, retryFailed, refreshStats: refreshDlStats } = useDownloadStore();
 
   const handleSync = async () => {
     await syncAll(getAllAdapters());
@@ -141,6 +143,44 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Downloads section */}
+        <Text className="text-sm font-medium text-fermata-text-secondary uppercase tracking-wider mb-2 ml-1 mt-6">
+          Downloads
+        </Text>
+
+        <View className="bg-fermata-surface rounded-xl px-4 py-4 mb-2">
+          <View className="flex-row justify-between">
+            <StatItem label="Downloaded" value={dlStats.completedTracks} />
+            <StatItem label="Pending" value={dlStats.pendingTracks} />
+            <StatItem label="Failed" value={dlStats.errorTracks} />
+            <StatItem
+              label="Storage"
+              value={0}
+              formatted={formatBytes(dlStats.totalBytes)}
+            />
+          </View>
+        </View>
+
+        {dlStats.errorTracks > 0 && (
+          <SettingsRow
+            icon="refresh-outline"
+            label="Retry Failed Downloads"
+            onPress={async () => {
+              await retryFailed();
+              refreshDlStats();
+            }}
+          />
+        )}
+
+        {dlStats.completedTracks > 0 && (
+          <SettingsRow
+            icon="trash-outline"
+            label="Remove All Downloads"
+            onPress={removeAllDownloads}
+            destructive
+          />
+        )}
+
         {/* Output section */}
         <Text className="text-sm font-medium text-fermata-text-secondary uppercase tracking-wider mb-2 ml-1 mt-6">
           Output
@@ -161,13 +201,30 @@ export default function SettingsScreen() {
   );
 }
 
-function StatItem({ label, value }: { label: string; value: number }) {
+function StatItem({
+  label,
+  value,
+  formatted,
+}: {
+  label: string;
+  value: number;
+  formatted?: string;
+}) {
   return (
     <View className="items-center">
       <Text className="text-fermata-text text-lg font-semibold">
-        {value.toLocaleString()}
+        {formatted ?? value.toLocaleString()}
       </Text>
       <Text className="text-fermata-text-secondary text-xs">{label}</Text>
     </View>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes < 1024 * 1024 * 1024)
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }

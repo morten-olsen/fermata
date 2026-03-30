@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { getTrack, getTracksByAlbum } from "../db/queries";
 import type { SourceAdapter } from "../adapters/sources/types";
+import { getDownloadedFilePath } from "../services/download-manager";
 import { log, warn, error as logError } from "../lib/log";
 
 /** Fisher-Yates shuffle — uniform distribution, unlike sort(Math.random) */
@@ -362,19 +363,31 @@ export function setAdapterResolver(
 }
 
 function toRNTrack(queueTrack: QueueTrack) {
+  // Prefer local downloaded file over streaming
+  const localPath = getDownloadedFilePath(queueTrack.id);
+  if (localPath) {
+    const adapter = resolveAdapter(queueTrack.sourceId);
+    return {
+      id: queueTrack.id,
+      url: localPath,
+      title: queueTrack.title,
+      artist: queueTrack.artistName,
+      album: queueTrack.albumTitle,
+      artwork: adapter?.getArtworkUrl(queueTrack.sourceItemId, "medium"),
+      duration: queueTrack.duration,
+    };
+  }
+
+  // Fall back to streaming
   const adapter = resolveAdapter(queueTrack.sourceId);
   if (!adapter) {
-    console.warn(
-      "[Fermata] toRNTrack: no adapter for source:",
-      queueTrack.sourceId
-    );
+    warn("toRNTrack: no adapter for source:", queueTrack.sourceId);
     return null;
   }
 
-  const url = adapter.getStreamUrl(queueTrack.sourceItemId);
   return {
     id: queueTrack.id,
-    url,
+    url: adapter.getStreamUrl(queueTrack.sourceItemId),
     title: queueTrack.title,
     artist: queueTrack.artistName,
     album: queueTrack.albumTitle,

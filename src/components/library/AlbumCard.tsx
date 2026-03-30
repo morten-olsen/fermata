@@ -11,6 +11,7 @@ interface AlbumCardProps {
   year?: number | null;
   sourceId: string;
   artworkSourceItemId: string | null;
+  isDownloaded?: boolean;
   onPress: () => void;
 }
 
@@ -20,6 +21,7 @@ export function AlbumCard({
   year,
   sourceId,
   artworkSourceItemId,
+  isDownloaded,
   onPress,
 }: AlbumCardProps) {
   const artworkUrl = resolveArtworkUrl(sourceId, artworkSourceItemId);
@@ -37,6 +39,21 @@ export function AlbumCard({
         ) : (
           <View className="flex-1 items-center justify-center">
             <Ionicons name="disc" size={40} color={colors.muted} />
+          </View>
+        )}
+        {/* Download indicator */}
+        {isDownloaded && (
+          <View
+            style={{
+              position: "absolute",
+              bottom: 6,
+              right: 6,
+              backgroundColor: "rgba(0,0,0,0.6)",
+              borderRadius: 10,
+              padding: 3,
+            }}
+          >
+            <Ionicons name="cloud-done" size={12} color={colors.accent} />
           </View>
         )}
       </View>

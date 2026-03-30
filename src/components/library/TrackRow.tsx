@@ -11,6 +11,8 @@ interface TrackRowProps {
   trackNumber?: number | null;
   isPlaying?: boolean;
   isFavourite?: boolean;
+  isDownloaded?: boolean;
+  isQueued?: boolean;
   onPress: () => void;
   onMorePress?: () => void;
   onToggleFavourite?: () => void;
@@ -23,6 +25,8 @@ export function TrackRow({
   trackNumber,
   isPlaying,
   isFavourite,
+  isDownloaded,
+  isQueued,
   onPress,
   onMorePress,
   onToggleFavourite,
@@ -69,6 +73,13 @@ export function TrackRow({
           {artistName}
         </Text>
       </View>
+
+      {/* Download status indicator */}
+      {isDownloaded ? (
+        <Ionicons name="cloud-done" size={12} color={colors.muted} style={{ marginLeft: 4 }} />
+      ) : isQueued ? (
+        <Ionicons name="cloud-download-outline" size={12} color={colors.border} style={{ marginLeft: 4 }} />
+      ) : null}
 
       {/* Favourite heart — only shown when favourited */}
       {isFavourite && onToggleFavourite && (

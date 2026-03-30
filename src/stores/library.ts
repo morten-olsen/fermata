@@ -84,12 +84,16 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   isLoading: false,
 
   loadAlbums: async () => {
-    const albums = await getAllAlbums();
+    const { useDownloadStore } = await import("./downloads");
+    const offline = useDownloadStore.getState().offlineMode;
+    const albums = await getAllAlbums(offline);
     set({ albums });
   },
 
   loadArtists: async () => {
-    const artists = await getAllArtists();
+    const { useDownloadStore } = await import("./downloads");
+    const offline = useDownloadStore.getState().offlineMode;
+    const artists = await getAllArtists(offline);
     set({ artists });
   },
 
@@ -106,9 +110,11 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   refreshAll: async () => {
     set({ isLoading: true });
     try {
+      const { useDownloadStore } = await import("./downloads");
+      const offline = useDownloadStore.getState().offlineMode;
       const [albums, artists, playlists, stats] = await Promise.all([
-        getAllAlbums(),
-        getAllArtists(),
+        getAllAlbums(offline),
+        getAllArtists(offline),
         getAllPlaylistsWithCount(),
         getLibraryStats(),
       ]);
