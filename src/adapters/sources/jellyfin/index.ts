@@ -1,0 +1,1 @@
+export { JellyfinAdapter } from "./adapter";

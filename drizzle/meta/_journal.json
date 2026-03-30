@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1774798045139,
+      "tag": "0000_light_baron_zemo",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1774886385858,
+      "tag": "0001_faithful_randall_flagg",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1774900000000,
+      "tag": "0002_replace_mixtapes_with_playlists",
+      "breakpoints": true
+    }
+  ]
+}

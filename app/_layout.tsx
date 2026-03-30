@@ -1,59 +1,94 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import "../global.css";
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { ThemeProvider } from "@react-navigation/native";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import { View, ActivityIndicator, Text } from "react-native";
+import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
+import { fermataTheme } from "@/src/theme";
+import { db } from "@/src/db/client";
+import migrations from "@/drizzle/migrations";
+import { useSourcesStore } from "@/src/stores/sources";
+import { usePlaybackStore, setAdapterResolver } from "@/src/stores/playback";
+import { TrackActionsProvider } from "@/src/components/library/TrackActionSheet";
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+// Register background playback service (safe if native module missing)
+try {
+  const TrackPlayer = require("react-native-track-player").default;
+  TrackPlayer.registerPlaybackService(() =>
+    require("@/src/services/playback-service").PlaybackService
+  );
+} catch {
+  // Track Player not available (Expo Go) — audio features disabled
+}
+
+export { ErrorBoundary } from "expo-router";
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
+  initialRouteName: "(tabs)",
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+  const { success, error } = useMigrations(db, migrations);
+  const loadSources = useSourcesStore((s) => s.loadSources);
+  const initializePlayer = usePlaybackStore((s) => s.initialize);
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    if (success) {
+      Promise.all([loadSources(), initializePlayer()]).then(() => {
+        // Wire adapter resolver so playback store can resolve stream URLs
+        // without importing sources store directly
+        setAdapterResolver((sourceId) =>
+          useSourcesStore.getState().getAdapter(sourceId)
+        );
+        SplashScreen.hideAsync();
+      });
     }
-  }, [loaded]);
+  }, [success]);
 
-  if (!loaded) {
-    return null;
+  if (error) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#0A0A0B", alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ color: "#E8E8ED", fontSize: 16 }}>
+          Database error: {error.message}
+        </Text>
+      </View>
+    );
   }
 
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  if (!success) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#0A0A0B", alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color="#D4A0FF" />
+      </View>
+    );
+  }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
+    <ThemeProvider value={fermataTheme}>
+      <TrackActionsProvider>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: fermataTheme.colors.background },
+          }}
+        >
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="player"
+            options={{
+              presentation: "modal",
+              animation: "slide_from_bottom",
+            }}
+          />
+        </Stack>
+      </TrackActionsProvider>
+      <StatusBar style="light" />
     </ThemeProvider>
   );
 }

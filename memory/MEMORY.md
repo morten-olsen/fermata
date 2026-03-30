@@ -1,0 +1,1 @@
+- [project_fermata.md](project_fermata.md) — Fermata project overview, core identity, and design north star

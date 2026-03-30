@@ -1,0 +1,1 @@
+ALTER TABLE `tracks` ADD `is_favourite` integer DEFAULT 0;
