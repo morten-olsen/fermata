@@ -1,30 +1,33 @@
 import "../global.css";
 
+import { useEffect } from "react";
+import { View, ActivityIndicator, Text } from "react-native";
+
 import { ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
-import { View, ActivityIndicator, Text } from "react-native";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
-import { fermataTheme } from "@/src/theme";
-import { db } from "@/src/db/client";
+
+import { useSourcesStore } from "@/src/features/sources/sources";
+import { usePlaybackStore, setAdapterResolver , PlayerOverlay } from "@/src/features/playback/playback";
+import { useDownloadStore, setDownloadAdapterResolver } from "@/src/features/downloads/downloads";
+import { TrackActionsProvider } from "@/src/features/library/library";
+import { initArtworkCache } from "@/src/features/artwork/artwork";
+
 import migrations from "@/drizzle/migrations";
-import { useSourcesStore } from "@/src/stores/sources";
-import { usePlaybackStore, setAdapterResolver } from "@/src/stores/playback";
-import { useDownloadStore } from "@/src/stores/downloads";
-import { setDownloadAdapterResolver } from "@/src/services/download-manager";
-import { TrackActionsProvider } from "@/src/components/library/TrackActionSheet";
-import { PlayerOverlay } from "@/src/components/player/PlayerOverlay";
-import { initArtworkCache } from "@/src/services/artwork-cache";
+
+import { db } from "@/src/shared/db/db.client";
+import { fermataTheme } from "@/src/shared/theme/theme";
 
 // Register background playback service once (safe if native module missing)
 let _playbackServiceRegistered = false;
 if (!_playbackServiceRegistered) {
   try {
     const TrackPlayer = require("react-native-track-player").default;
-    TrackPlayer.registerPlaybackService(() =>
-      require("@/src/services/playback-service").PlaybackService
+    TrackPlayer.registerPlaybackService(
+      // eslint-disable-next-line boundaries/dependencies -- RNTP requires direct module path for service registration
+      () => require("@/src/features/playback/playback.service").PlaybackService
     );
     _playbackServiceRegistered = true;
   } catch {

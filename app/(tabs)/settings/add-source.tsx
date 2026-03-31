@@ -8,14 +8,16 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useSourcesStore } from "@/src/stores/sources";
-import { useSyncStore } from "@/src/stores/sync";
-import { useLibraryStore } from "@/src/stores/library";
-import { colors } from "@/src/theme";
+import { useSourcesStore } from "@/src/features/sources/sources";
+import { useSyncStore } from "@/src/features/sync/sync";
+import { useLibraryStore } from "@/src/features/library/library";
+
+import { colors } from "@/src/shared/theme/theme";
 
 export default function AddSourceScreen() {
   const addSource = useSourcesStore((s) => s.addSource);

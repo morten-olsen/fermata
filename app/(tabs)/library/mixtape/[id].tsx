@@ -1,23 +1,24 @@
 import { useCallback, useEffect, useMemo, useState, memo } from "react";
 import { View, Text, FlatList, Pressable, Alert } from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import Animated, { FadeInRight } from "react-native-reanimated";
-
 import { useShallow } from "zustand/react/shallow";
+
 import {
   useLibraryStore,
-  type PlaylistDetail,
-  type PlaylistTrackRow,
-} from "@/src/stores/library";
-import { usePlaybackStore } from "@/src/stores/playback";
-import { PressableScale } from "@/src/components/common/PressableScale";
-import { TrackRow } from "@/src/components/library/TrackRow";
-import { useTrackActions } from "@/src/components/library/TrackActionSheet";
-import { toActionTarget } from "@/src/lib/track-actions";
-import { colors } from "@/src/theme";
+  TrackRow,
+  useTrackActions,
+  toActionTarget,
+} from "@/src/features/library/library";
+import type { PlaylistDetail, PlaylistTrackRow } from "@/src/features/library/library";
+import { usePlaybackStore } from "@/src/features/playback/playback";
+
+import { PressableScale } from "@/src/shared/components/pressable-scale";
+import { colors } from "@/src/shared/theme/theme";
 
 export default function PlaylistDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

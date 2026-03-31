@@ -5,27 +5,31 @@ import {
   FlatList,
   Pressable,
 } from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useLibraryStore } from "@/src/stores/library";
-import { useSourcesStore } from "@/src/stores/sources";
-import { usePlaybackStore } from "@/src/stores/playback";
-import { AlbumGrid } from "@/src/components/library/AlbumGrid";
-import { ArtistSectionList } from "@/src/components/library/ArtistSectionList";
-import { TrackList } from "@/src/components/library/TrackList";
-import { PlaylistRow } from "@/src/components/library/PlaylistRow";
-import { EmptyState } from "@/src/components/common/EmptyState";
-import { SegmentedControl } from "@/src/components/common/SegmentedControl";
-import { useTrackActions } from "@/src/components/library/TrackActionSheet";
-import { useDownloadStore } from "@/src/stores/downloads";
-import { toActionTarget } from "@/src/lib/track-actions";
-import { colors } from "@/src/theme";
+import {
+  useLibraryStore,
+  AlbumGrid,
+  ArtistSectionList,
+  TrackList,
+  PlaylistRow,
+  useTrackActions,
+  toActionTarget,
+} from "@/src/features/library/library";
 import type {
-  TrackRow as TrackRowType,
-  PlaylistRow as PlaylistRowType,
-} from "@/src/stores/library";
+  TrackRowType,
+  PlaylistRowType,
+} from "@/src/features/library/library";
+import { useSourcesStore } from "@/src/features/sources/sources";
+import { usePlaybackStore } from "@/src/features/playback/playback";
+import { useDownloadStore } from "@/src/features/downloads/downloads";
+
+import { colors } from "@/src/shared/theme/theme";
+import { SegmentedControl } from "@/src/shared/components/segmented-control";
+import { EmptyState } from "@/src/shared/components/empty-state";
 
 const SEGMENTS = ["Albums", "Artists", "Playlists", "Tracks"];
 

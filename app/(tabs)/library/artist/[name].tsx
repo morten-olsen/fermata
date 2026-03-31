@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { View, Text, Pressable } from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useLibraryStore, type AlbumRow } from "@/src/stores/library";
-import { AlbumGrid } from "@/src/components/library/AlbumGrid";
-import { colors } from "@/src/theme";
+import { useLibraryStore, AlbumGrid } from "@/src/features/library/library";
+import type { AlbumRow } from "@/src/features/library/library";
+
+import { colors } from "@/src/shared/theme/theme";
 
 export default function ArtistDetailScreen() {
   const { name } = useLocalSearchParams<{ name: string }>();

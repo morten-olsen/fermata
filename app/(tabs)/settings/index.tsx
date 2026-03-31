@@ -1,14 +1,16 @@
 import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-
 import { useShallow } from "zustand/react/shallow";
-import { useSourcesStore } from "@/src/stores/sources";
-import { useSyncStore } from "@/src/stores/sync";
-import { useLibraryStore } from "@/src/stores/library";
-import { useDownloadStore } from "@/src/stores/downloads";
-import { colors } from "@/src/theme";
+
+import { useSourcesStore } from "@/src/features/sources/sources";
+import { useSyncStore } from "@/src/features/sync/sync";
+import { useLibraryStore } from "@/src/features/library/library";
+import { useDownloadStore } from "@/src/features/downloads/downloads";
+
+import { colors } from "@/src/shared/theme/theme";
 
 function SettingsRow({
   icon,

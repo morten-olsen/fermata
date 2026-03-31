@@ -1,21 +1,25 @@
 import { useEffect, useState, useCallback, memo } from "react";
 import { View, Text, FlatList, Pressable } from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-
 import { useShallow } from "zustand/react/shallow";
-import { useLibraryStore, type AlbumRow, type TrackRow as TrackRowType } from "@/src/stores/library";
-import { usePlaybackStore } from "@/src/stores/playback";
-import { useDownloadStore } from "@/src/stores/downloads";
-import { isTrackDownloaded, isTrackQueued } from "@/src/services/download-manager";
-import { useTrackActions } from "@/src/components/library/TrackActionSheet";
-import { toActionTarget } from "@/src/lib/track-actions";
-import { resolveArtworkUrl } from "@/src/lib/artwork";
-import { PressableScale } from "@/src/components/common/PressableScale";
-import { TrackRow } from "@/src/components/library/TrackRow";
-import { colors } from "@/src/theme";
+
+import {
+  useLibraryStore,
+  TrackRow,
+  useTrackActions,
+  toActionTarget,
+} from "@/src/features/library/library";
+import type { AlbumRow, TrackRowType } from "@/src/features/library/library";
+import { usePlaybackStore } from "@/src/features/playback/playback";
+import { useDownloadStore, isTrackDownloaded, isTrackQueued } from "@/src/features/downloads/downloads";
+import { resolveArtworkUrl } from "@/src/features/artwork/artwork";
+
+import { PressableScale } from "@/src/shared/components/pressable-scale";
+import { colors } from "@/src/shared/theme/theme";
 
 export default function AlbumDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -188,7 +192,7 @@ export default function AlbumDetailScreen() {
           <AlbumTrackItem
             item={item}
             index={index}
-            albumId={id!}
+            albumId={id}
             currentTrackId={currentTrack?.id}
             playAlbum={playAlbum}
             showTrackActions={showTrackActions}

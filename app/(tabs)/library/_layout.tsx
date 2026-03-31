@@ -1,5 +1,6 @@
 import { Stack } from "expo-router";
-import { colors } from "@/src/theme";
+
+import { colors } from "@/src/shared/theme/theme";
 
 export default function LibraryLayout() {
   return (

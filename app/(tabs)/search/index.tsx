@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, TextInput, FlatList, SectionList, Pressable } from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useLibraryStore, type AlbumRow, type ArtistRow as ArtistRowType, type TrackRow as TrackRowType } from "@/src/stores/library";
-import { usePlaybackStore } from "@/src/stores/playback";
-import { AlbumCard } from "@/src/components/library/AlbumCard";
-import { ArtistRow } from "@/src/components/library/ArtistRow";
-import { TrackRow } from "@/src/components/library/TrackRow";
-import { EmptyState } from "@/src/components/common/EmptyState";
-import { useTrackActions } from "@/src/components/library/TrackActionSheet";
-import { toActionTarget } from "@/src/lib/track-actions";
-import { colors } from "@/src/theme";
+import { useLibraryStore, type AlbumRow, type ArtistRowType, type TrackRowType, AlbumCard, ArtistRow, TrackRow, useTrackActions, toActionTarget } from "@/src/features/library/library";
+import { usePlaybackStore } from "@/src/features/playback/playback";
+
+import { EmptyState } from "@/src/shared/components/empty-state";
+import { colors } from "@/src/shared/theme/theme";
 
 interface SearchResults {
   artists: ArtistRowType[];
