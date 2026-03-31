@@ -17,35 +17,44 @@ export function Slider({
   fillColor = colors.text,
 }: SliderProps) {
   const layoutRef = useRef({ x: 0, width: 0 });
+  const trackRef = useRef<View>(null);
   const callbackRef = useRef(onValueChange);
   callbackRef.current = onValueChange;
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
   const calcValue = (pageX: number) => {
     const { x, width } = layoutRef.current;
-    if (width === 0) return value;
+    if (width === 0) return valueRef.current;
     return Math.max(0, Math.min(1, (pageX - x) / width));
+  };
+
+  const measure = () => {
+    trackRef.current?.measureInWindow((x, _y, w) => {
+      if (w > 0) layoutRef.current = { x, width: w };
+    });
   };
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) =>
-        callbackRef.current(calcValue(e.nativeEvent.pageX)),
+      onPanResponderGrant: (e) => {
+        // Re-measure on every touch — handles animated/scrolled containers
+        measure();
+        callbackRef.current(calcValue(e.nativeEvent.pageX));
+      },
       onPanResponderMove: (e) =>
         callbackRef.current(calcValue(e.nativeEvent.pageX)),
-    })
+    }),
   ).current;
 
   const pct = Math.round(value * 100);
 
   return (
     <View
-      onLayout={(e) => {
-        e.target.measureInWindow((x, _y, w) => {
-          layoutRef.current = { x, width: w };
-        });
-      }}
+      ref={trackRef}
+      onLayout={measure}
       style={{ height: 44, justifyContent: "center" }}
       {...panResponder.panHandlers}
     >
