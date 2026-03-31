@@ -143,25 +143,23 @@ export async function upsertAlbums(rows: (typeof albums.$inferInsert)[]) {
 
 // ── Tracks ─────────────────────────────────────────────
 
-const DEFAULT_TRACK_LIMIT = 200;
-
-export async function getTracks(limit = DEFAULT_TRACK_LIMIT, offset = 0, offlineOnly = false) {
+export async function getTracks(limit?: number, offset = 0, offlineOnly = false) {
   if (offlineOnly) {
-    return db
+    const q = db
       .select({ tracks })
       .from(tracks)
       .innerJoin(downloads, and(eq(downloads.trackId, tracks.id), eq(downloads.status, sql`'complete'`)))
       .orderBy(asc(tracks.title))
-      .limit(limit)
-      .offset(offset)
-      .then((rows) => rows.map((r) => r.tracks));
+      .offset(offset);
+    const rows = limit != null ? await q.limit(limit) : await q;
+    return rows.map((r) => r.tracks);
   }
-  return db
+  const q = db
     .select()
     .from(tracks)
     .orderBy(asc(tracks.title))
-    .limit(limit)
     .offset(offset);
+  return limit != null ? q.limit(limit) : q;
 }
 
 export async function getTracksByAlbum(albumId: string) {

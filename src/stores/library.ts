@@ -30,6 +30,7 @@ type PlaylistTrackRow = Awaited<ReturnType<typeof getPlaylistTracks>>[number];
 interface LibraryState {
   albums: AlbumRow[];
   artists: ArtistRow[];
+  tracks: TrackRow[];
   playlists: PlaylistRow[];
   stats: {
     artists: number;
@@ -42,6 +43,7 @@ interface LibraryState {
 
   loadAlbums: () => Promise<void>;
   loadArtists: () => Promise<void>;
+  loadTracks: () => Promise<void>;
   loadPlaylists: () => Promise<void>;
   loadStats: () => Promise<void>;
   refreshAll: () => Promise<void>;
@@ -50,7 +52,6 @@ interface LibraryState {
   getAlbum: (id: string) => Promise<AlbumRow | undefined>;
   getAlbumsByArtist: (artistName: string) => Promise<AlbumRow[]>;
   getTracksByAlbum: (albumId: string) => Promise<TrackRow[]>;
-  getTracks: (limit?: number, offset?: number) => Promise<TrackRow[]>;
   getPlaylist: (id: string) => Promise<PlaylistDetail | undefined>;
   getPlaylistTracks: (playlistId: string) => Promise<PlaylistTrackRow[]>;
 
@@ -79,6 +80,7 @@ interface LibraryState {
 export const useLibraryStore = create<LibraryState>((set, get) => ({
   albums: [],
   artists: [],
+  tracks: [],
   playlists: [],
   stats: { artists: 0, albums: 0, tracks: 0, playlists: 0, mixTapes: 0 },
   isLoading: false,
@@ -97,6 +99,13 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     set({ artists });
   },
 
+  loadTracks: async () => {
+    const { useDownloadStore } = await import("./downloads");
+    const offline = useDownloadStore.getState().offlineMode;
+    const tracks = await getTracks(undefined, undefined, offline);
+    set({ tracks });
+  },
+
   loadPlaylists: async () => {
     const playlists = await getAllPlaylistsWithCount();
     set({ playlists });
@@ -112,13 +121,14 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     try {
       const { useDownloadStore } = await import("./downloads");
       const offline = useDownloadStore.getState().offlineMode;
-      const [albums, artists, playlists, stats] = await Promise.all([
+      const [albums, artists, tracks, playlists, stats] = await Promise.all([
         getAllAlbums(offline),
         getAllArtists(offline),
+        getTracks(undefined, undefined, offline),
         getAllPlaylistsWithCount(),
         getLibraryStats(),
       ]);
-      set({ albums, artists, playlists, stats });
+      set({ albums, artists, tracks, playlists, stats });
     } finally {
       set({ isLoading: false });
     }
@@ -128,7 +138,6 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   getAlbum: (id) => getAlbum(id),
   getAlbumsByArtist: (artistName) => getAlbumsByArtist(artistName),
   getTracksByAlbum: (albumId) => getTracksByAlbum(albumId),
-  getTracks: (limit, offset) => getTracks(limit, offset),
   getPlaylist: (id) => getPlaylist(id),
   getPlaylistTracks: (playlistId) => getPlaylistTracks(playlistId),
 

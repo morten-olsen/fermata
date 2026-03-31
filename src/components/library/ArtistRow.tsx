@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { View, Text } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,7 +13,7 @@ interface ArtistRowProps {
   onPress: () => void;
 }
 
-export function ArtistRow({
+export const ArtistRow = memo(function ArtistRow({
   name,
   sourceId,
   artworkSourceItemId,
@@ -48,4 +49,4 @@ export function ArtistRow({
       <Ionicons name="chevron-forward" size={18} color={colors.muted} />
     </PressableScale>
   );
-}
+});

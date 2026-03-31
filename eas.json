@@ -8,11 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
-      "android": {
-        "applicationId": "app.fermata.dev"
-      },
-      "ios": {
-        "bundleIdentifier": "app.fermata.dev"
+      "env": {
+        "APP_VARIANT": "development"
       }
     },
     "preview": {

@@ -9,7 +9,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useShallow } from "zustand/react/shallow";
 import { useLibraryStore } from "@/src/stores/library";
 import { useSourcesStore } from "@/src/stores/sources";
 import { usePlaybackStore } from "@/src/stores/playback";
@@ -31,39 +30,28 @@ import type {
 const SEGMENTS = ["Albums", "Artists", "Playlists", "Tracks"];
 
 export default function LibraryScreen() {
-  const {
-    albums, artists, playlists, stats,
-    refreshAll, getTracks, createPlaylist, toggleFavourite,
-  } = useLibraryStore(
-    useShallow((s) => ({
-      albums: s.albums,
-      artists: s.artists,
-      playlists: s.playlists,
-      stats: s.stats,
-      refreshAll: s.refreshAll,
-      getTracks: s.getTracks,
-      createPlaylist: s.createPlaylist,
-      toggleFavourite: s.toggleFavourite,
-    })),
-  );
+  const [selectedSegment, setSelectedSegment] = useState(0);
+
+  // Each segment subscribes only to its own data slice — switching segments
+  // doesn't cause unrelated data to trigger re-renders.
+  const albums = useLibraryStore((s) => s.albums);
+  const artists = useLibraryStore((s) => s.artists);
+  const tracks = useLibraryStore((s) => s.tracks);
+  const playlists = useLibraryStore((s) => s.playlists);
+  const stats = useLibraryStore((s) => s.stats);
+  const refreshAll = useLibraryStore((s) => s.refreshAll);
+  const createPlaylist = useLibraryStore((s) => s.createPlaylist);
+  const toggleFavourite = useLibraryStore((s) => s.toggleFavourite);
+
   const playTrack = usePlaybackStore((s) => s.playTrack);
   const getAllAdapters = useSourcesStore((s) => s.getAllAdapters);
   const { showTrackActions } = useTrackActions();
-  const { offlineMode, setOfflineMode } = useDownloadStore(
-    useShallow((s) => ({ offlineMode: s.offlineMode, setOfflineMode: s.setOfflineMode })),
-  );
-  const [selectedSegment, setSelectedSegment] = useState(0);
-  const [tracks, setTracks] = useState<TrackRowType[]>([]);
+  const offlineMode = useDownloadStore((s) => s.offlineMode);
+  const setOfflineMode = useDownloadStore((s) => s.setOfflineMode);
 
   useEffect(() => {
     refreshAll();
   }, []);
-
-  useEffect(() => {
-    if (selectedSegment === 3) {
-      getTracks(200, 0).then(setTracks);
-    }
-  }, [selectedSegment]);
 
   const handleAlbumPress = useCallback(
     (id: string) =>
@@ -106,12 +94,9 @@ export default function LibraryScreen() {
 
   const handleTrackToggleFavourite = useCallback(
     async (item: TrackRowType) => {
-      const newVal = await toggleFavourite(item.id);
-      setTracks((prev) =>
-        prev.map((t) =>
-          t.id === item.id ? { ...t, isFavourite: newVal ? 1 : 0 } : t
-        )
-      );
+      await toggleFavourite(item.id);
+      // Reload tracks to reflect the new favourite state
+      useLibraryStore.getState().loadTracks();
     },
     [toggleFavourite]
   );

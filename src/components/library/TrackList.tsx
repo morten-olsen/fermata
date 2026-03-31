@@ -3,6 +3,7 @@ import { View, FlatList, StyleProp, ViewStyle } from "react-native";
 import { TrackRow } from "./TrackRow";
 import { AlphabetScrubber } from "@/src/components/common/AlphabetScrubber";
 import { extractLetters } from "@/src/lib/alphabet";
+import { usePlaybackStore } from "@/src/stores/playback";
 import type { TrackRow as TrackRowType } from "@/src/stores/library";
 
 const TRACK_ROW_HEIGHT = 56;
@@ -13,7 +14,6 @@ interface TrackListProps {
   onTrackPress: (trackId: string) => void;
   onTrackMorePress?: (track: TrackRowType) => void;
   onToggleFavourite?: (track: TrackRowType) => void;
-  currentTrackId?: string | null;
   ListHeaderComponent?: ReactElement;
   style?: StyleProp<ViewStyle>;
 }
@@ -23,7 +23,6 @@ export function TrackList({
   onTrackPress,
   onTrackMorePress,
   onToggleFavourite,
-  currentTrackId,
   ListHeaderComponent,
   style,
 }: TrackListProps) {
@@ -55,13 +54,12 @@ export function TrackList({
     ({ item }: { item: TrackRowType }) => (
       <TrackListItem
         item={item}
-        isPlaying={currentTrackId === item.id}
         onTrackPress={onTrackPress}
         onTrackMorePress={onTrackMorePress}
         onToggleFavourite={onToggleFavourite}
       />
     ),
-    [onTrackPress, onTrackMorePress, onToggleFavourite, currentTrackId]
+    [onTrackPress, onTrackMorePress, onToggleFavourite]
   );
 
   return (
@@ -100,20 +98,23 @@ const getTrackItemLayout = (_data: unknown, index: number) => ({
   index,
 });
 
-/** Memoized wrapper — holds callbacks stable per item so TrackRow's memo is effective */
+/**
+ * Each item subscribes to currentTrack.id directly from the playback store.
+ * Only the row that starts/stops playing re-renders — not the entire list.
+ */
 const TrackListItem = memo(function TrackListItem({
   item,
-  isPlaying,
   onTrackPress,
   onTrackMorePress,
   onToggleFavourite,
 }: {
   item: TrackRowType;
-  isPlaying: boolean;
   onTrackPress: (trackId: string) => void;
   onTrackMorePress?: (track: TrackRowType) => void;
   onToggleFavourite?: (track: TrackRowType) => void;
 }) {
+  const isPlaying = usePlaybackStore((s) => s.currentTrack?.id === item.id);
+
   const handlePress = useCallback(() => onTrackPress(item.id), [onTrackPress, item.id]);
   const handleMore = useCallback(
     () => onTrackMorePress?.(item),

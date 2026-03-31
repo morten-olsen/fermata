@@ -86,6 +86,15 @@ export function AlbumGrid({
     [onAlbumPress, scrollY, headerHeight],
   );
 
+  const getItemLayout = useCallback(
+    (_data: unknown, index: number) => ({
+      length: ROW_HEIGHT,
+      offset: headerHeight + index * ROW_HEIGHT,
+      index,
+    }),
+    [headerHeight],
+  );
+
   const wrappedHeader = ListHeaderComponent ? (
     <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
       {ListHeaderComponent}
@@ -101,6 +110,7 @@ export function AlbumGrid({
         data={albums}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        getItemLayout={getItemLayout}
         numColumns={COLUMNS}
         columnWrapperStyle={{ gap: GAP }}
         showsVerticalScrollIndicator={false}
