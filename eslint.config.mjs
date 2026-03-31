@@ -1,3 +1,6 @@
+// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
+import storybook from "eslint-plugin-storybook";
+
 import eslint from "@eslint/js";
 import boundaries from "eslint-plugin-boundaries";
 import importPlugin from "eslint-plugin-import";
@@ -36,13 +39,11 @@ export default tseslint.config(
       "expo-env.d.ts",
     ],
   },
-
   // ---------------------------------------------------------------------------
   // Base: ESLint recommended + TypeScript strict
   // ---------------------------------------------------------------------------
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
-
   // ---------------------------------------------------------------------------
   // Language & parser options (all TS/TSX files)
   // ---------------------------------------------------------------------------
@@ -64,7 +65,6 @@ export default tseslint.config(
       react: { version: "detect" },
     },
   },
-
   // ---------------------------------------------------------------------------
   // React & React Hooks
   // ---------------------------------------------------------------------------
@@ -105,7 +105,6 @@ export default tseslint.config(
       ],
     },
   },
-
   // ---------------------------------------------------------------------------
   // Import ordering & hygiene
   // ---------------------------------------------------------------------------
@@ -168,7 +167,6 @@ export default tseslint.config(
       "import/no-duplicates": "error",
     },
   },
-
   // ---------------------------------------------------------------------------
   // Allow default exports in screens (Expo Router requires them)
   // and in app.config.ts
@@ -179,7 +177,6 @@ export default tseslint.config(
       "import/no-default-export": "off",
     },
   },
-
   // ---------------------------------------------------------------------------
   // Feature boundaries — barrel import & dependency graph enforcement
   //
@@ -376,7 +373,6 @@ export default tseslint.config(
       ],
     },
   },
-
   // ---------------------------------------------------------------------------
   // TypeScript rules
   // ---------------------------------------------------------------------------
@@ -431,7 +427,6 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-return": "warn",
     },
   },
-
   // ---------------------------------------------------------------------------
   // General rules
   // ---------------------------------------------------------------------------
@@ -459,4 +454,5 @@ export default tseslint.config(
       "no-var": "error",
     },
   },
+  storybook.configs["flat/recommended"]
 );
