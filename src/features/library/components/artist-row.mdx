@@ -1,0 +1,66 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as ArtistRowStories from "./artist-row.stories";
+
+<Meta of={ArtistRowStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# ArtistRow
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  An artist entry in the Artists list — circular thumbnail, name, and disclosure chevron.
+</p>
+
+<Canvas of={ArtistRowStories.ArtistList} />
+
+## Design rationale
+
+Artist rows follow the list row pattern but with a key visual distinction: **circular thumbnails**. This differentiates artists from albums (square) and tracks (no image) at a glance, echoing the convention set by Apple Music and Spotify.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Circular avatar</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>48×48 with <code style={{ color: '#D4A0FF' }}>rounded-full</code>. Circles signify people; squares signify albums. This visual grammar is consistent throughout Fermata.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Disclosure chevron</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>A muted <code style={{ color: '#D4A0FF' }}>chevron-forward</code> signals drill-down navigation. Tapping goes to the Artist Detail screen — the iPod pattern: Library → Artist → Album.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Subtle scale (0.98)</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Uses <code style={{ color: '#D4A0FF' }}>PressableScale</code> at 0.98 — subtle because the row is wide. Cards use 0.96; rows use 0.98.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Person fallback</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>No artwork? A person icon on <code style={{ color: '#D4A0FF' }}>bg-fermata-surface</code>. Consistent with the icon vocabulary: person = artist, disc = album, musical-notes = track.</p>
+  </div>
+</div>
+
+<Controls of={ArtistRowStories.WithArtwork} />
+
+## Variants
+
+### With artwork
+<Canvas of={ArtistRowStories.WithArtwork} />
+
+### Without artwork
+<Canvas of={ArtistRowStories.WithoutArtwork} />
+
+### Long name (truncated)
+<Canvas of={ArtistRowStories.LongName} />
+
+## Where it's used
+
+Artist rows appear in the **Artists tab** of the Library screen, grouped into alphabetical sections by `ArtistSectionList`. Each section gets a header letter and the list includes an `AlphabetScrubber` for fast navigation.
+
+## Layout anatomy
+
+```
+┌────┬────────────────────────────────┬──┐
+│ ○  │ Artist Name                    │ ›│  py-3 px-1
+│    │                                │  │
+└────┴────────────────────────────────┴──┘
+ 48    flex-1, text-base font-medium   18
+```
+
+</div>

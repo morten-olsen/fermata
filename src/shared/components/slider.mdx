@@ -1,0 +1,68 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as SliderStories from "./slider.stories";
+
+<Meta of={SliderStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# Slider
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  A minimal track-style slider for continuous values like volume and playback progress.
+</p>
+
+<Canvas of={SliderStories.Interactive} />
+<Controls of={SliderStories.Default} />
+
+## Design rationale
+
+Fermata's slider is deliberately simple. No labels, no tick marks, no value callouts — just a thin track, a fill, and a thumb. It stays out of the way.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Thin track (4px)</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Slim enough to be unobtrusive, thick enough to show progress clearly. Rounded ends for softness.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Large touch target (44px)</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>The visual is slim but the hit area is 44px tall — comfortable for thumb interaction, following Apple HIG minimums.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>PanResponder-driven</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Uses raw PanResponder instead of a library — keeps the dependency surface small and the behavior predictable.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Customizable colors</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Default fill is <code style={{ color: '#D4A0FF' }}>colors.text</code>. Progress bars use <code style={{ color: '#D4A0FF' }}>colors.accent</code>. Track is <code style={{ color: '#D4A0FF' }}>colors.surface</code>.</p>
+  </div>
+</div>
+
+## Variants
+
+### Default (volume style)
+<Canvas of={SliderStories.Default} />
+
+### Accent fill (progress bar style)
+<Canvas of={SliderStories.AccentFill} />
+
+### Boundary values
+<Canvas of={SliderStories.Empty} />
+<Canvas of={SliderStories.Full} />
+
+## Where it's used
+
+- **Now Playing** — volume control (fill: `colors.text`)
+- **Now Playing** — playback progress (fill: `colors.accent`, via the dedicated FullProgressBar)
+
+## Usage
+
+```tsx
+<Slider
+  value={volume}            // 0–1
+  onValueChange={setVolume}
+  fillColor={colors.accent} // optional
+  trackColor={colors.surface} // optional
+/>
+```
+
+</div>

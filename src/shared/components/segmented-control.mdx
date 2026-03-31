@@ -1,0 +1,73 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as SegmentedControlStories from "./segmented-control.stories";
+
+<Meta of={SegmentedControlStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# SegmentedControl
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  A horizontal toggle for switching between views within the same screen.
+</p>
+
+<Canvas of={SegmentedControlStories.Interactive} />
+
+## Design rationale
+
+The segmented control embodies Fermata's iPod-inspired philosophy: **one path forward, one choice at a time**. Instead of tabs, sidebars, or dropdowns, a simple horizontal control lets you flip between related views.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Surface container</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>
+      <code style={{ color: '#D4A0FF' }}>bg-fermata-surface</code> with <code style={{ color: '#D4A0FF' }}>rounded-xl</code> — sits one elevation above background, creating a subtle trough for the segments.
+    </p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Elevated selection</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>
+      Selected segment uses <code style={{ color: '#D4A0FF' }}>bg-fermata-elevated</code> with <code style={{ color: '#D4A0FF' }}>rounded-lg</code> — the smaller radius nests cleanly inside the container's <code style={{ color: '#D4A0FF' }}>rounded-xl</code>.
+    </p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Text-only differentiation</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>
+      Selected: <code style={{ color: '#D4A0FF' }}>text-fermata-text</code>. Unselected: <code style={{ color: '#D4A0FF' }}>text-fermata-muted</code>. No icons, no badges — just clean text.
+    </p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>No border, no shadow</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>
+      Separation comes from surface color shifts alone. Consistent with Fermata's "borders are a last resort" rule.
+    </p>
+  </div>
+</div>
+
+## Variants
+
+### Three segments (default)
+<Canvas of={SegmentedControlStories.Default} />
+
+### Two segments
+<Canvas of={SegmentedControlStories.TwoSegments} />
+
+The component scales from 2 to any number of segments, each taking equal width via `flex-1`.
+
+## Where it's used
+
+The segmented control appears on the **Library screen** to switch between Albums, Artists, and Tracks views. This is the iPod pattern: instead of parallel navigation, you choose a lens to view your library through.
+
+## Usage
+
+```tsx
+const [selected, setSelected] = useState(0);
+
+<SegmentedControl
+  segments={["Albums", "Artists", "Tracks"]}
+  selectedIndex={selected}
+  onSelect={setSelected}
+/>
+```
+
+</div>

@@ -1,0 +1,68 @@
+import { Meta, Canvas } from "@storybook/addon-docs/blocks";
+import * as AlphabetScrubberStories from "./alphabet-scrubber.stories";
+
+<Meta of={AlphabetScrubberStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# AlphabetScrubber
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  A vertical letter strip for fast-scrolling through alphabetically sorted lists — inspired by the iOS Contacts scrubber and the iPod click wheel.
+</p>
+
+<Canvas of={AlphabetScrubberStories.FullAlphabet} />
+
+## Design rationale
+
+When your library has hundreds of artists or thousands of tracks, scrolling one row at a time is too slow. The alphabet scrubber provides the same kind of jump-to-letter navigation that made the iPod's click wheel feel magical: choose a letter and you're there instantly.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Gesture-driven</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Uses the Responder system — press and drag continuously. The letter under your finger updates in real time, with haptic feedback on start.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Floating bubble</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>A 52×52 bubble in <code style={{ color: '#D4A0FF' }}>colors.elevated</code> appears alongside the current letter in accent text. Large and readable even during fast scrubbing.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Adaptive letters</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Only shows letters that exist in the data. A library with artists in A, B, K, R won't show unused letters — no dead zones.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Scroll lock</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>While scrubbing, the parent list's scroll is disabled via <code style={{ color: '#D4A0FF' }}>onScrubStart/End</code>. Prevents conflicting gestures between the scrubber and the list.</p>
+  </div>
+</div>
+
+## Variants
+
+### Full alphabet
+<Canvas of={AlphabetScrubberStories.FullAlphabet} />
+
+### Sparse (only populated letters)
+<Canvas of={AlphabetScrubberStories.SparseLetters} />
+
+In practice, the scrubber only shows letters that have at least one item. This avoids "dead" letters that scroll to nothing.
+
+## Where it's used
+
+- **Album grid** — jump to albums starting with a letter
+- **Artist section list** — jump to the artist section header
+- **Track list** — jump to tracks starting with a letter
+
+All three list components compose the scrubber identically: the list provides `letters` (extracted via `extractLetters()`), and the scrubber calls back with the selected letter to trigger `scrollToIndex`/`scrollToOffset`.
+
+## Implementation details
+
+<div style={{ padding: 20, backgroundColor: '#141416', borderRadius: 12, margin: '24px 0' }}>
+  <ul style={{ paddingLeft: 20, lineHeight: 2, color: '#9898A3', fontSize: 14, margin: 0 }}>
+    <li><strong style={{ color: '#E8E8ED' }}>18px per letter</strong> — compact enough for a full alphabet while maintaining touch accuracy</li>
+    <li><strong style={{ color: '#E8E8ED' }}>36px touch width</strong> — generous horizontal hit area even though the visible letters are narrow</li>
+    <li><strong style={{ color: '#E8E8ED' }}>Clamped edges</strong> — dragging above the first letter selects A; below the last selects #. No dead zones.</li>
+    <li><strong style={{ color: '#E8E8ED' }}>Fires on release</strong> — <code style={{ color: '#D4A0FF' }}>onSelect</code> fires on gesture end, not during. The bubble provides visual feedback during the scrub.</li>
+  </ul>
+</div>
+
+</div>

@@ -1,0 +1,79 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as TrackRowStories from "./track-row.stories";
+
+<Meta of={TrackRowStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# TrackRow
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  A single track in a list — the most fundamental browsing unit in Fermata.
+</p>
+
+<Canvas of={TrackRowStories.TrackList} />
+
+## Design rationale
+
+The track row follows the **list row pattern** from the design system: a horizontal layout with leading element, flex text, and trailing metadata. Every track in every context uses this same component.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Track number → Equalizer</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>The leading column (32px) shows the track number in muted text. When playing, it swaps to animated <code style={{ color: '#D4A0FF' }}>EqualizerBars</code> — a visual anchor for "this is playing."</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Accent for active</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Playing track title turns <code style={{ color: '#D4A0FF' }}>colors.accent</code>. This pairing — accent title + equalizer bars — is the universal "now playing" signal across all lists.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Haptic favourite</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Toggling favourite triggers haptics — Medium when adding (feels affirming), Light when removing (feels deliberate). Physical feedback for a personal action.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Progressive disclosure</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Download/queue indicators, favourite heart, and more button only appear when relevant. The row is clean by default.</p>
+  </div>
+</div>
+
+<Controls of={TrackRowStories.Default} />
+
+## States
+
+### Default
+<Canvas of={TrackRowStories.Default} />
+
+### Now Playing
+<Canvas of={TrackRowStories.NowPlaying} />
+
+The title turns accent and the track number is replaced by animated equalizer bars.
+
+### Favourited
+<Canvas of={TrackRowStories.Favourited} />
+
+A small accent heart appears. The heart is only visible when the track is favourited — no outline heart for unfavourited tracks (clean by default).
+
+### Downloaded / Queued
+<Canvas of={TrackRowStories.Downloaded} />
+<Canvas of={TrackRowStories.Queued} />
+
+Tiny cloud icons indicate download status — `cloud-done` for downloaded, `cloud-download-outline` for queued.
+
+### Full featured
+<Canvas of={TrackRowStories.FullFeatured} />
+
+All indicators at once: downloaded, favourited, with a more button.
+
+## Layout anatomy
+
+```
+┌──┬──────────────────────────┬──┬──┬────┬──┐
+│##│ Title                    │☁ │♥ │3:42│⋯ │  py-3 px-1
+│  │ Artist                   │  │  │    │  │
+└──┴──────────────────────────┴──┴──┴────┴──┘
+ 32   flex-1                   optional  trailing
+```
+
+Each trailing element only renders when its prop is provided, keeping the row minimal by default.
+
+</div>

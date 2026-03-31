@@ -1,0 +1,58 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as EmptyStateStories from "./empty-state.stories";
+
+<Meta of={EmptyStateStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# EmptyState
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  A centered message shown when a screen or section has no content to display.
+</p>
+
+<Canvas of={EmptyStateStories.Default} />
+<Controls of={EmptyStateStories.Default} />
+
+## Design rationale
+
+Empty states are moments where the app could feel broken — or could feel intentionally calm. Fermata chooses calm.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Large, subtle icon</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>48px in <code style={{ color: '#D4A0FF' }}>colors.border</code> — visible but recessive. The icon communicates what's missing without shouting.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>No call-to-action buttons</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Navigation handles next steps. The empty state informs; it doesn't push. This keeps the app calm.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Muted title</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Uses <code style={{ color: '#D4A0FF' }}>text-fermata-muted</code> — this isn't primary content, it's the absence of it.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Centered vertically</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Takes <code style={{ color: '#D4A0FF' }}>flex-1</code> and centers content. Feels deliberate, not like a rendering glitch.</p>
+  </div>
+</div>
+
+## Variants
+
+<Canvas of={EmptyStateStories.WithoutSubtitle} />
+
+The subtitle is optional. Without it, the empty state is even more minimal — just an icon and a short message.
+
+## Usage
+
+```tsx
+<EmptyState
+  icon="musical-notes-outline"
+  title="No tracks found"
+  subtitle="Add a source to start listening"
+/>
+```
+
+Use Ionicons icon names. Choose icons that suggest what's missing: `search-outline` for empty search, `musical-notes-outline` for no tracks, `disc-outline` for no albums.
+
+</div>

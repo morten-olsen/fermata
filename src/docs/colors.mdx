@@ -1,0 +1,142 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design Tokens/Colors" />
+
+<div style={{
+  backgroundColor: '#0A0A0B',
+  color: '#E8E8ED',
+  fontFamily: 'system-ui, -apple-system, sans-serif',
+  maxWidth: 720,
+  margin: '0 auto',
+}}>
+
+# Colors
+
+<p style={{ color: '#9898A3', marginBottom: 32 }}>
+  Fermata is dark by nature. Album art should be the brightest thing on screen.
+</p>
+
+## Surfaces
+
+Three levels of elevation. No more.
+
+<div style={{ display: 'flex', flexDirection: 'column', gap: 1, borderRadius: 12, overflow: 'hidden', margin: '24px 0' }}>
+  <div style={{ display: 'flex', alignItems: 'center', padding: '20px 24px', backgroundColor: '#0A0A0B', border: '1px solid #2A2A2E' }}>
+    <div style={{ width: 48, height: 48, borderRadius: 8, backgroundColor: '#0A0A0B', border: '1px solid #2A2A2E', flexShrink: 0 }} />
+    <div style={{ marginLeft: 20, flex: 1 }}>
+      <p style={{ fontWeight: 600, marginBottom: 2 }}>bg</p>
+      <p style={{ fontSize: 13, color: '#9898A3' }}>App background. Near-black.</p>
+    </div>
+    <div style={{ textAlign: 'right' }}>
+      <code style={{ fontSize: 13, color: '#D4A0FF' }}>#0A0A0B</code>
+      <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 2 }}>bg-fermata-bg</p>
+    </div>
+  </div>
+
+  <div style={{ display: 'flex', alignItems: 'center', padding: '20px 24px', backgroundColor: '#0A0A0B', border: '1px solid #2A2A2E', borderTop: 'none' }}>
+    <div style={{ width: 48, height: 48, borderRadius: 8, backgroundColor: '#141416', flexShrink: 0 }} />
+    <div style={{ marginLeft: 20, flex: 1 }}>
+      <p style={{ fontWeight: 600, marginBottom: 2 }}>surface</p>
+      <p style={{ fontSize: 13, color: '#9898A3' }}>Cards, inputs, tab bar. One step above bg.</p>
+    </div>
+    <div style={{ textAlign: 'right' }}>
+      <code style={{ fontSize: 13, color: '#D4A0FF' }}>#141416</code>
+      <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 2 }}>bg-fermata-surface</p>
+    </div>
+  </div>
+
+  <div style={{ display: 'flex', alignItems: 'center', padding: '20px 24px', backgroundColor: '#0A0A0B', border: '1px solid #2A2A2E', borderTop: 'none' }}>
+    <div style={{ width: 48, height: 48, borderRadius: 8, backgroundColor: '#1C1C1F', flexShrink: 0 }} />
+    <div style={{ marginLeft: 20, flex: 1 }}>
+      <p style={{ fontWeight: 600, marginBottom: 2 }}>elevated</p>
+      <p style={{ fontSize: 13, color: '#9898A3' }}>Selected states, modals, mini-player. Two steps above bg.</p>
+    </div>
+    <div style={{ textAlign: 'right' }}>
+      <code style={{ fontSize: 13, color: '#D4A0FF' }}>#1C1C1F</code>
+      <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 2 }}>bg-fermata-elevated</p>
+    </div>
+  </div>
+</div>
+
+### Elevation diagram
+
+<div style={{
+  padding: 32,
+  backgroundColor: '#0A0A0B',
+  borderRadius: 12,
+  border: '1px solid #2A2A2E',
+  margin: '24px 0',
+  textAlign: 'center',
+}}>
+  <div style={{ padding: 24, backgroundColor: '#0A0A0B', borderRadius: 12, border: '1px dashed #2A2A2E' }}>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginBottom: 16 }}>bg · #0A0A0B</p>
+    <div style={{ padding: 24, backgroundColor: '#141416', borderRadius: 12 }}>
+      <p style={{ fontSize: 12, color: '#6B6B76', marginBottom: 16 }}>surface · #141416</p>
+      <div style={{ padding: 20, backgroundColor: '#1C1C1F', borderRadius: 8 }}>
+        <p style={{ fontSize: 12, color: '#6B6B76' }}>elevated · #1C1C1F</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+## Text
+
+<div style={{ display: 'flex', flexDirection: 'column', gap: 1, borderRadius: 12, overflow: 'hidden', margin: '24px 0' }}>
+  <div style={{ display: 'flex', alignItems: 'center', padding: '20px 24px', backgroundColor: '#141416' }}>
+    <p style={{ fontSize: 20, fontWeight: 600, color: '#E8E8ED', flex: 1 }}>Primary text</p>
+    <div style={{ textAlign: 'right' }}>
+      <code style={{ fontSize: 13, color: '#D4A0FF' }}>#E8E8ED</code>
+      <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 2 }}>text-fermata-text</p>
+    </div>
+  </div>
+
+  <div style={{ display: 'flex', alignItems: 'center', padding: '20px 24px', backgroundColor: '#141416' }}>
+    <p style={{ fontSize: 20, color: '#9898A3', flex: 1 }}>Secondary text</p>
+    <div style={{ textAlign: 'right' }}>
+      <code style={{ fontSize: 13, color: '#D4A0FF' }}>#9898A3</code>
+      <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 2 }}>text-fermata-text-secondary</p>
+    </div>
+  </div>
+
+  <div style={{ display: 'flex', alignItems: 'center', padding: '20px 24px', backgroundColor: '#141416' }}>
+    <p style={{ fontSize: 20, color: '#6B6B76', flex: 1 }}>Muted text</p>
+    <div style={{ textAlign: 'right' }}>
+      <code style={{ fontSize: 13, color: '#D4A0FF' }}>#6B6B76</code>
+      <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 2 }}>text-fermata-muted</p>
+    </div>
+  </div>
+</div>
+
+## Accent & Border
+
+<div style={{ display: 'flex', gap: 16, margin: '24px 0' }}>
+  <div style={{ flex: 1, padding: 24, backgroundColor: '#141416', borderRadius: 12, textAlign: 'center' }}>
+    <div style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#D4A0FF', margin: '0 auto 12px' }} />
+    <p style={{ fontWeight: 600, marginBottom: 2 }}>accent</p>
+    <code style={{ fontSize: 13, color: '#D4A0FF' }}>#D4A0FF</code>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 4 }}>Active states, links, playing indicator</p>
+    <p style={{ fontSize: 11, color: '#6B6B76', marginTop: 2 }}>Used sparingly. Never for decoration.</p>
+  </div>
+
+  <div style={{ flex: 1, padding: 24, backgroundColor: '#141416', borderRadius: 12, textAlign: 'center' }}>
+    <div style={{ width: 64, height: 64, borderRadius: 32, border: '2px solid #2A2A2E', margin: '0 auto 12px' }} />
+    <p style={{ fontWeight: 600, marginBottom: 2 }}>border</p>
+    <code style={{ fontSize: 13, color: '#D4A0FF' }}>#2A2A2E</code>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 4 }}>Subtle dividers, used sparingly</p>
+    <p style={{ fontSize: 11, color: '#6B6B76', marginTop: 2 }}>Prefer spacing over borders.</p>
+  </div>
+</div>
+
+## Rules
+
+<div style={{ padding: 24, backgroundColor: '#141416', borderRadius: 12, margin: '24px 0' }}>
+  <ol style={{ paddingLeft: 20, lineHeight: 2, color: '#9898A3', fontSize: 14 }}>
+    <li><strong style={{ color: '#E8E8ED' }}>Three surfaces, no more.</strong> bg → surface → elevated. If you need a fourth, the layout is too nested.</li>
+    <li><strong style={{ color: '#E8E8ED' }}>No pure white or pure black.</strong> Text is #E8E8ED (slightly warm). Background is #0A0A0B (not #000).</li>
+    <li><strong style={{ color: '#E8E8ED' }}>Accent is rare.</strong> Currently playing track, tappable names, progress bar, active controls. Never decoration.</li>
+    <li><strong style={{ color: '#E8E8ED' }}>Borders are a last resort.</strong> Prefer spacing and surface color shifts.</li>
+    <li><strong style={{ color: '#E8E8ED' }}>Album art sets the mood.</strong> Future: Now Playing tints with dominant artwork color.</li>
+  </ol>
+</div>
+
+</div>

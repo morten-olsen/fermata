@@ -84,7 +84,7 @@ function Bar({
 
   const animatedStyle = useAnimatedStyle(() => ({
     height: height.value * size,
-  }));
+  }), [height, size]);
 
   return (
     <Animated.View

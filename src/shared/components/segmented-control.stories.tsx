@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View } from "react-native";
 
-import type { Meta, StoryObj } from "@storybook/react-webpack5";
+import type { Meta, StoryObj } from "@storybook/react-native-web-vite";
 
 import { SegmentedControl } from "./segmented-control";
 
@@ -10,7 +10,7 @@ const meta: Meta<typeof SegmentedControl> = {
   component: SegmentedControl,
   decorators: [
     (Story) => (
-      <View style={{ padding: 16, maxWidth: 400 }}>
+      <View style={{ padding: 24, width: "100%", maxWidth: 400 }}>
         <Story />
       </View>
     ),

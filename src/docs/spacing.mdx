@@ -1,0 +1,193 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design Tokens/Spacing & Radii" />
+
+<div style={{
+  backgroundColor: '#0A0A0B',
+  color: '#E8E8ED',
+  fontFamily: 'system-ui, -apple-system, sans-serif',
+  maxWidth: 720,
+  margin: '0 auto',
+}}>
+
+# Spacing & Radii
+
+<p style={{ color: '#9898A3', marginBottom: 32 }}>
+  Consistent spacing creates rhythm. Fermata uses Tailwind's base-4 system.
+</p>
+
+## Spacing scale
+
+<div style={{ display: 'flex', flexDirection: 'column', gap: 2, margin: '24px 0' }}>
+  {[
+    { tw: 'mb-2', px: 8, usage: 'Between label and content' },
+    { tw: 'py-3', px: 12, usage: 'List row vertical padding, button padding' },
+    { tw: 'gap-3', px: 12, usage: 'Between side-by-side buttons' },
+    { tw: 'px-4 / py-4', px: 16, usage: 'Standard screen padding, card padding' },
+    { tw: 'mb-4', px: 16, usage: 'Between content blocks' },
+    { tw: 'mb-6 / px-6', px: 24, usage: 'Between major sections, Now Playing padding' },
+    { tw: 'gap-8', px: 32, usage: 'Between transport controls' },
+  ].map((item, i) => (
+    <div key={i} style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 20,
+      padding: '16px 24px',
+      backgroundColor: '#141416',
+      borderRadius: i === 0 ? '12px 12px 0 0' : i === 6 ? '0 0 12px 12px' : 0,
+    }}>
+      <div style={{ width: 80, flexShrink: 0 }}>
+        <div style={{
+          width: item.px,
+          height: 24,
+          backgroundColor: '#D4A0FF',
+          borderRadius: 4,
+          opacity: 0.6,
+        }} />
+      </div>
+      <div style={{ width: 50, flexShrink: 0, textAlign: 'right' }}>
+        <span style={{ fontSize: 14, fontWeight: 600 }}>{item.px}px</span>
+      </div>
+      <div style={{ flex: 1 }}>
+        <code style={{ fontSize: 13, color: '#D4A0FF' }}>{item.tw}</code>
+        <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 2 }}>{item.usage}</p>
+      </div>
+    </div>
+  ))}
+</div>
+
+## Spacing rules
+
+<div style={{ padding: 24, backgroundColor: '#141416', borderRadius: 12, margin: '24px 0' }}>
+  <ol style={{ paddingLeft: 20, lineHeight: 2.2, color: '#9898A3', fontSize: 14, margin: 0 }}>
+    <li><strong style={{ color: '#E8E8ED' }}>Screen padding is px-4 (16px).</strong> All screens, no exceptions.</li>
+    <li><strong style={{ color: '#E8E8ED' }}>Now Playing gets extra room.</strong> px-6 (24px) — it's a destination, not a list.</li>
+    <li><strong style={{ color: '#E8E8ED' }}>Generous vertical rhythm.</strong> More space between sections than within.</li>
+    <li><strong style={{ color: '#E8E8ED' }}>100px bottom padding</strong> on scrollable lists. Clears mini-player and tab bar.</li>
+  </ol>
+</div>
+
+---
+
+## Corner radii
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 24, backgroundColor: '#141416', borderRadius: 12, textAlign: 'center' }}>
+    <div style={{
+      width: 80,
+      height: 80,
+      backgroundColor: '#1C1C1F',
+      borderRadius: 16,
+      margin: '0 auto 16px',
+      border: '2px solid #D4A0FF',
+      opacity: 0.8,
+    }} />
+    <code style={{ fontSize: 13, color: '#D4A0FF' }}>rounded-2xl</code>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 4 }}>16px — Large album art</p>
+    <p style={{ fontSize: 11, color: '#6B6B76' }}>Now Playing, album detail</p>
+  </div>
+
+  <div style={{ padding: 24, backgroundColor: '#141416', borderRadius: 12, textAlign: 'center' }}>
+    <div style={{
+      width: 80,
+      height: 80,
+      backgroundColor: '#1C1C1F',
+      borderRadius: 12,
+      margin: '0 auto 16px',
+      border: '2px solid #D4A0FF',
+      opacity: 0.8,
+    }} />
+    <code style={{ fontSize: 13, color: '#D4A0FF' }}>rounded-xl</code>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 4 }}>12px — Default radius</p>
+    <p style={{ fontSize: 11, color: '#6B6B76' }}>Cards, inputs, buttons, album art</p>
+  </div>
+
+  <div style={{ padding: 24, backgroundColor: '#141416', borderRadius: 12, textAlign: 'center' }}>
+    <div style={{
+      width: 80,
+      height: 80,
+      backgroundColor: '#1C1C1F',
+      borderRadius: 8,
+      margin: '0 auto 16px',
+      border: '2px solid #D4A0FF',
+      opacity: 0.8,
+    }} />
+    <code style={{ fontSize: 13, color: '#D4A0FF' }}>rounded-lg</code>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 4 }}>8px — Small elements</p>
+    <p style={{ fontSize: 11, color: '#6B6B76' }}>Segmented control selected state</p>
+  </div>
+
+  <div style={{ padding: 24, backgroundColor: '#141416', borderRadius: 12, textAlign: 'center' }}>
+    <div style={{
+      width: 80,
+      height: 80,
+      backgroundColor: '#1C1C1F',
+      borderRadius: 40,
+      margin: '0 auto 16px',
+      border: '2px solid #D4A0FF',
+      opacity: 0.8,
+    }} />
+    <code style={{ fontSize: 13, color: '#D4A0FF' }}>rounded-full</code>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 4 }}>Circular</p>
+    <p style={{ fontSize: 11, color: '#6B6B76' }}>Artist thumbnails, play button</p>
+  </div>
+</div>
+
+<div style={{ padding: 20, backgroundColor: '#141416', borderRadius: 12, margin: '24px 0' }}>
+  <p style={{ fontSize: 14, color: '#9898A3', margin: 0 }}>
+    <strong style={{ color: '#E8E8ED' }}>The rule:</strong> Everything is <code style={{ color: '#D4A0FF' }}>rounded-xl</code> unless
+    it's big (→ <code style={{ color: '#D4A0FF' }}>rounded-2xl</code>) or circular
+    (→ <code style={{ color: '#D4A0FF' }}>rounded-full</code>). That's it.
+  </p>
+</div>
+
+---
+
+## Combined example
+
+<p style={{ color: '#9898A3', fontSize: 14, marginBottom: 16 }}>
+  A track row showing spacing tokens in context.
+</p>
+
+<div style={{
+  backgroundColor: '#141416',
+  borderRadius: 12,
+  padding: '0 16px',
+  margin: '24px 0',
+}}>
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px 4px',
+    borderBottom: '1px solid #1C1C1F',
+  }}>
+    <span style={{ color: '#6B6B76', fontSize: 14, width: 28, flexShrink: 0 }}>1</span>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <p style={{ fontSize: 16, fontWeight: 500, color: '#E8E8ED', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Airbag</p>
+      <p style={{ fontSize: 12, color: '#9898A3', margin: 0 }}>Radiohead</p>
+    </div>
+    <span style={{ fontSize: 14, color: '#6B6B76', flexShrink: 0, marginLeft: 12 }}>4:44</span>
+  </div>
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px 4px',
+  }}>
+    <span style={{ color: '#6B6B76', fontSize: 14, width: 28, flexShrink: 0 }}>2</span>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <p style={{ fontSize: 16, fontWeight: 500, color: '#E8E8ED', margin: 0 }}>Paranoid Android</p>
+      <p style={{ fontSize: 12, color: '#9898A3', margin: 0 }}>Radiohead</p>
+    </div>
+    <span style={{ fontSize: 14, color: '#6B6B76', flexShrink: 0, marginLeft: 12 }}>6:23</span>
+  </div>
+</div>
+
+<div style={{ fontSize: 12, color: '#6B6B76', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+  <span><code style={{ color: '#D4A0FF' }}>py-3</code> row padding</span>
+  <span><code style={{ color: '#D4A0FF' }}>px-4</code> container</span>
+  <span><code style={{ color: '#D4A0FF' }}>rounded-xl</code> card</span>
+  <span><code style={{ color: '#D4A0FF' }}>text-base</code> title</span>
+  <span><code style={{ color: '#D4A0FF' }}>text-xs</code> caption</span>
+</div>
+
+</div>

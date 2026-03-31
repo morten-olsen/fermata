@@ -1,0 +1,156 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design Tokens/Typography" />
+
+<div style={{
+  backgroundColor: '#0A0A0B',
+  color: '#E8E8ED',
+  fontFamily: 'system-ui, -apple-system, sans-serif',
+  maxWidth: 720,
+  margin: '0 auto',
+}}>
+
+# Typography
+
+<p style={{ color: '#9898A3', marginBottom: 32 }}>
+  System sans-serif throughout. No custom fonts — the system font respects the
+  platform's personality and renders optimally at all sizes.
+</p>
+
+## Type scale
+
+<div style={{ display: 'flex', flexDirection: 'column', gap: 2, margin: '24px 0' }}>
+
+  <div style={{ padding: '24px', backgroundColor: '#141416', borderRadius: '12px 12px 0 0' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+      <span style={{ fontSize: 12, color: '#D4A0FF', fontFamily: 'monospace' }}>Screen title</span>
+      <span style={{ fontSize: 11, color: '#6B6B76', fontFamily: 'monospace' }}>text-3xl font-bold</span>
+    </div>
+    <p style={{ fontSize: 30, fontWeight: 700, color: '#E8E8ED', margin: 0 }}>Library</p>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 8 }}>"Library", "Search", "Settings"</p>
+  </div>
+
+  <div style={{ padding: '24px', backgroundColor: '#141416' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+      <span style={{ fontSize: 12, color: '#D4A0FF', fontFamily: 'monospace' }}>Detail title</span>
+      <span style={{ fontSize: 11, color: '#6B6B76', fontFamily: 'monospace' }}>text-2xl font-bold</span>
+    </div>
+    <p style={{ fontSize: 24, fontWeight: 700, color: '#E8E8ED', margin: 0 }}>OK Computer</p>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 8 }}>Album detail, Now Playing track name</p>
+  </div>
+
+  <div style={{ padding: '24px', backgroundColor: '#141416' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+      <span style={{ fontSize: 12, color: '#D4A0FF', fontFamily: 'monospace' }}>Section title</span>
+      <span style={{ fontSize: 11, color: '#6B6B76', fontFamily: 'monospace' }}>text-lg font-semibold</span>
+    </div>
+    <p style={{ fontSize: 18, fontWeight: 600, color: '#E8E8ED', margin: 0 }}>Mix Tapes</p>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 8 }}>"Mix Tapes", "Albums", "Recently Added"</p>
+  </div>
+
+  <div style={{ padding: '24px', backgroundColor: '#141416' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+      <span style={{ fontSize: 12, color: '#D4A0FF', fontFamily: 'monospace' }}>Album / track title</span>
+      <span style={{ fontSize: 11, color: '#6B6B76', fontFamily: 'monospace' }}>text-base font-medium</span>
+    </div>
+    <p style={{ fontSize: 16, fontWeight: 500, color: '#E8E8ED', margin: 0 }}>Everything In Its Right Place</p>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 8 }}>Track rows, album cards, search results</p>
+  </div>
+
+  <div style={{ padding: '24px', backgroundColor: '#141416' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+      <span style={{ fontSize: 12, color: '#D4A0FF', fontFamily: 'monospace' }}>Section label</span>
+      <span style={{ fontSize: 11, color: '#6B6B76', fontFamily: 'monospace' }}>text-sm font-medium uppercase tracking-wider</span>
+    </div>
+    <p style={{ fontSize: 14, fontWeight: 500, color: '#9898A3', letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0 }}>SOURCES</p>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 8 }}>"SOURCES", "OUTPUT", "LIBRARY" — only place uppercase is used</p>
+  </div>
+
+  <div style={{ padding: '24px', backgroundColor: '#141416' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+      <span style={{ fontSize: 12, color: '#D4A0FF', fontFamily: 'monospace' }}>Body / metadata</span>
+      <span style={{ fontSize: 11, color: '#6B6B76', fontFamily: 'monospace' }}>text-sm text-fermata-text-secondary</span>
+    </div>
+    <p style={{ fontSize: 14, color: '#9898A3', margin: 0 }}>Radiohead · 1997 · 12 tracks</p>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 8 }}>Artist name, year, track count</p>
+  </div>
+
+  <div style={{ padding: '24px', backgroundColor: '#141416' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+      <span style={{ fontSize: 12, color: '#D4A0FF', fontFamily: 'monospace' }}>Caption</span>
+      <span style={{ fontSize: 11, color: '#6B6B76', fontFamily: 'monospace' }}>text-xs text-fermata-text-secondary</span>
+    </div>
+    <p style={{ fontSize: 12, color: '#9898A3', margin: 0 }}>Radiohead</p>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 8 }}>Artist under track name, timestamps</p>
+  </div>
+
+  <div style={{ padding: '24px', backgroundColor: '#141416', borderRadius: '0 0 12px 12px' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+      <span style={{ fontSize: 12, color: '#D4A0FF', fontFamily: 'monospace' }}>Muted info</span>
+      <span style={{ fontSize: 11, color: '#6B6B76', fontFamily: 'monospace' }}>text-sm text-fermata-muted</span>
+    </div>
+    <p style={{ fontSize: 14, color: '#6B6B76', margin: 0 }}>3:42</p>
+    <p style={{ fontSize: 12, color: '#6B6B76', marginTop: 8 }}>Track numbers, durations, empty states</p>
+  </div>
+
+</div>
+
+## Weight rules
+
+<div style={{ display: 'flex', gap: 16, margin: '24px 0' }}>
+  <div style={{ flex: 1, padding: 24, backgroundColor: '#141416', borderRadius: 12, textAlign: 'center' }}>
+    <p style={{ fontSize: 32, fontWeight: 500, marginBottom: 8 }}>Aa</p>
+    <p style={{ fontWeight: 600, marginBottom: 4 }}>Medium (500)</p>
+    <p style={{ fontSize: 13, color: '#6B6B76' }}>Titles and labels</p>
+  </div>
+  <div style={{ flex: 1, padding: 24, backgroundColor: '#141416', borderRadius: 12, textAlign: 'center' }}>
+    <p style={{ fontSize: 32, fontWeight: 700, marginBottom: 8 }}>Aa</p>
+    <p style={{ fontWeight: 600, marginBottom: 4 }}>Bold (700)</p>
+    <p style={{ fontSize: 13, color: '#6B6B76' }}>Screen & detail titles</p>
+  </div>
+</div>
+
+<div style={{ padding: 20, backgroundColor: '#141416', borderRadius: 12, margin: '24px 0' }}>
+  <p style={{ fontSize: 14, color: '#9898A3', lineHeight: 1.8, margin: 0 }}>
+    <strong style={{ color: '#E8E8ED' }}>Two weights only.</strong> No light, no thin, no extra-bold.
+    <br />
+    <strong style={{ color: '#E8E8ED' }}>One line, truncated.</strong> Titles and artist names use numberOfLines=&#123;1&#125;.
+    <br />
+    <strong style={{ color: '#E8E8ED' }}>No uppercase except section labels.</strong> The small-caps treatment is reserved for section headers.
+  </p>
+</div>
+
+## Active state
+
+<div style={{ padding: 24, backgroundColor: '#141416', borderRadius: 12, margin: '24px 0' }}>
+  <div style={{ display: 'flex', alignItems: 'center', padding: '12px 4px', borderBottom: '1px solid #1C1C1F' }}>
+    <span style={{ color: '#6B6B76', fontSize: 14, width: 28 }}>3</span>
+    <div style={{ flex: 1 }}>
+      <p style={{ fontSize: 16, fontWeight: 500, color: '#E8E8ED', margin: 0 }}>Lucky</p>
+      <p style={{ fontSize: 12, color: '#9898A3', margin: 0 }}>Radiohead</p>
+    </div>
+    <span style={{ fontSize: 14, color: '#6B6B76' }}>4:19</span>
+  </div>
+  <div style={{ display: 'flex', alignItems: 'center', padding: '12px 4px', borderBottom: '1px solid #1C1C1F' }}>
+    <span style={{ color: '#D4A0FF', fontSize: 14, width: 28 }}>♪</span>
+    <div style={{ flex: 1 }}>
+      <p style={{ fontSize: 16, fontWeight: 500, color: '#D4A0FF', margin: 0 }}>Exit Music (For a Film)</p>
+      <p style={{ fontSize: 12, color: '#9898A3', margin: 0 }}>Radiohead</p>
+    </div>
+    <span style={{ fontSize: 14, color: '#6B6B76' }}>4:24</span>
+  </div>
+  <div style={{ display: 'flex', alignItems: 'center', padding: '12px 4px' }}>
+    <span style={{ color: '#6B6B76', fontSize: 14, width: 28 }}>5</span>
+    <div style={{ flex: 1 }}>
+      <p style={{ fontSize: 16, fontWeight: 500, color: '#E8E8ED', margin: 0 }}>Let Down</p>
+      <p style={{ fontSize: 12, color: '#9898A3', margin: 0 }}>Radiohead</p>
+    </div>
+    <span style={{ fontSize: 14, color: '#6B6B76' }}>4:59</span>
+  </div>
+</div>
+
+<p style={{ fontSize: 13, color: '#6B6B76' }}>
+  The currently playing track uses <code style={{ color: '#D4A0FF' }}>text-fermata-accent</code> for the title and a volume indicator replaces the track number.
+</p>
+
+</div>

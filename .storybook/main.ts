@@ -26,6 +26,15 @@ const config: StorybookConfig = {
             __dirname,
             "mocks/react-native-track-player.ts",
           ),
+          "@/src/features/artwork/artwork": path.resolve(
+            __dirname,
+            "mocks/artwork.ts",
+          ),
+          "@/src/features/playback/playback": path.resolve(
+            __dirname,
+            "mocks/playback.ts",
+          ),
+          "expo-haptics": path.resolve(__dirname, "mocks/expo-haptics.ts"),
         },
       },
     };

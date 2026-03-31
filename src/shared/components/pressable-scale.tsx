@@ -28,7 +28,7 @@ export function PressableScale({
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-  }));
+  }), [scale]);
 
   return (
     <AnimatedPressable
