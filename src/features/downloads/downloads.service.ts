@@ -1,5 +1,10 @@
-import { File, Directory, Paths } from "expo-file-system";
-
+import {
+  ensureDir,
+  downloadFile,
+  fileExists,
+  deleteFile,
+  deleteDir,
+} from "@/src/shared/lib/fs";
 import { getTrack } from "@/src/features/library/library";
 
 import { log, warn } from "@/src/shared/lib/log";
@@ -13,7 +18,7 @@ import {
   getCompletedDownloads,
 } from "./downloads.queries";
 
-const DOWNLOAD_DIR = new Directory(Paths.document, "downloads", "audio");
+const DOWNLOAD_PATH = ["downloads", "audio"] as const;
 const MAX_RETRIES = 3;
 
 /** Adapter resolver — injected at init */
@@ -63,17 +68,6 @@ export async function initDownloadCache() {
   log("Download cache loaded:", fileCache.size, "downloaded,", queuedSet.size, "queued");
 }
 
-/** Ensure download directory exists */
-function ensureDir() {
-  try {
-    const parent = new Directory(Paths.document, "downloads");
-    if (!parent.exists) parent.create();
-    if (!DOWNLOAD_DIR.exists) DOWNLOAD_DIR.create();
-  } catch {
-    // Already created
-  }
-}
-
 /** Called after each track completes/fails — lets the store refresh */
 let onTrackDone: (() => void) | undefined;
 
@@ -90,11 +84,11 @@ let isScheduled = false;
 export function processQueue() {
   if (isScheduled) return;
   isScheduled = true;
-  ensureDir();
-
-  // Reset stuck downloads then start processing
-  resetStuckDownloads().then(() => {
-    scheduleNext();
+  ensureDir(...DOWNLOAD_PATH).then(() => {
+    // Reset stuck downloads then start processing
+    resetStuckDownloads().then(() => {
+      scheduleNext();
+    });
   });
 }
 
@@ -136,26 +130,26 @@ async function downloadTrack(trackId: string, sourceId: string) {
   }
 
   const url = adapter.getStreamUrl(track.sourceItemId);
-  const destFile = new File(DOWNLOAD_DIR, `${trackId}.audio`);
+  const destSegments = [...DOWNLOAD_PATH, `${trackId}.audio`] as const;
 
   queuedSet.add(trackId);
   log("Downloading:", track.title);
   await updateDownloadStatus(trackId, "downloading");
 
   try {
-    const downloaded = await File.downloadFileAsync(url, destFile);
-    const fileSize = downloaded.size ?? 0;
+    await ensureDir(...DOWNLOAD_PATH);
+    const { uri, size } = await downloadFile(url, ...destSegments);
 
     await updateDownloadStatus(trackId, "complete", {
-      filePath: downloaded.uri,
-      fileSize,
+      filePath: uri,
+      fileSize: size,
       downloadedAt: new Date().toISOString(),
       syncedAt: track.syncedAt,
     });
 
-    fileCache.set(trackId, downloaded.uri);
+    fileCache.set(trackId, uri);
     queuedSet.delete(trackId);
-    log("Downloaded:", track.title, `(${(fileSize / 1024 / 1024).toFixed(1)} MB)`);
+    log("Downloaded:", track.title, `(${(size / 1024 / 1024).toFixed(1)} MB)`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Download failed";
     warn("Download failed:", track.title, msg);
@@ -183,8 +177,8 @@ export async function removeDownload(trackId: string) {
   const dl = await getDownload(trackId);
   if (dl?.filePath) {
     try {
-      const file = new File(dl.filePath);
-      if (file.exists) file.delete();
+      const exists = await fileExists(...DOWNLOAD_PATH, `${trackId}.audio`);
+      if (exists) await deleteFile(...DOWNLOAD_PATH, `${trackId}.audio`);
     } catch {
       // File already gone
     }
@@ -197,7 +191,7 @@ export async function removeDownload(trackId: string) {
 /** Remove all downloads — clears files and DB */
 export async function removeAllDownloads() {
   try {
-    if (DOWNLOAD_DIR.exists) DOWNLOAD_DIR.delete();
+    await deleteDir(...DOWNLOAD_PATH);
   } catch {
     // Directory already gone
   }

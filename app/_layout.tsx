@@ -7,7 +7,7 @@ import { ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
+import { useMigrations } from "@/src/shared/db/db.migrator";
 
 import { useSourcesStore } from "@/src/features/sources/sources";
 import { usePlaybackStore, setAdapterResolver , PlayerOverlay } from "@/src/features/playback/playback";

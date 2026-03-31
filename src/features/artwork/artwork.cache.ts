@@ -1,9 +1,11 @@
-import { File, Directory, Paths } from "expo-file-system";
-import * as FileSystem from "expo-file-system";
-
+import {
+  ensureDir,
+  listFiles,
+  downloadToUri,
+} from "@/src/shared/lib/fs";
 import { log, warn } from "@/src/shared/lib/log";
 
-const ARTWORK_DIR = new Directory(Paths.document, "downloads", "artwork");
+const ARTWORK_PATH = ["downloads", "artwork"] as const;
 
 /** In-memory lookup: "sourceId:itemId:size" → local file URI */
 const cache = new Map<string, string>();
@@ -25,23 +27,13 @@ function fileName(
   return `${sourceId}_${itemId}_${size}.jpg`;
 }
 
-function ensureDir() {
-  try {
-    const parent = new Directory(Paths.document, "downloads");
-    if (!parent.exists) parent.create();
-    if (!ARTWORK_DIR.exists) ARTWORK_DIR.create();
-  } catch {
-    // Already created
-  }
-}
-
 /** Load existing cached files into the in-memory lookup on app start */
-export function initArtworkCache() {
-  ensureDir();
+export async function initArtworkCache() {
+  await ensureDir(...ARTWORK_PATH);
   try {
-    const files = ARTWORK_DIR.list();
+    const files = await listFiles(...ARTWORK_PATH);
     for (const entry of files) {
-      if (entry instanceof File && entry.name?.endsWith(".jpg")) {
+      if (entry.name.endsWith(".jpg")) {
         // Parse "sourceId_itemId_size.jpg" back to cache key
         const base = entry.name.replace(".jpg", "");
         const parts = base.split("_");
@@ -71,8 +63,6 @@ export function getCachedArtwork(
 
 /**
  * Download a single artwork image to local cache.
- * Uses FileSystem.downloadAsync so the network + file I/O runs on the native
- * thread instead of blocking the JS thread.
  * Returns the local file URI on success, undefined on failure.
  */
 export async function cacheArtwork(
@@ -87,18 +77,19 @@ export async function cacheArtwork(
   const existing = cache.get(key);
   if (existing) return existing;
 
-  ensureDir();
+  await ensureDir(...ARTWORK_PATH);
 
   try {
     const name = fileName(sourceId, itemId, size);
-    const destUri = ARTWORK_DIR.uri + name;
-
-    // downloadAsync runs entirely on the native thread — no JS thread blocking
-    const { status } = await FileSystem.downloadAsync(remoteUrl, destUri);
+    const { uri, status } = await downloadToUri(
+      remoteUrl,
+      ...ARTWORK_PATH,
+      name,
+    );
     if (status < 200 || status >= 300) return undefined;
 
-    cache.set(key, destUri);
-    return destUri;
+    cache.set(key, uri);
+    return uri;
   } catch {
     // Download failed — non-fatal, UI will fall back to remote URL
     return undefined;
@@ -118,7 +109,7 @@ export async function prefetchArtwork(
   }>,
   size: string = "medium",
 ): Promise<number> {
-  ensureDir();
+  await ensureDir(...ARTWORK_PATH);
   let cached = 0;
 
   for (const item of items) {

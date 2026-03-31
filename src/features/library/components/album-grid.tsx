@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { StyleProp, ViewStyle} from "react-native";
-import { View, Dimensions } from "react-native";
+import { View, useWindowDimensions } from "react-native";
 
 import { FlashList } from "@shopify/flash-list";
 
@@ -12,16 +12,15 @@ import type { AlbumRow } from "../library.store";
 
 import { AlbumCard } from "./album-card";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
 const COLUMNS = 2;
 const GAP = 12;
 const PADDING = 16;
 const SCRUBBER_WIDTH = 36;
-const CARD_WIDTH =
-  (SCREEN_WIDTH - PADDING - SCRUBBER_WIDTH - GAP * (COLUMNS - 1)) / COLUMNS;
 
-// Approximate row height: card is square + text below + margin
-const ROW_HEIGHT = CARD_WIDTH + 48;
+function useCardWidth() {
+  const { width } = useWindowDimensions();
+  return (width - PADDING - SCRUBBER_WIDTH - GAP * (COLUMNS - 1)) / COLUMNS;
+}
 
 interface AlbumGridProps {
   albums: AlbumRow[];
@@ -38,6 +37,8 @@ export function AlbumGrid({
 }: AlbumGridProps) {
   const listRef = useRef<FlashList<AlbumRow>>(null);
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const cardWidth = useCardWidth();
+  const rowHeight = cardWidth + 48;
 
   const { letters, indices } = useMemo(
     () =>
@@ -63,7 +64,7 @@ export function AlbumGrid({
 
   const renderItem = useCallback(
     ({ item }: { item: AlbumRow }) => (
-      <View style={{ width: CARD_WIDTH }}>
+      <View style={{ width: cardWidth }}>
         <AlbumCard
           id={item.id}
           title={item.title}
@@ -75,7 +76,7 @@ export function AlbumGrid({
         />
       </View>
     ),
-    [onAlbumPress],
+    [onAlbumPress, cardWidth],
   );
 
   const wrappedHeader = ListHeaderComponent ? (
@@ -91,7 +92,7 @@ export function AlbumGrid({
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         numColumns={COLUMNS}
-        estimatedItemSize={ROW_HEIGHT}
+        estimatedItemSize={rowHeight}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingBottom: 100,
@@ -111,5 +112,3 @@ export function AlbumGrid({
     </View>
   );
 }
-
-export { CARD_WIDTH as ALBUM_CARD_WIDTH };
