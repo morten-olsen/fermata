@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,57 +13,58 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useSourcesStore } from "@/src/features/sources/sources";
-import { useSyncStore } from "@/src/features/sync/sync";
-import { useLibraryStore } from "@/src/features/library/library";
+import {
+  useOutputsStore,
+  connectToHA,
+} from "@/src/features/outputs/outputs";
+import type { HAOutputConfig } from "@/src/features/outputs/outputs";
 
 import { colors } from "@/src/shared/theme/theme";
 import { isValidHttpUrl } from "@/src/shared/lib/validate";
 
-export default function AddSourceScreen() {
-  const addSource = useSourcesStore((s) => s.addSource);
-  const syncOne = useSyncStore((s) => s.syncOne);
+export default function AddOutputScreen() {
+  const addOutput = useOutputsStore((s) => s.addOutput);
 
   const [name, setName] = useState("");
   const [serverUrl, setServerUrl] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [accessToken, setAccessToken] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const urlTrimmed = serverUrl.trim();
   const urlValid = urlTrimmed.length === 0 || isValidHttpUrl(urlTrimmed);
-  const canSubmit =
-    name.trim() && urlTrimmed && urlValid && username.trim() && password.trim();
+  const canConnect =
+    name.trim() && urlTrimmed && urlValid && accessToken.trim();
 
-  const handleConnect = async () => {
-    if (!canSubmit) return;
+  const handleConnect = useCallback(async () => {
+    if (!canConnect) return;
     setIsConnecting(true);
     setError(null);
 
     try {
-      await addSource("jellyfin", name.trim(), serverUrl.trim(), {
-        username: username.trim(),
-        password: password.trim(),
-      });
+      // Test the connection before saving
+      const connection = await connectToHA(
+        serverUrl.trim(),
+        accessToken.trim(),
+      );
+      connection.close();
 
-      // Navigate back immediately — sync runs in the background
+      const config: HAOutputConfig = {
+        url: serverUrl.trim(),
+        accessToken: accessToken.trim(),
+      };
+
+      await addOutput(
+        "home-assistant",
+        name.trim(),
+        config as unknown as Record<string, string>,
+      );
       router.back();
-
-      // Kick off sync without blocking the UI
-      const adapter = useSourcesStore
-        .getState()
-        .sources.at(-1)?.adapter;
-      if (adapter) {
-        syncOne(adapter).then(() => {
-          useLibraryStore.getState().refreshAll();
-        });
-      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Connection failed");
       setIsConnecting(false);
     }
-  };
+  }, [canConnect, serverUrl, accessToken, name, addOutput]);
 
   return (
     <SafeAreaView className="flex-1 bg-fermata-bg" edges={["top"]}>
@@ -78,15 +79,17 @@ export default function AddSourceScreen() {
               <Text className="text-fermata-accent text-base">Cancel</Text>
             </Pressable>
             <Text className="text-fermata-text text-lg font-semibold">
-              Add Source
+              Add Home Assistant
             </Text>
             <View style={{ width: 50 }} />
           </View>
 
-          {/* Source type indicator */}
+          {/* Info */}
           <View className="flex-row items-center bg-fermata-surface rounded-xl px-4 py-3 mb-6">
-            <Ionicons name="server" size={20} color={colors.accent} />
-            <Text className="text-fermata-text text-base ml-3">Jellyfin</Text>
+            <Ionicons name="home" size={20} color={colors.accent} />
+            <Text className="text-fermata-text-secondary text-sm ml-3 flex-1">
+              Connect your Home Assistant to play music on any of its speakers.
+            </Text>
           </View>
 
           {/* Form */}
@@ -98,7 +101,7 @@ export default function AddSourceScreen() {
               <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="My Jellyfin Server"
+                placeholder="Home"
                 placeholderTextColor={colors.muted}
                 className="bg-fermata-surface text-fermata-text rounded-xl px-4 py-3 text-base"
                 autoCorrect={false}
@@ -107,12 +110,12 @@ export default function AddSourceScreen() {
 
             <View>
               <Text className="text-fermata-text-secondary text-sm mb-1 ml-1">
-                Server URL
+                Home Assistant URL
               </Text>
               <TextInput
                 value={serverUrl}
                 onChangeText={setServerUrl}
-                placeholder="https://jellyfin.example.com"
+                placeholder="http://homeassistant.local:8123"
                 placeholderTextColor={colors.muted}
                 className="bg-fermata-surface text-fermata-text rounded-xl px-4 py-3 text-base"
                 autoCapitalize="none"
@@ -128,31 +131,21 @@ export default function AddSourceScreen() {
 
             <View>
               <Text className="text-fermata-text-secondary text-sm mb-1 ml-1">
-                Username
+                Long-Lived Access Token
               </Text>
               <TextInput
-                value={username}
-                onChangeText={setUsername}
-                placeholder="Username"
+                value={accessToken}
+                onChangeText={setAccessToken}
+                placeholder="Paste token from HA profile"
                 placeholderTextColor={colors.muted}
                 className="bg-fermata-surface text-fermata-text rounded-xl px-4 py-3 text-base"
                 autoCapitalize="none"
                 autoCorrect={false}
-              />
-            </View>
-
-            <View>
-              <Text className="text-fermata-text-secondary text-sm mb-1 ml-1">
-                Password
-              </Text>
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Password"
-                placeholderTextColor={colors.muted}
-                className="bg-fermata-surface text-fermata-text rounded-xl px-4 py-3 text-base"
                 secureTextEntry
               />
+              <Text className="text-fermata-muted text-xs mt-1 ml-1">
+                Create one in HA: Profile → Long-Lived Access Tokens
+              </Text>
             </View>
           </View>
 
@@ -167,9 +160,9 @@ export default function AddSourceScreen() {
           {/* Connect button */}
           <Pressable
             onPress={handleConnect}
-            disabled={!canSubmit || isConnecting}
+            disabled={!canConnect || isConnecting}
             className={`flex-row items-center justify-center py-4 rounded-xl mt-6 ${
-              canSubmit && !isConnecting
+              canConnect && !isConnecting
                 ? "bg-fermata-accent"
                 : "bg-fermata-elevated"
             }`}
@@ -184,7 +177,7 @@ export default function AddSourceScreen() {
             ) : (
               <Text
                 className={`font-semibold text-base ${
-                  canSubmit ? "text-fermata-bg" : "text-fermata-muted"
+                  canConnect ? "text-fermata-bg" : "text-fermata-muted"
                 }`}
               >
                 Connect

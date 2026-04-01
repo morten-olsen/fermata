@@ -15,6 +15,10 @@ export default function SettingsLayout() {
         name="add-source"
         options={{ presentation: "modal" }}
       />
+      <Stack.Screen
+        name="add-output"
+        options={{ presentation: "modal" }}
+      />
     </Stack>
   );
 }

@@ -181,6 +181,16 @@ export const downloads = sqliteTable(
   ]
 );
 
+// ── Output Configs ───────────────────────────────────
+
+export const outputConfigs = sqliteTable("output_configs", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(), // 'home-assistant' | etc.
+  name: text("name").notNull(), // "Kitchen Speaker"
+  config: text("config").notNull().default("{}"), // JSON blob, type-specific
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 // ── Relations ──────────────────────────────────────────
 
 export const sourcesRelations = relations(sources, ({ many }) => ({

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { View, PanResponder, useWindowDimensions } from "react-native";
+import { PanResponder, useWindowDimensions } from "react-native";
 
 import * as Haptics from "expo-haptics";
 import Animated, {
@@ -14,6 +14,7 @@ import {
   resolveArtworkUrl,
   useImageColors,
 } from "@/src/features/artwork/artwork";
+import { OutputPicker } from "@/src/features/outputs/outputs";
 
 import { colors } from "@/src/shared/theme/theme";
 
@@ -57,6 +58,7 @@ export function PlayerOverlay() {
   );
 
   const [showQueue, setShowQueue] = useState(false);
+  const [showOutputPicker, setShowOutputPicker] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   // ── Expand / collapse ──
@@ -64,7 +66,7 @@ export function PlayerOverlay() {
   const expand = useSharedValue(0);
 
   const doExpand = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     expand.value = withSpring(1, SPRING_CONFIG);
     setIsExpanded(true);
   }, [expand]);
@@ -162,6 +164,7 @@ export function PlayerOverlay() {
           onTogglePlayPause={togglePlayPause}
           onSkipNext={skipNext}
           onExpand={doExpand}
+          onOpenOutputPicker={() => setShowOutputPicker(true)}
         />
       </Animated.View>
 
@@ -199,6 +202,7 @@ export function PlayerOverlay() {
           onSeek={seekTo}
           onVolumeChange={setVolume}
           onOpenQueue={() => setShowQueue(true)}
+          onOpenOutputPicker={() => setShowOutputPicker(true)}
           onCollapse={doCollapse}
         />
 
@@ -207,6 +211,12 @@ export function PlayerOverlay() {
           onDismiss={() => setShowQueue(false)}
         />
       </Animated.View>
+
+      {/* Output picker — outside both animated views so it's accessible from mini and full player */}
+      <OutputPicker
+        visible={showOutputPicker}
+        onDismiss={() => setShowOutputPicker(false)}
+      />
     </>
   );
 }

@@ -7,16 +7,23 @@ import { ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useMigrations } from "@/src/shared/db/db.migrator";
 
-import { useSourcesStore } from "@/src/features/sources/sources";
-import { usePlaybackStore, setAdapterResolver , PlayerOverlay } from "@/src/features/playback/playback";
+import { useSourcesStore, cleanupOrphanedEntities } from "@/src/features/sources/sources";
+import {
+  usePlaybackStore,
+  setAdapterResolver,
+  setOutputResolver,
+  setLocalAdapterResolver,
+  PlayerOverlay,
+} from "@/src/features/playback/playback";
 import { useDownloadStore, setDownloadAdapterResolver } from "@/src/features/downloads/downloads";
+import { useOutputsStore, setTransferPlaybackCallback } from "@/src/features/outputs/outputs";
 import { TrackActionsProvider } from "@/src/features/library/library";
 import { initArtworkCache } from "@/src/features/artwork/artwork";
 
 import migrations from "@/drizzle/migrations";
 
+import { useMigrations } from "@/src/shared/db/db.migrator";
 import { db } from "@/src/shared/db/db.client";
 import { fermataTheme } from "@/src/shared/theme/theme";
 
@@ -41,25 +48,40 @@ export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
-SplashScreen.preventAutoHideAsync();
+void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const { success, error } = useMigrations(db, migrations);
   const loadSources = useSourcesStore((s) => s.loadSources);
   const initializePlayer = usePlaybackStore((s) => s.initialize);
   const initializeDownloads = useDownloadStore((s) => s.initialize);
+  const initializeOutputs = useOutputsStore((s) => s.initialize);
 
   useEffect(() => {
     if (success) {
-      initArtworkCache();
-      Promise.all([loadSources(), initializePlayer(), initializeDownloads()]).then(() => {
+      void initArtworkCache();
+      // Clean up orphaned entities from sources deleted before
+      // foreign_keys pragma was enabled
+      void cleanupOrphanedEntities();
+      void Promise.all([
+        loadSources(),
+        initializeOutputs(),
+        initializeDownloads(),
+      ]).then(() => {
         const getAdapter = (sourceId: string) =>
           useSourcesStore.getState().getAdapter(sourceId);
         setAdapterResolver(getAdapter);
         setDownloadAdapterResolver(getAdapter);
+        setOutputResolver(() => useOutputsStore.getState().getActiveAdapter());
+        setLocalAdapterResolver(() => useOutputsStore.getState().localAdapter);
+        setTransferPlaybackCallback(() =>
+          usePlaybackStore.getState().transferPlayback()
+        );
+        // Initialize playback after outputs are ready
+        void initializePlayer();
         // Resume pending downloads now that adapters are wired
-        useDownloadStore.getState().resumeDownloads();
-        SplashScreen.hideAsync();
+        void useDownloadStore.getState().resumeDownloads();
+        void SplashScreen.hideAsync();
       });
     }
   }, [success]);

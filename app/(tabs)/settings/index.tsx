@@ -9,6 +9,7 @@ import { useSourcesStore } from "@/src/features/sources/sources";
 import { useSyncStore } from "@/src/features/sync/sync";
 import { useLibraryStore } from "@/src/features/library/library";
 import { useDownloadStore } from "@/src/features/downloads/downloads";
+import { useOutputsStore } from "@/src/features/outputs/outputs";
 
 import { colors } from "@/src/shared/theme/theme";
 
@@ -196,7 +197,7 @@ export default function SettingsScreen() {
             label="Retry Failed Downloads"
             onPress={async () => {
               await retryFailed();
-              refreshDlStats();
+              void refreshDlStats();
             }}
           />
         )}
@@ -215,11 +216,7 @@ export default function SettingsScreen() {
           Output
         </Text>
 
-        <SettingsRow
-          icon="volume-high-outline"
-          label="Playback Output"
-          detail="This Device"
-        />
+        <OutputSection />
 
         {/* Footer */}
         <Text className="text-center text-fermata-muted text-xs mt-12 mb-8">
@@ -246,6 +243,73 @@ function StatItem({
       </Text>
       <Text className="text-fermata-text-secondary text-xs">{label}</Text>
     </View>
+  );
+}
+
+function OutputSection() {
+  const { outputs, activeTarget, availableSpeakers, removeOutput } =
+    useOutputsStore(
+      useShallow((s) => ({
+        outputs: s.outputs,
+        activeTarget: s.activeTarget,
+        availableSpeakers: s.availableSpeakers,
+        removeOutput: s.removeOutput,
+      })),
+    );
+
+  const activeSpeaker = activeTarget
+    ? availableSpeakers.find(
+        (s) =>
+          s.outputId === activeTarget.outputId &&
+          s.entityId === activeTarget.entityId,
+      )
+    : null;
+  const activeLabel = activeSpeaker?.name ?? "This Device";
+
+  return (
+    <>
+      <SettingsRow
+        icon="phone-portrait-outline"
+        label="Active Speaker"
+        detail={activeLabel}
+      />
+
+      {outputs.map((output) => (
+        <View key={output.id} className="mb-2">
+          <View className="flex-row items-center bg-fermata-surface rounded-xl px-4 py-4">
+            <Ionicons
+              name="home-outline"
+              size={22}
+              color={colors.textSecondary}
+            />
+            <View className="flex-1 ml-3">
+              <Text className="text-fermata-text text-base">
+                {output.name}
+              </Text>
+              <Text className="text-fermata-text-secondary text-xs">
+                {output.type} · {availableSpeakers.filter((s) => s.outputId === output.id).length} speakers
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => void removeOutput(output.id)}
+              className="p-2"
+            >
+              <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+            </Pressable>
+          </View>
+        </View>
+      ))}
+
+      <Pressable
+        onPress={() => router.push("/(tabs)/settings/add-output")}
+        className="flex-row items-center bg-fermata-surface rounded-xl px-4 py-4 mb-2"
+      >
+        <Ionicons name="add-circle-outline" size={22} color={colors.accent} />
+        <Text className="text-fermata-accent text-base font-medium ml-3">
+          Add Home Assistant
+        </Text>
+      </Pressable>
+    </>
   );
 }
 

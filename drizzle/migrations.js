@@ -5,6 +5,7 @@ import m0000 from './0000_light_baron_zemo.sql';
 import m0001 from './0001_faithful_randall_flagg.sql';
 import m0002 from './0002_replace_mixtapes_with_playlists.sql';
 import m0003 from './0003_add_offline_downloads.sql';
+import m0004 from './0004_add_output_configs.sql';
 
 export default {
   journal,
@@ -13,5 +14,6 @@ export default {
     m0001,
     m0002,
     m0003,
+    m0004,
   }
 }

@@ -1,26 +1,7 @@
-export interface PlaybackState {
-  isPlaying: boolean;
-  positionMs: number;
-  durationMs: number;
-  trackId?: string;
-}
-
-export type Unsubscribe = () => void;
-
-export interface OutputAdapter {
-  id: string;
-  type: string;
-  name: string;
-
-  initialize(): Promise<void>;
-  dispose(): Promise<void>;
-
-  play(streamUrl: string, trackId: string): Promise<void>;
-  pause(): Promise<void>;
-  resume(): Promise<void>;
-  stop(): Promise<void>;
-  seek(positionMs: number): Promise<void>;
-
-  getState(): PlaybackState;
-  onStateChange(callback: (state: PlaybackState) => void): Unsubscribe;
-}
+// Re-export from outputs feature — these types originated here and are
+// re-exported for backward compatibility within the playback feature.
+export type {
+  PlaybackState,
+  Unsubscribe,
+  OutputAdapter,
+} from "@/src/features/outputs/outputs";

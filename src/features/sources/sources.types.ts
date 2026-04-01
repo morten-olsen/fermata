@@ -39,6 +39,13 @@ export interface Playlist {
 
 export type ImageSize = "small" | "medium" | "large";
 
+export interface SourceStreamingCapabilities {
+  /** Source provides HTTP(S) URLs accessible from the local network */
+  hasNetworkStreamUrl: boolean;
+  /** Source provides URLs accessible from the internet (not just LAN) */
+  hasPublicStreamUrl: boolean;
+}
+
 export interface SourceConfig {
   baseUrl: string;
   credentials: Record<string, string>;
@@ -78,6 +85,9 @@ export interface SourceAdapter {
 
   getStreamUrl(trackId: string): string;
   getArtworkUrl(itemId: string, size?: ImageSize): string;
+
+  /** Declare what streaming capabilities this source provides */
+  getStreamingCapabilities(): SourceStreamingCapabilities;
 
   /** Toggle favourite status on the remote source. Optional — not all sources support this. */
   toggleFavourite?(sourceItemId: string, isFavourite: boolean): Promise<void>;

@@ -73,6 +73,23 @@ src/
       artwork.cache.ts
       artwork.use-image-colors.ts
 
+    outputs/                      # Output adapters (Spotify Connect-like)
+      outputs.ts                  # Barrel
+      outputs.store.ts            # Active output, connection lifecycle
+      outputs.types.ts            # OutputAdapter interface
+      outputs.registry.ts         # Factory: type → constructor
+      outputs.queries.ts          # Persisted output configs
+      components/
+        output-picker.tsx
+      local/
+        local.ts                  # Barrel
+        local.adapter.ts          # Wraps RNTP
+      home-assistant/
+        home-assistant.ts         # Barrel
+        home-assistant.adapter.ts
+        home-assistant.api.ts     # HA WebSocket client
+        home-assistant.types.ts
+
   shared/                         # Cross-cutting infrastructure
     db/
       db.ts                       # Barrel
@@ -101,7 +118,8 @@ docs/                             # Architecture, design, standards, code guidel
 - **NativeWind everywhere** — use Tailwind classes via `className`. Custom colors prefixed `fermata-` (e.g. `bg-fermata-bg`, `text-fermata-accent`). No `StyleSheet.create`.
 - **Drizzle schema is the source of truth** — define tables in `shared/db/db.schema.ts`, run `npx drizzle-kit generate`. Never write raw SQL.
 - **Feature queries own their DB access** — each feature has its own `{feature}.queries.ts`. No direct `db` client imports outside query files.
-- **Adapter registry** — adapters created via `createAdapter(type, id, name)` from `sources.registry.ts`. Never import concrete adapter classes outside their own directory.
+- **Adapter registry** — source adapters created via `createAdapter(type, id, name)` from `sources.registry.ts`. Output adapters via `createOutputAdapter(type, id, name)` from `outputs.registry.ts`. Never import concrete adapter classes outside their own directory.
+- **Output adapters** — playback store delegates transport to the active `OutputAdapter` (local RNTP or network like Home Assistant). Queue stays in the store; adapter handles play/pause/seek/volume. Battery-conscious: network adapters disconnect when backgrounded and idle.
 - **Library sync, not live fetch** — UI reads from local SQLite, never remote APIs directly.
 - **Artwork is a source item ID** — DB stores `artworkSourceItemId`, not URLs. Resolve via `resolveArtworkUrl()` at read time.
 - **Deterministic IDs** — `stableId(sourceId, sourceItemId)` for synced entities, `generateId()` for local-only. Both in `shared/lib/ids.ts`.
@@ -122,9 +140,10 @@ docs/                             # Architecture, design, standards, code guidel
 
 ```
 sources     ← (leaf)
+outputs     ← sources
 artwork     ← sources
 library     ← sources, artwork, playback, downloads
-playback    ← sources, library, downloads, artwork
+playback    ← sources, library, downloads, artwork, outputs
 sync        ← sources, library, artwork
 downloads   ← sources, library
 shared      ← no feature deps
@@ -150,6 +169,7 @@ npm run lint:fix         # Auto-fix ESLint issues
 - `docs/DESIGN-SYSTEM.md` — colors, typography, spacing, component patterns
 - `docs/DESIGN.md` — design philosophy and inspiration
 - `docs/STANDARDS.md` — coding principles (superseded by CODE-GUIDELINES.md)
+- `docs/OUTPUT-ADAPTERS.md` — output adapter design (Spotify Connect-like speaker routing)
 
 ## License
 

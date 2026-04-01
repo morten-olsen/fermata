@@ -88,6 +88,7 @@ export interface NowPlayingProps {
   onSeek: (positionMs: number) => void;
   onVolumeChange: (volume: number) => void;
   onOpenQueue: () => void;
+  onOpenOutputPicker?: () => void;
 }
 
 // ── Full Player ──
@@ -107,6 +108,7 @@ export function NowPlayingFull({
   onSeek,
   onVolumeChange,
   onOpenQueue,
+  onOpenOutputPicker,
   onCollapse,
 }: NowPlayingProps & { onCollapse: () => void }) {
   const { height: screenHeight, width: screenWidth } = useWindowDimensions();
@@ -570,17 +572,32 @@ export function NowPlayingFull({
               justifyContent: "space-between",
             }}
           >
-            <Pressable
-              onPress={() => setShowVolume((v) => !v)}
-              hitSlop={8}
-              style={{ padding: 8 }}
-            >
-              <Ionicons
-                name={showVolume ? "volume-high" : "volume-high-outline"}
-                size={20}
-                color={showVolume ? colors.text : colors.muted}
-              />
-            </Pressable>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Pressable
+                onPress={() => setShowVolume((v) => !v)}
+                hitSlop={8}
+                style={{ padding: 8 }}
+              >
+                <Ionicons
+                  name={showVolume ? "volume-high" : "volume-high-outline"}
+                  size={20}
+                  color={showVolume ? colors.text : colors.muted}
+                />
+              </Pressable>
+              {onOpenOutputPicker && (
+                <Pressable
+                  onPress={onOpenOutputPicker}
+                  hitSlop={8}
+                  style={{ padding: 8 }}
+                >
+                  <Ionicons
+                    name="radio-outline"
+                    size={20}
+                    color={colors.muted}
+                  />
+                </Pressable>
+              )}
+            </View>
 
             {nextTrack && (
               <Pressable
@@ -645,6 +662,7 @@ export function NowPlayingMini({
   onTogglePlayPause,
   onSkipNext,
   onExpand,
+  onOpenOutputPicker,
 }: Pick<
   NowPlayingProps,
   | "currentTrack"
@@ -655,6 +673,7 @@ export function NowPlayingMini({
   | "albumColors"
   | "onTogglePlayPause"
   | "onSkipNext"
+  | "onOpenOutputPicker"
 > & { onExpand: () => void }) {
   const progress = durationMs > 0 ? (positionMs / durationMs) * 100 : 0;
   const miniProgressColor = lighten(albumColors.primary, 0.6);
@@ -763,6 +782,20 @@ export function NowPlayingMini({
             {currentTrack.artistName}
           </Text>
         </View>
+
+        {/* Output picker */}
+        {onOpenOutputPicker && (
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              onOpenOutputPicker();
+            }}
+            hitSlop={6}
+            style={{ padding: 8 }}
+          >
+            <Ionicons name="radio-outline" size={18} color={colors.muted} />
+          </Pressable>
+        )}
 
         {/* Play/pause */}
         <PressableScale

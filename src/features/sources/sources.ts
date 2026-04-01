@@ -5,11 +5,13 @@ export {
   getSource,
   upsertSource,
   deleteSource,
+  cleanupOrphanedEntities,
 } from "./sources.queries";
 export type {
   SourceAdapter,
   SourceConfig,
   SourcePersistedState,
+  SourceStreamingCapabilities,
   Artist,
   Album,
   Track,

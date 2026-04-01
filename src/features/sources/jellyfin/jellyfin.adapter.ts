@@ -2,6 +2,7 @@ import type {
   SourceAdapter,
   SourceConfig,
   SourcePersistedState,
+  SourceStreamingCapabilities,
   Artist,
   Album,
   Track,
@@ -58,6 +59,7 @@ export class JellyfinAdapter implements SourceAdapter {
   }
 
   async disconnect(): Promise<void> {
+    await Promise.resolve();
     this.accessToken = "";
     this.userId = "";
   }
@@ -111,6 +113,16 @@ export class JellyfinAdapter implements SourceAdapter {
 
   getArtworkUrl(itemId: string, size?: ImageSize): string {
     return apiGetArtworkUrl(this.baseUrl, itemId, size);
+  }
+
+  getStreamingCapabilities(): SourceStreamingCapabilities {
+    // Jellyfin stream URLs are network-accessible HTTP(S) endpoints.
+    // Whether they're public depends on the user's network config,
+    // but they're always LAN-accessible at minimum.
+    return {
+      hasNetworkStreamUrl: true,
+      hasPublicStreamUrl: false, // Conservative — assume LAN only
+    };
   }
 
   async getPlaylists(): Promise<Playlist[]> {

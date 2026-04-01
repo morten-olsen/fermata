@@ -1,4 +1,9 @@
-export { usePlaybackStore, setAdapterResolver } from "./playback.store";
+export {
+  usePlaybackStore,
+  setAdapterResolver,
+  setOutputResolver,
+  setLocalAdapterResolver,
+} from "./playback.store";
 export { PlaybackService } from "./playback.service";
 export { PlayerOverlay } from "./components/player-overlay";
 export { NowPlayingFull, NowPlayingMini } from "./components/now-playing-ui";

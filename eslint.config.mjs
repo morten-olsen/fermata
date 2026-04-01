@@ -17,6 +17,7 @@ const ALL_FEATURES = [
   "feature-sync",
   "feature-downloads",
   "feature-artwork",
+  "feature-outputs",
 ];
 
 export default tseslint.config(
@@ -219,6 +220,10 @@ export default tseslint.config(
           pattern: ["src/features/artwork/**"],
         },
         {
+          type: "feature-outputs",
+          pattern: ["src/features/outputs/**"],
+        },
+        {
           type: "shared",
           pattern: ["src/shared/**"],
         },
@@ -287,6 +292,12 @@ export default tseslint.config(
                 { to: { type: "feature-artwork", internalPath: "!artwork.ts" } },
               ],
             },
+            {
+              from: { type: ALL_FEATURES.filter((f) => f !== "feature-outputs") },
+              disallow: [
+                { to: { type: "feature-outputs", internalPath: "!outputs.ts" } },
+              ],
+            },
             // App screens must also go through barrels
             {
               from: { type: "app" },
@@ -297,15 +308,17 @@ export default tseslint.config(
                 { to: { type: "feature-sync", internalPath: "!sync.ts" } },
                 { to: { type: "feature-downloads", internalPath: "!downloads.ts" } },
                 { to: { type: "feature-artwork", internalPath: "!artwork.ts" } },
+                { to: { type: "feature-outputs", internalPath: "!outputs.ts" } },
               ],
             },
 
             // ---------------------------------------------------------------
             // Dependency graph enforcement:
             //   sources     ← (leaf)
+            //   outputs     ← sources
             //   artwork     ← sources
             //   library     ← sources, artwork, playback, downloads
-            //   playback    ← sources, library, downloads, artwork
+            //   playback    ← sources, library, downloads, artwork, outputs
             //   sync        ← sources, library, artwork
             //   downloads   ← sources, library
             //   shared      ← no feature deps
@@ -314,6 +327,18 @@ export default tseslint.config(
             // Sources: leaf — cannot import any other feature
             {
               from: { type: "feature-sources" },
+              disallow: [
+                { to: { type: "feature-playback" } },
+                { to: { type: "feature-library" } },
+                { to: { type: "feature-sync" } },
+                { to: { type: "feature-downloads" } },
+                { to: { type: "feature-artwork" } },
+                { to: { type: "feature-outputs" } },
+              ],
+            },
+            // Outputs: can depend on sources
+            {
+              from: { type: "feature-outputs" },
               disallow: [
                 { to: { type: "feature-playback" } },
                 { to: { type: "feature-library" } },
@@ -330,6 +355,7 @@ export default tseslint.config(
                 { to: { type: "feature-library" } },
                 { to: { type: "feature-sync" } },
                 { to: { type: "feature-downloads" } },
+                { to: { type: "feature-outputs" } },
               ],
             },
             // Library: can depend on sources, artwork, playback, downloads
@@ -352,6 +378,7 @@ export default tseslint.config(
               disallow: [
                 { to: { type: "feature-playback" } },
                 { to: { type: "feature-downloads" } },
+                { to: { type: "feature-outputs" } },
               ],
             },
             // Downloads: can depend on sources, library
@@ -361,6 +388,7 @@ export default tseslint.config(
                 { to: { type: "feature-playback" } },
                 { to: { type: "feature-sync" } },
                 { to: { type: "feature-artwork" } },
+                { to: { type: "feature-outputs" } },
               ],
             },
             // Shared: cannot import from any feature
