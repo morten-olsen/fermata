@@ -23,12 +23,12 @@ export default function PodcastsScreen() {
   const setMediaType = useLibraryStore((s) => s.setMediaType);
   const getInProgressAlbums = useLibraryStore((s) => s.getInProgressAlbums);
 
-  const [recent, setRecent] = useState<AlbumRow[]>([]);
+  const [inProgress, setInProgress] = useState<AlbumRow[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       setMediaType("podcast");
-      void getInProgressAlbums("podcast").then(setRecent);
+      void getInProgressAlbums("podcast").then(setInProgress);
     }, [setMediaType, getInProgressAlbums]),
   );
 
@@ -38,12 +38,13 @@ export default function PodcastsScreen() {
     [],
   );
 
-  const renderHorizontalCard = useCallback(
+  const renderShowCard = useCallback(
     (item: AlbumRow) => (
       <ShowCard
         id={item.id}
         title={item.title}
         artistName={item.artistName}
+        episodeCount={item.trackCount ?? undefined}
         sourceId={item.sourceId}
         artworkSourceItemId={item.artworkSourceItemId}
         onPress={() => handleShowPress(item.id)}
@@ -60,22 +61,22 @@ export default function PodcastsScreen() {
         </Text>
       </View>
 
-      {recent.length > 0 && (
+      {inProgress.length > 0 && (
         <View className="mb-6">
-          <SectionHeader title="Recent" />
+          <SectionHeader title="In Progress" />
           <HorizontalList
-            data={recent}
+            data={inProgress}
             keyExtractor={(item) => item.id}
-            renderItem={renderHorizontalCard}
+            renderItem={renderShowCard}
           />
         </View>
       )}
 
-      {recent.length > 0 && (
+      {inProgress.length > 0 && (
         <SectionHeader title="All Shows" />
       )}
     </View>
-  ), [recent, renderHorizontalCard]);
+  ), [inProgress, renderShowCard]);
 
   if (stats.podcasts === 0) {
     return (
@@ -100,6 +101,7 @@ export default function PodcastsScreen() {
         style={{ flex: 1 }}
         albums={albums}
         onAlbumPress={handleShowPress}
+        renderCard={renderShowCard}
         ListHeaderComponent={listHeader}
       />
     </SafeAreaView>

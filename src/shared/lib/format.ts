@@ -5,6 +5,45 @@ export function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
+/** Format seconds as a human-readable long form (e.g. 15720 → "4h 22m", 300 → "5 min"). */
+export function formatDurationLong(seconds: number): string {
+  if (seconds <= 0) return "0 min";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.round((seconds % 3600) / 60);
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+/**
+ * Format a download status meta string for detail screens.
+ * Returns "" if not pinned, " · Downloaded" if all done, or " · 3/10 downloaded".
+ */
+export function formatDownloadMeta(
+  isPinned: boolean,
+  downloadedCount: number,
+  totalCount: number,
+): string {
+  if (!isPinned) return "";
+  if (downloadedCount >= totalCount) return " · Downloaded";
+  return ` · ${downloadedCount}/${totalCount} downloaded`;
+}
+
+/**
+ * Format a track's remaining duration as "-m:ss" when partially played,
+ * or full duration as "m:ss" otherwise.
+ */
+export function formatRemainingDuration(
+  duration: number,
+  progress: number | undefined,
+  isCompleted: boolean | undefined,
+): string {
+  const hasProgress = progress != null && progress > 0 && !isCompleted;
+  const displaySeconds = hasProgress ? Math.round(duration * (1 - progress)) : duration;
+  const prefix = hasProgress ? "-" : "";
+  return `${prefix}${formatDuration(displaySeconds)}`;
+}
+
 /** Format a byte count as a human-readable string (e.g. 1048576 → "1.0 MB"). */
 export function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";

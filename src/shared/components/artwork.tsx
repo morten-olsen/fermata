@@ -34,10 +34,12 @@ interface ArtworkProps {
   uri: string | null | undefined;
   /** @default "square" */
   aspect?: ArtworkAspect;
-  /** Predefined size. Ignored when `width` is provided. @default "md" */
+  /** Predefined size. Ignored when `width` or `fill` is provided. @default "md" */
   size?: ArtworkSize;
   /** Custom width — height is derived from aspect ratio. */
   width?: number;
+  /** Fill parent width. Uses aspectRatio instead of fixed height. Overrides size/width. */
+  fill?: boolean;
   /** Fallback icon name when no artwork. @default "disc" */
   fallbackIcon?: string;
   /** Whether to use the slower 300ms transition for large artwork. @default false */
@@ -51,10 +53,46 @@ export const Artwork = memo(function Artwork({
   aspect = "square",
   size = "md",
   width: customWidth,
+  fill = false,
   fallbackIcon = "disc",
   heroTransition = false,
   badge,
 }: ArtworkProps) {
+  if (fill) {
+    const aspectRatio = aspect === "portrait" ? 3 / 4 : 1;
+    return (
+      <View
+        style={{
+          width: "100%",
+          aspectRatio,
+          borderRadius: 12,
+          backgroundColor: colors.surface,
+          overflow: "hidden",
+        }}
+      >
+        {uri ? (
+          <Image
+            source={{ uri }}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="cover"
+            cachePolicy="disk"
+            recyclingKey={uri}
+            transition={heroTransition ? 300 : 200}
+          />
+        ) : (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <Ionicons name={fallbackIcon as keyof typeof Ionicons.glyphMap} size={40} color={colors.muted} />
+          </View>
+        )}
+        {badge && (
+          <View style={{ position: "absolute", bottom: 6, right: 6 }}>
+            {badge}
+          </View>
+        )}
+      </View>
+    );
+  }
+
   const w = customWidth ?? SIZE_MAP[size];
   const h = aspect === "portrait" ? w * (4 / 3) : w;
   const radius = customWidth

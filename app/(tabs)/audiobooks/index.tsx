@@ -11,6 +11,7 @@ import {
   BookGrid,
 } from "@/src/features/library/library";
 import type { AlbumRow } from "@/src/features/library/library";
+import { getAlbumProgressSummaries } from "@/src/features/progress/progress";
 
 import { SectionHeader } from "@/src/shared/components/section-header";
 import { HorizontalList } from "@/src/shared/components/horizontal-list";
@@ -26,6 +27,8 @@ export default function AudiobooksScreen() {
 
   const [favourites, setFavourites] = useState<AlbumRow[]>([]);
   const [inProgress, setInProgress] = useState<AlbumRow[]>([]);
+  const [finished, setFinished] = useState<AlbumRow[]>([]);
+  const [progressMap, setProgressMap] = useState(() => new Map<string, number>());
 
   useFocusEffect(
     useCallback(() => {
@@ -33,6 +36,29 @@ export default function AudiobooksScreen() {
       void getFavouriteAlbums("audiobook").then(setFavourites);
       void getInProgressAlbums("audiobook").then(setInProgress);
     }, [setMediaType, getFavouriteAlbums, getInProgressAlbums]),
+  );
+
+  // Load per-album progress summaries once albums are available
+  useFocusEffect(
+    useCallback(() => {
+      if (albums.length === 0) return;
+      const ids = albums.map((a) => a.id);
+      void getAlbumProgressSummaries(ids).then((summaries) => {
+        const pMap = new Map<string, number>();
+        const done: AlbumRow[] = [];
+        for (const album of albums) {
+          const s = summaries.get(album.id);
+          if (s) {
+            pMap.set(album.id, s.fraction);
+            if (s.fraction >= 1 && s.total > 0) {
+              done.push(album);
+            }
+          }
+        }
+        setProgressMap(pMap);
+        setFinished(done);
+      });
+    }, [albums]),
   );
 
   const handleBookPress = useCallback(
@@ -49,11 +75,14 @@ export default function AudiobooksScreen() {
         artistName={item.artistName}
         sourceId={item.sourceId}
         artworkSourceItemId={item.artworkSourceItemId}
+        progress={progressMap.get(item.id)}
         onPress={() => handleBookPress(item.id)}
       />
     ),
-    [handleBookPress],
+    [handleBookPress, progressMap],
   );
+
+  const hasSections = inProgress.length > 0 || favourites.length > 0 || finished.length > 0;
 
   const listHeader = useMemo(() => (
     <View>
@@ -85,11 +114,22 @@ export default function AudiobooksScreen() {
         </View>
       )}
 
-      {(inProgress.length > 0 || favourites.length > 0) && (
+      {finished.length > 0 && (
+        <View className="mb-6">
+          <SectionHeader title="Finished" />
+          <HorizontalList
+            data={finished}
+            keyExtractor={(item) => item.id}
+            renderItem={renderHorizontalCard}
+          />
+        </View>
+      )}
+
+      {hasSections && (
         <SectionHeader title="All Audiobooks" />
       )}
     </View>
-  ), [inProgress, favourites, renderHorizontalCard]);
+  ), [inProgress, favourites, finished, hasSections, renderHorizontalCard]);
 
   if (stats.audiobooks === 0) {
     return (
@@ -114,6 +154,7 @@ export default function AudiobooksScreen() {
         style={{ flex: 1 }}
         books={albums}
         onBookPress={handleBookPress}
+        progressMap={progressMap}
         ListHeaderComponent={listHeader}
       />
     </SafeAreaView>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, memo } from "react";
+import { useEffect, useState, useCallback, useMemo, memo, useRef } from "react";
 import { View, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,6 +20,7 @@ import { NavBar, NavBarAction } from "@/src/shared/components/nav-bar";
 import { DetailHeader } from "@/src/shared/components/detail-header";
 import { ActionButton } from "@/src/shared/components/action-button";
 import { colors } from "@/src/shared/theme/theme";
+import { formatDurationLong, formatDownloadMeta } from "@/src/shared/lib/format";
 
 export default function BookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -45,9 +46,10 @@ export default function BookDetailScreen() {
     })),
   );
 
+  const listRef = useRef<FlatList<TrackRowType>>(null);
   const [book, setBook] = useState<AlbumRow>();
   const [chapters, setChapters] = useState<TrackRowType[]>([]);
-  const [progressMap, setProgressMap] = useState(new Map<string, ProgressEntry>());
+  const [progressMap, setProgressMap] = useState(() => new Map<string, ProgressEntry>());
   const [isOfflinePinned, setIsOfflinePinned] = useState(false);
   const [isFavourite, setIsFavourite] = useState(false);
 
@@ -139,10 +141,34 @@ export default function BookDetailScreen() {
     [chapters, chapterProgressMap],
   );
 
+  const timeRemainingSec = useMemo(() => {
+    let remaining = 0;
+    for (const c of chapters) {
+      const cp = chapterProgressMap.get(c.id);
+      if (cp?.isCompleted) continue;
+      if (cp && cp.fraction > 0) {
+        remaining += c.duration * (1 - cp.fraction);
+      } else {
+        remaining += c.duration;
+      }
+    }
+    return remaining;
+  }, [chapters, chapterProgressMap]);
+
   const dlCount = useMemo(
     () => chapters.filter((t) => isTrackDownloaded(t.id)).length,
     [chapters],
   );
+
+  useEffect(() => {
+    if (chapters.length === 0 || !firstUnfinished) return;
+    const idx = chapters.indexOf(firstUnfinished);
+    if (idx <= 2) return;
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToIndex({ index: idx, animated: true, viewOffset: 100 });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [chapters, firstUnfinished]);
 
   if (!book) return null;
 
@@ -151,21 +177,25 @@ export default function BookDetailScreen() {
     book.artworkSourceItemId,
     "large",
   );
-  const dlMeta = isOfflinePinned
-    ? dlCount < chapters.length
-      ? ` · ${dlCount}/${chapters.length} downloaded`
-      : " · Downloaded"
-    : "";
+  const dlMeta = formatDownloadMeta(isOfflinePinned, dlCount, chapters.length);
   const progressMeta = totalProgress > 0
     ? ` · ${Math.round(totalProgress * 100)}% complete`
     : "";
-  const meta = `${chapters.length} ${chapters.length === 1 ? "chapter" : "chapters"}${progressMeta}${dlMeta}`;
+  const timeMeta = timeRemainingSec > 0 && totalProgress > 0 && totalProgress < 1
+    ? ` · ${formatDurationLong(timeRemainingSec)} left`
+    : "";
+  const totalDuration = chapters.reduce((sum, c) => sum + c.duration, 0);
+  const durationMeta = totalProgress === 0 && totalDuration > 0
+    ? ` · ${formatDurationLong(totalDuration)}`
+    : "";
+  const meta = `${chapters.length} ${chapters.length === 1 ? "chapter" : "chapters"}${progressMeta}${timeMeta}${durationMeta}${dlMeta}`;
 
   const playLabel = totalProgress > 0 && totalProgress < 1 ? "Continue" : "Play";
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
       <FlatList
+        ref={listRef}
         style={{ flex: 1 }}
         data={chapters}
         keyExtractor={(item) => item.id}
