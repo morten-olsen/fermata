@@ -49,7 +49,7 @@ async function getSqlJsDatabase(): Promise<SqlJsDatabase> {
   if (sqlDb) return sqlDb;
 
   const SQL = await initSqlJs({
-    locateFile: (file: string) => `/${file}`,
+    locateFile: (file: string) => `${process.env.EXPO_PUBLIC_BASE_PATH ?? ""}/${file}`,
   });
 
   const saved = await loadFromIDB();
