@@ -57,6 +57,7 @@ export const albums = sqliteTable(
     trackCount: integer("track_count"),
     mediaType: text("media_type").notNull().default("music"), // 'music' | 'podcast' | 'audiobook'
     isFavourite: integer("is_favourite").default(0),
+    chapters: text("chapters"), // JSON: audiobook chapter markers [{title, start, end}]
     syncedAt: text("synced_at").notNull(),
   },
   (table) => [
@@ -89,6 +90,9 @@ export const tracks = sqliteTable(
     description: text("description"), // episode description, chapter summary
     publishedAt: text("published_at"), // ISO date — podcast episode publish date
     episodeNumber: integer("episode_number"), // podcast episode number
+    contentUrl: text("content_url"), // direct audio file path within source (ABS)
+    chapterStartMs: integer("chapter_start_ms"), // chapter offset in shared audio file (audiobook)
+    artworkSourceItemId: text("artwork_source_item_id"), // source item ID for artwork resolution
     syncedAt: text("synced_at").notNull(),
   },
   (table) => [
@@ -97,6 +101,7 @@ export const tracks = sqliteTable(
     index("tracks_artist_idx").on(table.artistName),
     index("tracks_title_idx").on(table.title),
     index("tracks_media_type_idx").on(table.mediaType),
+    index("tracks_published_at_idx").on(table.publishedAt),
   ]
 );
 

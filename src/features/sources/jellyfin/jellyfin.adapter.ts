@@ -107,8 +107,8 @@ export class JellyfinAdapter implements SourceAdapter {
     return items.map((item) => this.mapTrack(item));
   }
 
-  getStreamUrl(trackId: string): string {
-    return apiGetStreamUrl(this.baseUrl, trackId, this.accessToken);
+  getStreamUrl(sourceItemId: string, _contentUrl?: string | null): string {
+    return apiGetStreamUrl(this.baseUrl, sourceItemId, this.accessToken);
   }
 
   getArtworkUrl(itemId: string, size?: ImageSize): string {

@@ -119,11 +119,12 @@ export function PlayerOverlay() {
 
   // ── Artwork & colors ──
 
-  const artworkUrl = currentTrack
-    ? resolveArtworkUrl(currentTrack.sourceId, currentTrack.sourceItemId, "large")
+  const artworkItemId = currentTrack?.artworkSourceItemId ?? currentTrack?.sourceItemId;
+  const artworkUrl = currentTrack && artworkItemId
+    ? resolveArtworkUrl(currentTrack.sourceId, artworkItemId, "large")
     : undefined;
-  const miniArtworkUrl = currentTrack
-    ? resolveArtworkUrl(currentTrack.sourceId, currentTrack.sourceItemId, "small")
+  const miniArtworkUrl = currentTrack && artworkItemId
+    ? resolveArtworkUrl(currentTrack.sourceId, artworkItemId, "small")
     : undefined;
   const albumColors = useImageColors(artworkUrl);
 

@@ -11,7 +11,7 @@ import {
   ShowCard,
 } from "@/src/features/library/library";
 import type { AlbumRow } from "@/src/features/library/library";
-import { getAlbumProgressSummaries } from "@/src/features/progress/progress";
+import { getAlbumProgressByMediaType, classifyAlbumProgress } from "@/src/features/progress/progress";
 
 import { SectionHeader } from "@/src/shared/components/section-header";
 import { HorizontalList } from "@/src/shared/components/horizontal-list";
@@ -35,28 +35,11 @@ export default function PodcastsScreen() {
     useCallback(() => {
       setMediaType("podcast");
       void getInProgressAlbums("podcast").then(setInProgress);
-    }, [setMediaType, getInProgressAlbums]),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (albums.length === 0) return;
-      const ids = albums.map((a) => a.id);
-      void getAlbumProgressSummaries(ids).then((summaries) => {
-        const states = new Map<string, "none" | "in_progress" | "finished">();
-        for (const album of albums) {
-          const s = summaries.get(album.id);
-          if (!s || s.completed === 0) {
-            states.set(album.id, "none");
-          } else if (s.fraction >= 1) {
-            states.set(album.id, "finished");
-          } else {
-            states.set(album.id, "in_progress");
-          }
-        }
-        setProgressState(states);
+      void getAlbumProgressByMediaType("podcast").then((summaries) => {
+        const ids = [...summaries.keys()];
+        setProgressState(classifyAlbumProgress(ids, summaries));
       });
-    }, [albums]),
+    }, [setMediaType, getInProgressAlbums]),
   );
 
   const filteredAlbums = useMemo(() => {

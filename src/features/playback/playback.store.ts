@@ -53,6 +53,10 @@ interface QueueTrack {
   sourceId: string;
   sourceItemId: string;
   mediaType: string;
+  contentUrl: string | null;
+  chapterStartMs: number | null;
+  artworkSourceItemId: string | null;
+  tracksProgress: boolean;
 }
 
 interface PlaybackStoreState {
@@ -195,9 +199,9 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
     const adapter = resolveOutput();
     const { queue, currentTrack, positionMs } = get();
 
-    // If past 3s, restart current track
+    // If past 3s, restart current track (seek to chapter start, not file start)
     if (positionMs > 3000) {
-      await adapter.seek(0);
+      await adapter.seek(currentTrack?.chapterStartMs ?? 0);
       return;
     }
 
@@ -216,7 +220,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
     }
 
     if (prevIndex < 0) {
-      await adapter.seek(0);
+      await adapter.seek(currentTrack?.chapterStartMs ?? 0);
       return;
     }
 
@@ -239,8 +243,11 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
   },
 
   seekTo: async (positionMs) => {
+    cancelPendingSeek();
     const adapter = resolveOutput();
-    await adapter.seek(positionMs);
+    const { currentTrack } = get();
+    const offsetMs = currentTrack?.chapterStartMs ?? 0;
+    await adapter.seek(positionMs + offsetMs);
   },
 
   setVolume: async (volume) => {
@@ -261,25 +268,28 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
     // For queue-capable adapters (local), reload the full queue
     if (adapter.loadQueue && adapter.capabilities.canQueue) {
       const currentIndex = queue.findIndex((t) => t.id === currentTrack.id);
-      const resolved = queue
-        .map((t) => resolveTrackForOutput(t, adapter))
-        .filter(Boolean) as NonNullable<ReturnType<typeof resolveTrackForOutput>>[];
+      const resolvedResults = await Promise.all(
+        queue.map((t) => resolveTrackForOutput(t, adapter)),
+      );
+      const resolved = resolvedResults.filter(Boolean) as NonNullable<Awaited<ReturnType<typeof resolveTrackForOutput>>>[];
       if (resolved.length > 0) {
         await adapter.loadQueue(
           resolved.map((r) => ({ streamUrl: r.streamUrl, metadata: r.metadata })),
           Math.max(0, currentIndex),
         );
         // Seek after the player has started — immediate seek on a
-        // freshly loaded queue is unreliable.
+        // freshly loaded queue is unreliable. positionMs is chapter-relative,
+        // so add the chapter offset for the absolute file position.
         if (positionMs > 0 && adapter.capabilities.canSeek) {
-          scheduleSeekAfterLoad(adapter, positionMs);
+          const absoluteMs = positionMs + (currentTrack.chapterStartMs ?? 0);
+          scheduleSeekAfterLoad(adapter, absoluteMs);
         }
       }
       return;
     }
 
     // For single-track adapters (HA), play and seek once ready
-    const resolved = resolveTrackForOutput(currentTrack, adapter);
+    const resolved = await resolveTrackForOutput(currentTrack, adapter);
     if (!resolved) {
       warn("transferPlayback: could not resolve current track for new adapter");
       return;
@@ -291,7 +301,8 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
     // Seek to the saved position once the speaker reports a duration.
     // HA speakers need time to load media before they accept seek commands.
     if (positionMs > 3000 && adapter.capabilities.canSeek) {
-      scheduleSeekAfterLoad(adapter, positionMs);
+      const absoluteMs = positionMs + (currentTrack.chapterStartMs ?? 0);
+      scheduleSeekAfterLoad(adapter, absoluteMs);
     }
 
     log("Playback transferred to new adapter at position", positionMs);
@@ -312,12 +323,11 @@ function dbTrackToQueueTrack(dbTrack: DbTrack): QueueTrack {
     sourceId: dbTrack.sourceId,
     sourceItemId: dbTrack.sourceItemId,
     mediaType: dbTrack.mediaType,
+    contentUrl: dbTrack.contentUrl ?? null,
+    chapterStartMs: dbTrack.chapterStartMs ?? null,
+    artworkSourceItemId: dbTrack.artworkSourceItemId ?? null,
+    tracksProgress: dbTrack.mediaType === "podcast" || dbTrack.mediaType === "audiobook",
   };
-}
-
-/** Whether this track type needs progress tracking */
-function needsProgressTracking(mediaType: string): boolean {
-  return mediaType === "podcast" || mediaType === "audiobook";
 }
 
 /**
@@ -381,17 +391,19 @@ function subscribeToAdapter(
   wasPlaying = false;
 
   currentAdapterUnsub = adapter.onPlaybackStateChange((state) => {
+    const { currentTrack } = usePlaybackStore.getState();
+    const offsetMs = currentTrack?.chapterStartMs ?? 0;
     set({
       isPlaying: state.isPlaying,
-      positionMs: state.positionMs,
-      durationMs: state.durationMs,
+      positionMs: Math.max(0, state.positionMs - offsetMs),
+      durationMs: currentTrack ? currentTrack.duration * 1000 : state.durationMs,
     });
 
     // Record progress on pause transition for podcast/audiobook
     if (wasPlaying && !state.isPlaying && state.positionMs > 0) {
-      const { currentTrack } = usePlaybackStore.getState();
-      if (currentTrack && needsProgressTracking(currentTrack.mediaType)) {
-        recordProgress(currentTrack.id, state.positionMs, state.durationMs)
+      if (currentTrack?.tracksProgress) {
+        const relativePos = Math.max(0, state.positionMs - offsetMs);
+        recordProgress(currentTrack.id, relativePos, currentTrack.duration * 1000)
           .catch(() => { /* progress save is best-effort */ });
       }
     }
@@ -412,9 +424,10 @@ const PROGRESS_INTERVAL_MS = 30_000;
 function startProgressInterval(): void {
   stopProgressInterval();
   progressInterval = setInterval(() => {
-    const { currentTrack, positionMs, durationMs } = usePlaybackStore.getState();
-    if (currentTrack && needsProgressTracking(currentTrack.mediaType) && positionMs > 0) {
-      recordProgress(currentTrack.id, positionMs, durationMs)
+    const { currentTrack, positionMs } = usePlaybackStore.getState();
+    if (currentTrack?.tracksProgress && positionMs > 0) {
+      // positionMs in store is already chapter-relative
+      recordProgress(currentTrack.id, positionMs, currentTrack.duration * 1000)
         .catch(() => { /* progress save is best-effort */ });
     }
   }, PROGRESS_INTERVAL_MS);
@@ -429,11 +442,24 @@ function stopProgressInterval(): void {
 
 /** Save progress for the current track before switching to a new one. */
 function saveCurrentTrackProgress(): void {
-  const { currentTrack, positionMs, durationMs } = usePlaybackStore.getState();
-  if (currentTrack && needsProgressTracking(currentTrack.mediaType) && positionMs > 0) {
-    recordProgress(currentTrack.id, positionMs, durationMs)
+  const { currentTrack, positionMs } = usePlaybackStore.getState();
+  if (currentTrack?.tracksProgress && positionMs > 0) {
+    // positionMs in store is already chapter-relative
+    recordProgress(currentTrack.id, positionMs, currentTrack.duration * 1000)
       .catch(() => { /* progress save is best-effort */ });
   }
+}
+
+/**
+ * Get the seek target for a track: chapter start offset + saved resume position.
+ * Returns 0 if no seeking is needed.
+ */
+async function getSeekTarget(track: QueueTrack): Promise<number> {
+  const chapterOffsetMs = track.chapterStartMs ?? 0;
+  const resumeMs = track.tracksProgress
+    ? await getResumePosition(track.id)
+    : 0;
+  return chapterOffsetMs + resumeMs;
 }
 
 /** Resolve a track, set it as current, play on adapter, sync lock screen.
@@ -444,28 +470,34 @@ async function playTrackOnAdapter(
   set: (partial: Partial<PlaybackStoreState>) => void,
 ): Promise<boolean> {
   cancelPendingSeek();
-  const resolved = resolveTrackForOutput(track, adapter);
+  const resolved = await resolveTrackForOutput(track, adapter);
   if (!resolved) {
     warn("playTrackOnAdapter: could not resolve track:", track.id, track.title);
     return false;
   }
   log("playTrackOnAdapter: playing", track.title, "→", resolved.streamUrl.substring(0, 100));
-  set({ currentTrack: track });
+
+  // Compute seek target before starting playback
+  const seekMs = adapter.capabilities.canSeek
+    ? await getSeekTarget(track)
+    : 0;
+
   try {
     await adapter.play(resolved.streamUrl, resolved.metadata);
   } catch (e) {
     logError("playTrackOnAdapter: adapter.play() failed for", track.title, ":", e);
     return false;
   }
+
+  // Set currentTrack AFTER adapter.play() — play() calls TP.reset() which
+  // fires a pause transition. If currentTrack were already the new track,
+  // the pause handler would save the old position under the new track's ID.
+  set({ currentTrack: track });
   await syncLockScreenMetadata(resolved.metadata);
 
-  // Resume from saved position for podcast/audiobook tracks
-  if (needsProgressTracking(track.mediaType) && adapter.capabilities.canSeek) {
-    const resumeMs = await getResumePosition(track.id);
-    if (resumeMs > 0) {
-      log("Resuming", track.title, "from", Math.round(resumeMs / 1000), "s");
-      scheduleSeekAfterLoad(adapter, resumeMs);
-    }
+  if (seekMs > 0) {
+    log("Seeking", track.title, "to", Math.round(seekMs / 1000), "s");
+    scheduleSeekAfterLoad(adapter, seekMs);
   }
 
   return true;
@@ -518,51 +550,48 @@ function scheduleSeekAfterLoad(
  * Resolve a queue track to a stream URL + metadata for the given output adapter.
  * Returns null if the track can't be played on this output.
  */
-function resolveTrackForOutput(
+async function resolveTrackForOutput(
   queueTrack: QueueTrack,
   output: OutputAdapter,
-): { streamUrl: string; metadata: OutputTrackMetadata } | null {
+): Promise<{ streamUrl: string; metadata: OutputTrackMetadata } | null> {
+  const adapter = resolveSourceAdapter(queueTrack.sourceId);
+  const artworkItemId = queueTrack.artworkSourceItemId ?? queueTrack.sourceItemId;
+
+  const metadata: OutputTrackMetadata = {
+    trackId: queueTrack.id,
+    title: queueTrack.title,
+    artistName: queueTrack.artistName,
+    albumTitle: queueTrack.albumTitle,
+    artworkUrl: adapter?.getArtworkUrl(artworkItemId, "medium"),
+    durationMs: queueTrack.duration * 1000,
+    headers: adapter?.getStreamHeaders?.(),
+  };
+
   // Prefer local downloaded file
   const localPath = getDownloadedFilePath(queueTrack.id);
   if (localPath && output.capabilities.canPlayLocalFiles) {
-    const adapter = resolveSourceAdapter(queueTrack.sourceId);
-    return {
-      streamUrl: localPath,
-      metadata: {
-        trackId: queueTrack.id,
-        title: queueTrack.title,
-        artistName: queueTrack.artistName,
-        albumTitle: queueTrack.albumTitle,
-        artworkUrl: adapter?.getArtworkUrl(queueTrack.sourceItemId, "medium"),
-        durationMs: queueTrack.duration * 1000,
-      },
-    };
+    return { streamUrl: localPath, metadata };
   }
 
-  // Fall back to streaming from source
-  const adapter = resolveSourceAdapter(queueTrack.sourceId);
   if (!adapter) {
     warn("resolveTrackForOutput: no adapter for source:", queueTrack.sourceId);
     return null;
   }
 
-  // Check if the output can stream from a URL
   if (!output.capabilities.canStreamFromUrl && !output.capabilities.canPlayLocalFiles) {
     warn("resolveTrackForOutput: output can't play this track:", queueTrack.id);
     return null;
   }
 
-  return {
-    streamUrl: adapter.getStreamUrl(queueTrack.sourceItemId),
-    metadata: {
-      trackId: queueTrack.id,
-      title: queueTrack.title,
-      artistName: queueTrack.artistName,
-      albumTitle: queueTrack.albumTitle,
-      artworkUrl: adapter.getArtworkUrl(queueTrack.sourceItemId, "medium"),
-      durationMs: queueTrack.duration * 1000,
-    },
-  };
+  try {
+    return {
+      streamUrl: await adapter.getStreamUrl(queueTrack.sourceItemId, queueTrack.contentUrl),
+      metadata,
+    };
+  } catch (e) {
+    logError("resolveTrackForOutput: getStreamUrl failed for", queueTrack.title, ":", e);
+    return null;
+  }
 }
 
 /** Load a queue of tracks on the adapter, using bulk load if supported */
@@ -572,19 +601,23 @@ async function loadQueueOnAdapter(
   startIndex: number,
   set: (partial: Partial<PlaybackStoreState>) => void,
 ): Promise<void> {
-  const resolved = queueTracks
-    .map((t) => resolveTrackForOutput(t, adapter))
-    .filter(Boolean) as NonNullable<ReturnType<typeof resolveTrackForOutput>>[];
+  const resolvedResults = await Promise.all(
+    queueTracks.map((t) => resolveTrackForOutput(t, adapter)),
+  );
+  const resolved = resolvedResults.filter(Boolean) as NonNullable<Awaited<ReturnType<typeof resolveTrackForOutput>>>[];
 
   if (resolved.length === 0) {
     warn("loadQueueOnAdapter: no tracks could be resolved (adapter missing?)");
     return;
   }
 
-  set({
-    queue: queueTracks,
-    currentTrack: queueTracks[startIndex] ?? queueTracks[0],
-  });
+  const startTrack = queueTracks[startIndex] ?? queueTracks[0];
+
+  // Set queue first but defer currentTrack until after adapter.loadQueue().
+  // loadQueue calls TP.reset() which fires a pause transition — if currentTrack
+  // is already the new track, the pause handler saves the OLD position under
+  // the NEW track's ID (contaminating its resume position).
+  set({ queue: queueTracks });
 
   cancelPendingSeek();
 
@@ -598,16 +631,19 @@ async function loadQueueOnAdapter(
       const target = resolved[startIndex] ?? resolved[0];
       await adapter.play(target.streamUrl, target.metadata);
     }
+
+    // Safe to set currentTrack now — RNTP is playing the new track
+    set({ currentTrack: startTrack });
+
     const metaTarget = resolved[startIndex] ?? resolved[0];
     await syncLockScreenMetadata(metaTarget.metadata);
 
-    // Resume from saved position for podcast/audiobook tracks
-    const startTrack = queueTracks[startIndex] ?? queueTracks[0];
-    if (needsProgressTracking(startTrack.mediaType) && adapter.capabilities.canSeek) {
-      const resumeMs = await getResumePosition(startTrack.id);
-      if (resumeMs > 0) {
-        log("Resuming", startTrack.title, "from", Math.round(resumeMs / 1000), "s");
-        scheduleSeekAfterLoad(adapter, resumeMs);
+    // Seek to chapter offset + saved position for podcast/audiobook tracks
+    if (adapter.capabilities.canSeek) {
+      const seekMs = await getSeekTarget(startTrack);
+      if (seekMs > 0) {
+        log("Seeking", startTrack.title, "to", Math.round(seekMs / 1000), "s");
+        scheduleSeekAfterLoad(adapter, seekMs);
       }
     }
   } catch (e) {

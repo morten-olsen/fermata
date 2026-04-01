@@ -24,7 +24,7 @@ const MAX_RETRIES = 3;
 /** Adapter resolver — injected at init */
 let resolveAdapter: (
   sourceId: string
-) => { getStreamUrl: (id: string) => string } | undefined = () => undefined;
+) => { getStreamUrl: (sourceItemId: string, contentUrl?: string | null) => string | Promise<string> } | undefined = () => undefined;
 
 export function setDownloadAdapterResolver(
   resolver: typeof resolveAdapter
@@ -129,7 +129,7 @@ async function downloadTrack(trackId: string, sourceId: string) {
     return;
   }
 
-  const url = adapter.getStreamUrl(track.sourceItemId);
+  const url = await adapter.getStreamUrl(track.sourceItemId, track.contentUrl);
   const destSegments = [...DOWNLOAD_PATH, `${trackId}.audio`] as const;
 
   queuedSet.add(trackId);

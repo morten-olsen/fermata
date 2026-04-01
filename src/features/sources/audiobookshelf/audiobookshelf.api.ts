@@ -182,22 +182,90 @@ export async function fetchLibraryItem(
 // ── Stream & Artwork URLs ──────────────────────────────
 
 /**
- * Get a direct stream URL for an audio file.
- * For podcasts: streams the episode's audio file.
- * For audiobooks: streams a specific audio file by index.
+ * Start a playback session and return the stream URL.
+ *
+ * ABS's `/s/item/` static file endpoint is unreliable for large files.
+ * The play session API transcodes/serves audio properly and is what
+ * the official ABS apps use.
+ *
+ * Returns the content URL of the first audio track in the session.
  */
-export function getStreamUrl(
+export async function startPlaySession(
   baseUrl: string,
-  itemId: string,
   token: string,
+  itemId: string,
   episodeId?: string,
-): string {
+): Promise<string> {
   const path = episodeId
     ? `/api/items/${itemId}/play/${episodeId}`
     : `/api/items/${itemId}/play`;
   const url = new URL(path, baseUrl);
-  url.searchParams.set("token", token);
-  return url.toString();
+
+  const body: Record<string, unknown> = {
+    deviceInfo: { clientName: "Fermata" },
+    // Force HLS transcode — the /s/item/ direct file endpoint is unreliable.
+    // ABS transcodes to HLS and serves via /hls/{sessionId}/.
+    forceTranscode: true,
+  };
+
+  const response = await fetchWithTimeout(url.toString(), {
+    method: "POST",
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `ABS play session failed: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const session = await response.json() as {
+    id: string;
+    playMethod: number; // 0=directPlay, 1=directStream, 2=transcode
+    audioTracks: Array<{ contentUrl: string; mimeType: string }>;
+  };
+
+  let streamUrl: string;
+
+  if (session.playMethod === 2) {
+    // HLS transcode — stream is at /hls/{sessionId}/output.m3u8
+    const hlsUrl = new URL(`/hls/${session.id}/output.m3u8`, baseUrl);
+    hlsUrl.searchParams.set("token", token);
+    streamUrl = hlsUrl.toString();
+  } else if (session.audioTracks?.length) {
+    // Direct play/stream — use the audio track URL
+    const trackUrl = new URL(session.audioTracks[0].contentUrl, baseUrl);
+    trackUrl.searchParams.set("token", token);
+    streamUrl = trackUrl.toString();
+  } else {
+    throw new Error("ABS play session returned no usable stream");
+  }
+
+  log("ABS play session started:", session.id, "method:", session.playMethod, "→", streamUrl.substring(0, 120));
+  return streamUrl;
+}
+
+/**
+ * Close a playback session. Best-effort — don't block on failure.
+ */
+export async function closePlaySession(
+  baseUrl: string,
+  token: string,
+  sessionId: string,
+): Promise<void> {
+  const url = new URL(`/api/session/${sessionId}/close`, baseUrl);
+  try {
+    await fetchWithTimeout(url.toString(), {
+      method: "POST",
+      headers: authHeaders(token),
+    });
+  } catch {
+    // Best effort
+  }
 }
 
 export function getArtworkUrl(

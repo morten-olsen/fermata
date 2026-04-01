@@ -11,7 +11,7 @@ import { formatRemainingDuration } from "@/src/shared/lib/format";
 
 interface ChapterRowProps {
   title: string;
-  artistName: string;
+  artistName?: string;
   duration: number; // seconds
   chapterNumber?: number | null;
   isPlaying?: boolean;
@@ -61,9 +61,11 @@ export const ChapterRow = memo(function ChapterRow({
         >
           {title}
         </Text>
-        <Text className="text-fermata-text-secondary text-xs" numberOfLines={1}>
-          {artistName}
-        </Text>
+        {artistName ? (
+          <Text className="text-fermata-text-secondary text-xs" numberOfLines={1}>
+            {artistName}
+          </Text>
+        ) : null}
         {hasPartialProgress && (
           <View className="mt-1">
             <ProgressBar value={progress} />

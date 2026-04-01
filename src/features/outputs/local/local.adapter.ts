@@ -107,6 +107,11 @@ export class LocalOutputAdapter implements OutputAdapter {
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      TP.addEventListener(TPEvent.PlaybackError, (error: any) => {
+        logError("RNTP PlaybackError:", error?.message ?? error?.code ?? error);
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       TP.addEventListener(TPEvent.PlaybackActiveTrackChanged, ({ track }: { track: any }) => {
         if (track) {
           this.updateState({
@@ -165,6 +170,7 @@ export class LocalOutputAdapter implements OutputAdapter {
   async play(streamUrl: string, track: OutputTrackMetadata): Promise<void> {
     if (!TP) return;
     try {
+      const isHls = streamUrl.includes(".m3u8");
       await TP.reset();
       await TP.add({
         id: track.trackId,
@@ -174,6 +180,8 @@ export class LocalOutputAdapter implements OutputAdapter {
         album: track.albumTitle,
         artwork: track.artworkUrl,
         duration: track.durationMs / 1000,
+        ...(track.headers ? { headers: track.headers } : {}),
+        ...(isHls ? { type: "hls" as const } : {}),
       });
       await TP.play();
     } catch (e) {
@@ -215,15 +223,20 @@ export class LocalOutputAdapter implements OutputAdapter {
     startIndex = 0,
   ): Promise<void> {
     if (!TP) return;
-    const rnTracks = tracks.map((t) => ({
-      id: t.metadata.trackId,
-      url: t.streamUrl,
-      title: t.metadata.title,
-      artist: t.metadata.artistName,
-      album: t.metadata.albumTitle,
-      artwork: t.metadata.artworkUrl,
-      duration: t.metadata.durationMs / 1000,
-    }));
+    const rnTracks = tracks.map((t) => {
+      const isHls = t.streamUrl.includes(".m3u8");
+      return {
+        id: t.metadata.trackId,
+        url: t.streamUrl,
+        title: t.metadata.title,
+        artist: t.metadata.artistName,
+        album: t.metadata.albumTitle,
+        artwork: t.metadata.artworkUrl,
+        duration: t.metadata.durationMs / 1000,
+        ...(t.metadata.headers ? { headers: t.metadata.headers } : {}),
+        ...(isHls ? { type: "hls" as const } : {}),
+      };
+    });
 
     try {
       await TP.reset();

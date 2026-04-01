@@ -11,7 +11,7 @@ import {
   BookGrid,
 } from "@/src/features/library/library";
 import type { AlbumRow } from "@/src/features/library/library";
-import { getAlbumProgressSummaries } from "@/src/features/progress/progress";
+import { getAlbumProgressByMediaType, classifyAlbumProgress } from "@/src/features/progress/progress";
 
 import { SectionHeader } from "@/src/shared/components/section-header";
 import { HorizontalList } from "@/src/shared/components/horizontal-list";
@@ -39,35 +39,17 @@ export default function AudiobooksScreen() {
       setMediaType("audiobook");
       void getFavouriteAlbums("audiobook").then(setFavourites);
       void getInProgressAlbums("audiobook").then(setInProgress);
-    }, [setMediaType, getFavouriteAlbums, getInProgressAlbums]),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (albums.length === 0) return;
-      const ids = albums.map((a) => a.id);
-      void getAlbumProgressSummaries(ids).then((summaries) => {
+      void getAlbumProgressByMediaType("audiobook").then((summaries) => {
         const pMap = new Map<string, number>();
-        const states = new Map<string, "none" | "in_progress" | "finished">();
-        for (const album of albums) {
-          const s = summaries.get(album.id);
-          if (s) {
-            pMap.set(album.id, s.fraction);
-            if (s.fraction >= 1 && s.total > 0) {
-              states.set(album.id, "finished");
-            } else if (s.completed > 0) {
-              states.set(album.id, "in_progress");
-            } else {
-              states.set(album.id, "none");
-            }
-          } else {
-            states.set(album.id, "none");
-          }
+        const ids: string[] = [];
+        for (const [id, s] of summaries) {
+          pMap.set(id, s.fraction);
+          ids.push(id);
         }
         setProgressMap(pMap);
-        setProgressState(states);
+        setProgressState(classifyAlbumProgress(ids, summaries));
       });
-    }, [albums]),
+    }, [setMediaType, getFavouriteAlbums, getInProgressAlbums]),
   );
 
   const filteredAlbums = useMemo(() => {

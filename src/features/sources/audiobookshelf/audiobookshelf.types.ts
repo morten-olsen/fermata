@@ -62,10 +62,12 @@ export interface AbsBookMetadata {
 export interface AbsAudioFile {
   index: number;
   ino: string;
+  relPath?: string; // path relative to item folder (may differ from filename)
   metadata: {
     filename: string;
     ext: string;
     path: string;
+    relPath?: string;
     size: number;
   };
   duration: number;

@@ -39,6 +39,8 @@ export interface OutputTrackMetadata {
   albumTitle: string;
   artworkUrl?: string;
   durationMs: number;
+  /** Optional HTTP headers for streaming (e.g. auth tokens) */
+  headers?: Record<string, string>;
 }
 
 export interface OutputAdapter {

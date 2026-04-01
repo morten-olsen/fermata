@@ -132,19 +132,22 @@ export async function getFavouriteAlbums(mediaType?: MediaType) {
 }
 
 export async function getInProgressAlbums(mediaType?: MediaType) {
-  const mediaFilter = mediaType ? `AND a.media_type = '${mediaType}'` : "";
+  const conditions = [
+    sql`EXISTS (
+      SELECT 1 FROM playback_progress pp
+      INNER JOIN tracks t ON pp.track_id = t.id
+      WHERE t.album_id = ${albums.id}
+      AND pp.is_completed = 0
+      AND pp.position_ms > 0
+    )`,
+  ];
+  if (mediaType) {
+    conditions.push(eq(albums.mediaType, mediaType));
+  }
   return db
     .select()
     .from(albums)
-    .where(
-      sql`EXISTS (
-        SELECT 1 FROM playback_progress pp
-        INNER JOIN tracks t ON pp.track_id = t.id
-        WHERE t.album_id = ${albums.id}
-        AND pp.is_completed = 0
-        AND pp.position_ms > 0
-      ) ${sql.raw(mediaFilter)}`
-    )
+    .where(and(...conditions))
     .orderBy(asc(albums.title));
 }
 

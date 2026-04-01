@@ -47,9 +47,9 @@ ABS has two library types — `book` and `podcast` — each with different inter
 - If no chapters, each audio file becomes a Track
 - Book description stored in track `description`
 
-## Compound sourceItemId
+## Scoped sourceItemId
 
-ABS episodes and chapters are nested under library items, not top-level entities. To fit Fermata's flat Track model, we use compound IDs:
+ABS episodes and chapters are nested under library items, not top-level entities. To fit Fermata's flat Track model, we use scoped IDs:
 
 ```
 Podcast episode:    "{libraryItemId}:{episodeId}"
@@ -57,10 +57,12 @@ Audiobook chapter:  "{libraryItemId}:{chapterId}"
 Audiobook file:     "{libraryItemId}:{audioFileIno}"
 ```
 
-The colon separator is safe because ABS IDs are alphanumeric. The adapter parses these internally for:
-- Stream URL construction
-- Progress reporting (needs both libraryItemId and optional episodeId)
-- Artwork resolution (uses libraryItemId portion)
+The colon separator is safe because ABS IDs are alphanumeric. The adapter's `splitSourceItemId()` parses these for progress reporting and stream URL fallback.
+
+Additional ABS-specific data lives in dedicated tracks table columns (not packed into the ID):
+- `contentUrl` — direct audio file path (e.g. `/s/item/li_xxx/file.mp3`)
+- `chapterStartMs` — absolute offset in the audio file where the chapter begins (audiobooks only)
+- `artworkSourceItemId` — the `libraryItemId` for artwork resolution
 
 ## Authentication
 

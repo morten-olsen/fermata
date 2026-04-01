@@ -56,7 +56,7 @@ export async function getProgressBatch(
  */
 export async function getAlbumProgressSummaries(
   albumIds: string[],
-): Promise<Map<string, { completed: number; total: number; fraction: number }>> {
+): Promise<Map<string, { completed: number; started: number; total: number; fraction: number }>> {
   if (albumIds.length === 0) return new Map();
 
   const rows = await db
@@ -64,18 +64,56 @@ export async function getAlbumProgressSummaries(
       albumId: tracks.albumId,
       total: sql<number>`count(*)`.as("total"),
       completed: sql<number>`sum(case when ${playbackProgress.isCompleted} = 1 then 1 else 0 end)`.as("completed"),
+      started: sql<number>`sum(case when ${playbackProgress.positionMs} > 0 or ${playbackProgress.isCompleted} = 1 then 1 else 0 end)`.as("started"),
     })
     .from(tracks)
     .leftJoin(playbackProgress, eq(tracks.id, playbackProgress.trackId))
     .where(inArray(tracks.albumId, albumIds))
     .groupBy(tracks.albumId);
 
-  const map = new Map<string, { completed: number; total: number; fraction: number }>();
+  const map = new Map<string, { completed: number; started: number; total: number; fraction: number }>();
   for (const row of rows) {
     const completed = row.completed || 0;
+    const started = row.started || 0;
     const total = row.total;
     map.set(row.albumId, {
       completed,
+      started,
+      total,
+      fraction: total > 0 ? completed / total : 0,
+    });
+  }
+  return map;
+}
+
+/**
+ * Same as getAlbumProgressSummaries but filters by media type instead of
+ * a list of album IDs. Much faster for large libraries — avoids a huge
+ * IN (...) clause and lets SQLite use the media_type index.
+ */
+export async function getAlbumProgressByMediaType(
+  mediaType: string,
+): Promise<Map<string, { completed: number; started: number; total: number; fraction: number }>> {
+  const rows = await db
+    .select({
+      albumId: tracks.albumId,
+      total: sql<number>`count(*)`.as("total"),
+      completed: sql<number>`sum(case when ${playbackProgress.isCompleted} = 1 then 1 else 0 end)`.as("completed"),
+      started: sql<number>`sum(case when ${playbackProgress.positionMs} > 0 or ${playbackProgress.isCompleted} = 1 then 1 else 0 end)`.as("started"),
+    })
+    .from(tracks)
+    .leftJoin(playbackProgress, eq(tracks.id, playbackProgress.trackId))
+    .where(eq(tracks.mediaType, mediaType))
+    .groupBy(tracks.albumId);
+
+  const map = new Map<string, { completed: number; started: number; total: number; fraction: number }>();
+  for (const row of rows) {
+    const completed = row.completed || 0;
+    const started = row.started || 0;
+    const total = row.total;
+    map.set(row.albumId, {
+      completed,
+      started,
       total,
       fraction: total > 0 ? completed / total : 0,
     });
@@ -126,6 +164,7 @@ export async function getPendingProgressForSource(
   {
     trackId: string;
     sourceItemId: string;
+    chapterStartMs: number | null;
     positionMs: number;
     durationMs: number;
     isCompleted: number;
@@ -135,6 +174,7 @@ export async function getPendingProgressForSource(
     .select({
       trackId: playbackProgress.trackId,
       sourceItemId: tracks.sourceItemId,
+      chapterStartMs: tracks.chapterStartMs,
       positionMs: playbackProgress.positionMs,
       durationMs: playbackProgress.durationMs,
       isCompleted: playbackProgress.isCompleted,

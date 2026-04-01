@@ -17,7 +17,7 @@ import {
   testConnection as apiTestConnection,
   fetchLibraries,
   fetchAllLibraryItems,
-  getStreamUrl as apiGetStreamUrl,
+  startPlaySession,
   getArtworkUrl as apiGetArtworkUrl,
   reportProgress as apiReportProgress,
   fetchUserProgress,
@@ -31,42 +31,28 @@ import type {
 import { isBookMedia, isPodcastMedia } from "./audiobookshelf.types";
 
 /**
- * Compound sourceItemId format for ABS tracks:
- *   Podcast episodes: "{libraryItemId}\t{episodeId}\t{audioContentUrl}"
- *   Audiobook chapters: "{libraryItemId}\t{chapterId}\t{audioContentUrl}\t{chapterStartSec}"
+ * sourceItemId format for ABS tracks: "{libraryItemId}:{subId}"
  *
- * Tab character is used as separator since it can't appear in IDs or file paths.
- * The audioContentUrl is the path served by ABS (e.g. "/s/item/li_xxx/file.mp3").
- * chapterStartSec is the absolute start offset in the book (seconds) — used to
- * convert between ABS absolute book time and Fermata per-chapter relative time.
+ * subId is episodeId for podcasts, chapterId for audiobook chapters,
+ * or file ino for audiobook fallback (one track per audio file).
+ *
+ * Additional fields (contentUrl, chapterStartMs) are stored as
+ * separate columns on the tracks table — not packed into the ID.
  */
-const SEP = "\t";
 
-function makeCompoundId(
-  libraryItemId: string,
-  subId: string,
-  contentUrl?: string,
-  chapterStartSec?: number,
-): string {
-  const parts = [libraryItemId, subId];
-  if (contentUrl) parts.push(contentUrl);
-  if (chapterStartSec != null) parts.push(String(chapterStartSec));
-  return parts.join(SEP);
+function makeSourceItemId(libraryItemId: string, subId: string): string {
+  return `${libraryItemId}:${subId}`;
 }
 
-function parseCompoundId(compoundId: string): {
+function splitSourceItemId(sourceItemId: string): {
   libraryItemId: string;
   subId: string;
-  contentUrl?: string;
-  chapterStartSec?: number;
 } {
-  const parts = compoundId.split(SEP);
-  const startSec = parts[3] ? parseFloat(parts[3]) : undefined;
+  const idx = sourceItemId.indexOf(":");
+  if (idx === -1) return { libraryItemId: sourceItemId, subId: "" };
   return {
-    libraryItemId: parts[0],
-    subId: parts[1] ?? "",
-    contentUrl: parts[2],
-    chapterStartSec: startSec != null && !isNaN(startSec) ? startSec : undefined,
+    libraryItemId: sourceItemId.substring(0, idx),
+    subId: sourceItemId.substring(idx + 1),
   };
 }
 
@@ -184,22 +170,25 @@ export class AudiobookshelfAdapter implements SourceAdapter {
 
   // ── Streaming & Artwork ───────────────────────────────
 
-  getStreamUrl(trackSourceItemId: string): string {
-    const { libraryItemId, contentUrl } = parseCompoundId(trackSourceItemId);
+  async getStreamUrl(sourceItemId: string, contentUrl?: string | null): Promise<string> {
     if (contentUrl) {
-      // Direct file URL — ABS serves audio at /s/item/{id}/{filename}
+      // Podcast episodes have a direct contentUrl from the API
       const url = new URL(contentUrl, this.baseUrl);
       url.searchParams.set("token", this.accessToken);
       return url.toString();
     }
-    // Fallback for audiobook items (whole-item playback)
-    return apiGetStreamUrl(this.baseUrl, libraryItemId, this.accessToken);
+    // Audiobooks: start a play session — ABS serves audio properly through
+    // this API (the static /s/item/ endpoint is unreliable for large files).
+    const { libraryItemId } = splitSourceItemId(sourceItemId);
+    return startPlaySession(this.baseUrl, this.accessToken, libraryItemId);
+  }
+
+  getStreamHeaders(): Record<string, string> {
+    return { Authorization: `Bearer ${this.accessToken}` };
   }
 
   getArtworkUrl(itemId: string, size?: ImageSize): string {
-    // Compound IDs (episode/chapter) use the libraryItemId for artwork
-    const { libraryItemId } = parseCompoundId(itemId);
-    return apiGetArtworkUrl(this.baseUrl, libraryItemId, size);
+    return apiGetArtworkUrl(this.baseUrl, itemId, size);
   }
 
   getStreamingCapabilities(): SourceStreamingCapabilities {
@@ -212,18 +201,18 @@ export class AudiobookshelfAdapter implements SourceAdapter {
   // ── Progress Tracking ─────────────────────────────────
 
   async reportProgress(
-    trackSourceItemId: string,
+    sourceItemId: string,
     positionMs: number,
     durationMs: number,
     isCompleted: boolean,
+    chapterStartMs?: number,
   ): Promise<void> {
-    const { libraryItemId, subId, chapterStartSec } = parseCompoundId(trackSourceItemId);
+    const { libraryItemId, subId } = splitSourceItemId(sourceItemId);
 
-    if (chapterStartSec != null) {
-      // Audiobook chapter: convert chapter-relative position to absolute book time.
-      // ABS tracks one progress entry per book, not per chapter.
-      const absoluteTimeSec = chapterStartSec + positionMs / 1000;
-      // Use 0 for duration — ABS already knows the book duration
+    if (chapterStartMs != null) {
+      // Legacy chapter-based audiobook track: convert chapter-relative position
+      // to absolute book time. ABS tracks one progress entry per book.
+      const absoluteTimeSec = chapterStartMs / 1000 + positionMs / 1000;
       await apiReportProgress(
         this.baseUrl,
         this.accessToken,
@@ -233,8 +222,10 @@ export class AudiobookshelfAdapter implements SourceAdapter {
         isCompleted,
       );
     } else {
-      // Podcast episode: position is episode-relative, report with episodeId
-      const episodeId = subId || undefined;
+      // Podcast episode or audiobook file track.
+      // Podcast episode IDs are non-numeric strings; audiobook file inos are numeric.
+      // For audiobook files, report at book level (no episodeId).
+      const episodeId = subId && !/^\d+$/.test(subId) ? subId : undefined;
       await apiReportProgress(
         this.baseUrl,
         this.accessToken,
@@ -248,7 +239,7 @@ export class AudiobookshelfAdapter implements SourceAdapter {
   }
 
   async getProgress(
-    trackSourceItemIds: string[],
+    trackDescriptors: Array<{ sourceItemId: string; chapterStartMs?: number }>,
   ): Promise<Map<string, { positionMs: number; durationMs: number; isCompleted: boolean }>> {
     const allProgress = await fetchUserProgress(this.baseUrl, this.accessToken);
     const result = new Map<string, { positionMs: number; durationMs: number; isCompleted: boolean }>();
@@ -258,19 +249,19 @@ export class AudiobookshelfAdapter implements SourceAdapter {
     const progressByEpisode = new Map<string, typeof allProgress[number]>();
     for (const entry of allProgress) {
       if (entry.episodeId) {
-        progressByEpisode.set(`${entry.libraryItemId}${SEP}${entry.episodeId}`, entry);
+        progressByEpisode.set(`${entry.libraryItemId}:${entry.episodeId}`, entry);
       } else {
         progressByItem.set(entry.libraryItemId, entry);
       }
     }
 
-    for (const sid of trackSourceItemIds) {
-      const { libraryItemId, subId, chapterStartSec } = parseCompoundId(sid);
+    for (const { sourceItemId, chapterStartMs } of trackDescriptors) {
+      const { libraryItemId, subId } = splitSourceItemId(sourceItemId);
 
       // Podcast episode: match on libraryItemId + episodeId
-      const episodeProgress = progressByEpisode.get(`${libraryItemId}${SEP}${subId}`);
+      const episodeProgress = progressByEpisode.get(`${libraryItemId}:${subId}`);
       if (episodeProgress) {
-        result.set(sid, {
+        result.set(sourceItemId, {
           positionMs: Math.round(episodeProgress.currentTime * 1000),
           durationMs: Math.round(episodeProgress.duration * 1000),
           isCompleted: episodeProgress.isFinished,
@@ -278,23 +269,32 @@ export class AudiobookshelfAdapter implements SourceAdapter {
         continue;
       }
 
-      // Audiobook chapter: convert absolute book time to chapter-relative
-      if (chapterStartSec != null) {
+      // Legacy audiobook chapter: convert absolute book time to chapter-relative
+      if (chapterStartMs != null) {
         const bookProgress = progressByItem.get(libraryItemId);
         if (!bookProgress) continue;
 
-        const absoluteTimeSec = bookProgress.currentTime;
-        const chapterRelativeSec = absoluteTimeSec - chapterStartSec;
+        const absoluteTimeMs = bookProgress.currentTime * 1000;
+        const chapterRelativeMs = absoluteTimeMs - chapterStartMs;
 
-        if (bookProgress.isFinished || chapterRelativeSec >= 0) {
-          // Parse chapter end from the next chapter's start, or treat as completed
-          // if the book position is past this chapter's start
-          result.set(sid, {
-            positionMs: Math.max(0, Math.round(chapterRelativeSec * 1000)),
+        if (bookProgress.isFinished || chapterRelativeMs >= 0) {
+          result.set(sourceItemId, {
+            positionMs: Math.max(0, Math.round(chapterRelativeMs)),
             durationMs: 0, // chapter duration comes from the track row
             isCompleted: bookProgress.isFinished,
           });
         }
+        continue;
+      }
+
+      // Audiobook file track: use book-level progress directly
+      const bookProgress = progressByItem.get(libraryItemId);
+      if (bookProgress) {
+        result.set(sourceItemId, {
+          positionMs: Math.round(bookProgress.currentTime * 1000),
+          durationMs: Math.round(bookProgress.duration * 1000),
+          isCompleted: bookProgress.isFinished,
+        });
       }
     }
 
@@ -353,6 +353,11 @@ export class AudiobookshelfAdapter implements SourceAdapter {
         artworkSourceItemId: item.id,
         trackCount: item.media.audioFiles.length,
         mediaType: "audiobook",
+        chapters: item.media.chapters.map((ch) => ({
+          title: ch.title,
+          start: ch.start,
+          end: ch.end,
+        })),
       };
     }
 
@@ -383,9 +388,9 @@ export class AudiobookshelfAdapter implements SourceAdapter {
     media: AbsPodcastMedia,
   ): Track[] {
     return media.episodes.map((episode: AbsPodcastEpisode) => {
-      // Build content URL from audioTrack or audioFile path
+      // Build content URL from audioTrack (preferred) or audioFile path
       const contentUrl = episode.audioTrack?.contentUrl
-        ?? `/s/item/${libraryItemId}/${encodeURIComponent(episode.audioFile.metadata.filename)}`;
+        ?? `/s/item/${libraryItemId}/${episode.audioFile.metadata.filename}`;
 
       // Normalize publishedAt to ISO — prefer the unix timestamp, fall back to parsing pubDate
       let publishedAt: string | undefined;
@@ -400,7 +405,7 @@ export class AudiobookshelfAdapter implements SourceAdapter {
 
       return {
         sourceId: this.id,
-        sourceItemId: makeCompoundId(libraryItemId, episode.id, contentUrl),
+        sourceItemId: makeSourceItemId(libraryItemId, episode.id),
         title: episode.title,
         artistName: media.metadata.author || "Unknown Author",
         albumTitle: media.metadata.title,
@@ -410,6 +415,8 @@ export class AudiobookshelfAdapter implements SourceAdapter {
         episodeNumber: episode.episode ? parseInt(episode.episode, 10) || undefined : undefined,
         publishedAt,
         description: episode.description,
+        contentUrl,
+        artworkSourceItemId: libraryItemId,
         mediaType: "podcast" as const,
       };
     });
@@ -419,42 +426,21 @@ export class AudiobookshelfAdapter implements SourceAdapter {
     libraryItemId: string,
     media: AbsBookMedia,
   ): Track[] {
-    // For audiobooks with chapters, each chapter maps to a track.
-    // The stream URL points to the whole book — RNTP/ABS handles seeking to the chapter start.
-    // We include the first audio file's path as the content URL.
-    const firstAudioPath = media.audioFiles[0]
-      ? `/s/item/${libraryItemId}/${encodeURIComponent(media.audioFiles[0].metadata.filename)}`
-      : undefined;
-
-    if (media.chapters.length > 0) {
-      return media.chapters.map((chapter, idx) => ({
-        sourceId: this.id,
-        sourceItemId: makeCompoundId(libraryItemId, String(chapter.id), firstAudioPath, chapter.start),
-        title: chapter.title,
-        artistName: media.metadata.authorName || "Unknown Author",
-        albumTitle: media.metadata.title,
-        albumSourceItemId: libraryItemId,
-        duration: chapter.end - chapter.start,
-        trackNumber: idx + 1,
-        description: media.metadata.description,
-        mediaType: "audiobook" as const,
-      }));
-    }
-
-    // Fallback: one track per audio file
-    return media.audioFiles.map((file) => {
-      const contentUrl = `/s/item/${libraryItemId}/${encodeURIComponent(file.metadata.filename)}`;
-      return {
-        sourceId: this.id,
-        sourceItemId: makeCompoundId(libraryItemId, file.ino, contentUrl),
-        title: file.metadata.filename.replace(/\.[^.]+$/, ""),
-        artistName: media.metadata.authorName || "Unknown Author",
-        albumTitle: media.metadata.title,
-        albumSourceItemId: libraryItemId,
-        duration: file.duration,
-        trackNumber: file.index + 1,
-        mediaType: "audiobook" as const,
-      };
-    });
+    // No contentUrl — audiobooks stream via the play session API (HLS).
+    // The /s/item/ direct file endpoint is unreliable for large files.
+    return media.audioFiles.map((file) => ({
+      sourceId: this.id,
+      sourceItemId: makeSourceItemId(libraryItemId, file.ino),
+      title: media.audioFiles.length === 1
+        ? media.metadata.title
+        : `${media.metadata.title} — Part ${file.index + 1}`,
+      artistName: media.metadata.authorName || "Unknown Author",
+      albumTitle: media.metadata.title,
+      albumSourceItemId: libraryItemId,
+      duration: file.duration,
+      trackNumber: file.index + 1,
+      artworkSourceItemId: libraryItemId,
+      mediaType: "audiobook" as const,
+    }));
   }
 }

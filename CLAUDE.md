@@ -136,8 +136,8 @@ docs/                             # Architecture, design, standards, code guidel
 - **Deterministic IDs** — `stableId(sourceId, sourceItemId)` for synced entities, `generateId()` for local-only. Both in `shared/lib/ids.ts`.
 - **Lazy Track Player** — loaded via `require()` in try/catch. App works in Expo Go without audio.
 - **Media types** — `albums` and `tracks` have a `mediaType` column: `'music' | 'podcast' | 'audiobook'`. Defaults to `'music'`. Library queries accept an optional `mediaType` filter.
-- **Playback progress** — `playback_progress` table tracks position/completion for podcast and audiobook tracks. `needsSync` flag enables offline-first bidirectional sync. Not used for music.
-- **Compound sourceItemId** — Audiobookshelf episodes/chapters use `"{libraryItemId}:{episodeId}"` format since they're nested under library items. Parsed internally by the adapter.
+- **Playback progress** — `playback_progress` table tracks position/completion for podcast and audiobook tracks. `needsSync` flag enables offline-first bidirectional sync. Not used for music. `QueueTrack.tracksProgress` boolean (pre-computed from `mediaType`) avoids runtime type checks during playback.
+- **Scoped sourceItemId** — Audiobookshelf episodes/chapters use `"{libraryItemId}:{subId}"` format since they're nested under library items. Parsed by `splitSourceItemId()` in the adapter. Streaming path, chapter offsets, and artwork IDs are separate DB columns (`contentUrl`, `chapterStartMs`, `artworkSourceItemId` on tracks), not packed into the ID.
 - **Mix tapes** — Fermata's term for playlists.
 - **Stores are decoupled** — Zustand stores don't import other stores directly; dependencies passed as arguments.
 - **Screens are thin** — business logic lives in feature stores and queries, not in `app/` files.

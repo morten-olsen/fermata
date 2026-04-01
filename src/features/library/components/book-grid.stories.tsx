@@ -18,9 +18,13 @@ const MOCK_BOOKS = Array.from({ length: 12 }, (_, i) => ({
   ][i],
   year: 2020 - i,
   sourceId: "source-1",
+  sourceItemId: `abs-book-${i}`,
   artworkSourceItemId: null,
+  trackCount: 1,
   isFavourite: 0,
+  chapters: null,
   mediaType: "audiobook" as const,
+  syncedAt: new Date().toISOString(),
 }));
 
 const PROGRESS_MAP = new Map([

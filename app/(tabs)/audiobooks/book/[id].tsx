@@ -12,7 +12,7 @@ import {
 import type { AlbumRow, TrackRowType } from "@/src/features/library/library";
 import { usePlaybackStore } from "@/src/features/playback/playback";
 import { useDownloadStore, isTrackDownloaded } from "@/src/features/downloads/downloads";
-import { getProgressBatch } from "@/src/features/progress/progress";
+import { getProgressBatch, computeBookChapterProgress } from "@/src/features/progress/progress";
 import type { ProgressEntry } from "@/src/features/progress/progress";
 import { resolveArtworkUrl } from "@/src/features/artwork/artwork";
 
@@ -21,6 +21,12 @@ import { DetailHeader } from "@/src/shared/components/detail-header";
 import { ActionButton } from "@/src/shared/components/action-button";
 import { colors } from "@/src/shared/theme/theme";
 import { formatDurationLong, formatDownloadMeta } from "@/src/shared/lib/format";
+
+interface AlbumChapter {
+  title: string;
+  start: number; // seconds
+  end: number; // seconds
+}
 
 export default function BookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -31,11 +37,12 @@ export default function BookDetailScreen() {
       toggleAlbumFavourite: s.toggleAlbumFavourite,
     })),
   );
-  const { playAlbum, playTracks, currentTrack } = usePlaybackStore(
+  const { playTracks, seekTo, currentTrack, positionMs } = usePlaybackStore(
     useShallow((s) => ({
-      playAlbum: s.playAlbum,
       playTracks: s.playTracks,
+      seekTo: s.seekTo,
       currentTrack: s.currentTrack,
+      positionMs: s.positionMs,
     })),
   );
   const { pinForOffline, unpinOffline, isPinned } = useDownloadStore(
@@ -46,10 +53,11 @@ export default function BookDetailScreen() {
     })),
   );
 
-  const listRef = useRef<FlatList<TrackRowType>>(null);
+  const listRef = useRef<FlatList<AlbumChapter>>(null);
   const [book, setBook] = useState<AlbumRow>();
-  const [chapters, setChapters] = useState<TrackRowType[]>([]);
-  const [progressMap, setProgressMap] = useState(() => new Map<string, ProgressEntry>());
+  const [chapters, setChapters] = useState<AlbumChapter[]>([]);
+  const [audioTrack, setAudioTrack] = useState<TrackRowType>();
+  const [trackProgress, setTrackProgress] = useState<ProgressEntry>();
   const [isOfflinePinned, setIsOfflinePinned] = useState(false);
   const [isFavourite, setIsFavourite] = useState(false);
 
@@ -58,117 +66,108 @@ export default function BookDetailScreen() {
     void getAlbum(id).then((a) => {
       setBook(a);
       setIsFavourite(!!a?.isFavourite);
+      // Parse chapters from album JSON
+      if (a?.chapters) {
+        try {
+          const parsed = JSON.parse(a.chapters) as AlbumChapter[];
+          setChapters(parsed);
+        } catch {
+          setChapters([]);
+        }
+      }
     });
     void isPinned("album", id).then(setIsOfflinePinned);
     void getTracksByAlbum(id).then((tracks) => {
-      setChapters(tracks);
-      const ids = tracks.map((t) => t.id);
-      void getProgressBatch(ids).then(setProgressMap);
+      if (tracks.length === 0) return;
+      // Prefer the file track (no chapterStartMs) over legacy chapter tracks
+      const fileTrack = tracks.find((t) => t.chapterStartMs == null) ?? tracks[0];
+      setAudioTrack(fileTrack);
+      void getProgressBatch([fileTrack.id]).then((map) => {
+        setTrackProgress(map.get(fileTrack.id));
+      });
     });
   }, [id, getAlbum, getTracksByAlbum, isPinned]);
 
-  const chapterIds = useMemo(() => chapters.map((c) => c.id), [chapters]);
-
   const handleChapterPress = useCallback(
-    (chapterId: string) => {
-      const idx = chapterIds.indexOf(chapterId);
-      if (idx >= 0) {
-        void playTracks(chapterIds, idx);
+    (chapterIndex: number) => {
+      if (!audioTrack || chapterIndex >= chapters.length) return;
+      const chapter = chapters[chapterIndex];
+
+      const isCurrentlyPlaying = currentTrack?.id === audioTrack.id;
+      if (isCurrentlyPlaying) {
+        // Already playing this track — just seek to chapter start
+        void seekTo(chapter.start * 1000);
+      } else {
+        // Play the audio file track, then seek to chapter start
+        void playTracks([audioTrack.id], 0).then(() => {
+          if (chapter.start > 0) {
+            void seekTo(chapter.start * 1000);
+          }
+        });
       }
     },
-    [chapterIds, playTracks],
+    [audioTrack, chapters, currentTrack, playTracks, seekTo],
   );
 
-  const chapterProgressMap = useMemo(() => {
-    const map = new Map<string, { fraction: number; isCompleted: boolean }>();
-    if (chapters.length === 0) return map;
+  const chapterProgressMap = useMemo(
+    () => {
+      if (chapters.length === 0 || !trackProgress) return new Map<number, { fraction: number; isCompleted: boolean }>();
+      return computeBookChapterProgress(
+        chapters,
+        trackProgress.positionMs,
+        trackProgress.isCompleted,
+      );
+    },
+    [chapters, trackProgress],
+  );
 
-    let hasPerChapterProgress = false;
-    for (const c of chapters) {
-      const p = progressMap.get(c.id);
-      if (p && (p.positionMs > 0 || p.isCompleted)) {
-        hasPerChapterProgress = true;
-        break;
-      }
-    }
-
-    if (hasPerChapterProgress) {
-      for (const c of chapters) {
-        const p = progressMap.get(c.id);
-        if (p) {
-          const dMs = p.durationMs > 0 ? p.durationMs : c.duration * 1000;
-          map.set(c.id, {
-            fraction: dMs > 0 ? p.positionMs / dMs : 0,
-            isCompleted: p.isCompleted,
-          });
-        }
-      }
-      return map;
-    }
-
-    const bookProgress = progressMap.get(chapters[0].id);
-    if (!bookProgress || bookProgress.durationMs === 0) return map;
-
-    const bookPositionSec = bookProgress.positionMs / 1000;
-    let cumulativeSec = 0;
-
-    for (const c of chapters) {
-      const chapterStart = cumulativeSec;
-      const chapterEnd = cumulativeSec + c.duration;
-
-      if (bookProgress.isCompleted || bookPositionSec >= chapterEnd) {
-        map.set(c.id, { fraction: 1, isCompleted: true });
-      } else if (bookPositionSec > chapterStart) {
-        const chapterPos = bookPositionSec - chapterStart;
-        map.set(c.id, { fraction: chapterPos / c.duration, isCompleted: false });
-      }
-
-      cumulativeSec = chapterEnd;
-    }
-
-    return map;
-  }, [chapters, progressMap]);
-
-  const firstUnfinished = useMemo(
-    () => chapters.find((c) => !chapterProgressMap.get(c.id)?.isCompleted),
+  const firstUnfinishedIdx = useMemo(
+    () => chapters.findIndex((_c, i) => !chapterProgressMap.get(i)?.isCompleted),
     [chapters, chapterProgressMap],
   );
 
   const totalProgress = useMemo(
     () => chapters.length > 0
-      ? chapters.filter((c) => chapterProgressMap.get(c.id)?.isCompleted).length / chapters.length
+      ? chapters.filter((_c, i) => chapterProgressMap.get(i)?.isCompleted).length / chapters.length
       : 0,
     [chapters, chapterProgressMap],
   );
 
   const timeRemainingSec = useMemo(() => {
     let remaining = 0;
-    for (const c of chapters) {
-      const cp = chapterProgressMap.get(c.id);
+    for (let i = 0; i < chapters.length; i++) {
+      const c = chapters[i];
+      const duration = c.end - c.start;
+      const cp = chapterProgressMap.get(i);
       if (cp?.isCompleted) continue;
       if (cp && cp.fraction > 0) {
-        remaining += c.duration * (1 - cp.fraction);
+        remaining += duration * (1 - cp.fraction);
       } else {
-        remaining += c.duration;
+        remaining += duration;
       }
     }
     return remaining;
   }, [chapters, chapterProgressMap]);
 
+  // Which chapter is currently playing (based on position in the file)
+  const activeChapterIdx = useMemo(() => {
+    if (!audioTrack || currentTrack?.id !== audioTrack.id) return -1;
+    const posSec = positionMs / 1000;
+    return chapters.findIndex((c) => posSec >= c.start && posSec < c.end);
+  }, [audioTrack, currentTrack, positionMs, chapters]);
+
   const dlCount = useMemo(
-    () => chapters.filter((t) => isTrackDownloaded(t.id)).length,
-    [chapters],
+    () => audioTrack && isTrackDownloaded(audioTrack.id) ? 1 : 0,
+    [audioTrack],
   );
 
   useEffect(() => {
-    if (chapters.length === 0 || !firstUnfinished) return;
-    const idx = chapters.indexOf(firstUnfinished);
-    if (idx <= 2) return;
+    if (chapters.length === 0 || firstUnfinishedIdx <= 2) return;
     const timer = setTimeout(() => {
-      listRef.current?.scrollToIndex({ index: idx, animated: true, viewOffset: 100 });
+      listRef.current?.scrollToIndex({ index: firstUnfinishedIdx, animated: true, viewOffset: 100 });
     }, 300);
     return () => clearTimeout(timer);
-  }, [chapters, firstUnfinished]);
+  }, [chapters, firstUnfinishedIdx]);
 
   if (!book) return null;
 
@@ -177,14 +176,15 @@ export default function BookDetailScreen() {
     book.artworkSourceItemId,
     "large",
   );
-  const dlMeta = formatDownloadMeta(isOfflinePinned, dlCount, chapters.length);
+  const trackCount = audioTrack ? 1 : 0;
+  const dlMeta = formatDownloadMeta(isOfflinePinned, dlCount, trackCount);
   const progressMeta = totalProgress > 0
     ? ` · ${Math.round(totalProgress * 100)}% complete`
     : "";
   const timeMeta = timeRemainingSec > 0 && totalProgress > 0 && totalProgress < 1
     ? ` · ${formatDurationLong(timeRemainingSec)} left`
     : "";
-  const totalDuration = chapters.reduce((sum, c) => sum + c.duration, 0);
+  const totalDuration = chapters.reduce((sum, c) => sum + (c.end - c.start), 0);
   const durationMeta = totalProgress === 0 && totalDuration > 0
     ? ` · ${formatDurationLong(totalDuration)}`
     : "";
@@ -198,7 +198,7 @@ export default function BookDetailScreen() {
         ref={listRef}
         style={{ flex: 1 }}
         data={chapters}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(_item, index) => String(index)}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
@@ -239,10 +239,8 @@ export default function BookDetailScreen() {
                   icon="play"
                   variant="primary"
                   onPress={() => {
-                    if (firstUnfinished) {
-                      handleChapterPress(firstUnfinished.id);
-                    } else if (id) {
-                      void playAlbum(id);
+                    if (audioTrack) {
+                      void playTracks([audioTrack.id], 0);
                     }
                   }}
                 />
@@ -250,11 +248,12 @@ export default function BookDetailScreen() {
             />
           </View>
         }
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <BookChapterItem
             item={item}
-            currentTrackId={currentTrack?.id}
-            chapterProgress={chapterProgressMap.get(item.id)}
+            index={index}
+            isPlaying={index === activeChapterIdx}
+            chapterProgress={chapterProgressMap.get(index)}
             onPress={handleChapterPress}
           />
         )}
@@ -265,26 +264,28 @@ export default function BookDetailScreen() {
 
 const BookChapterItem = memo(function BookChapterItem({
   item,
-  currentTrackId,
+  index,
+  isPlaying,
   chapterProgress,
   onPress,
 }: {
-  item: TrackRowType;
-  currentTrackId: string | undefined;
+  item: AlbumChapter;
+  index: number;
+  isPlaying: boolean;
   chapterProgress: { fraction: number; isCompleted: boolean } | undefined;
-  onPress: (id: string) => void;
+  onPress: (index: number) => void;
 }) {
-  const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
+  const handlePress = useCallback(() => onPress(index), [onPress, index]);
+  const duration = item.end - item.start;
 
   return (
     <View className="px-4">
       <ChapterRow
         title={item.title}
-        artistName={item.artistName}
-        duration={item.duration}
-        chapterNumber={item.trackNumber}
-        isPlaying={currentTrackId === item.id}
-        isDownloaded={isTrackDownloaded(item.id)}
+        duration={duration}
+        chapterNumber={index + 1}
+        isPlaying={isPlaying}
+        isDownloaded={false}
         progress={chapterProgress?.fraction}
         isCompleted={chapterProgress?.isCompleted}
         onPress={handlePress}

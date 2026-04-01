@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ca741f3d-d58d-4174-99fe-86b5b4a05fc5",
-  "prevId": "e28ecd39-93d5-4337-927b-9d3d99f8e12b",
+  "id": "e9fa77c7-137a-4bd6-8efa-626214fa3a79",
+  "prevId": "142f89a4-73c8-4e8e-92b5-a9f8204ac4ff",
   "tables": {
     "albums": {
       "name": "albums",
@@ -63,6 +63,29 @@
           "notNull": false,
           "autoincrement": false
         },
+        "media_type": {
+          "name": "media_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'music'"
+        },
+        "is_favourite": {
+          "name": "is_favourite",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 0
+        },
+        "chapters": {
+          "name": "chapters",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "synced_at": {
           "name": "synced_at",
           "type": "text",
@@ -91,6 +114,13 @@
           "name": "albums_title_idx",
           "columns": [
             "title"
+          ],
+          "isUnique": false
+        },
+        "albums_media_type_idx": {
+          "name": "albums_media_type_idx",
+          "columns": [
+            "media_type"
           ],
           "isUnique": false
         }
@@ -196,11 +226,326 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "mix_tape_tracks": {
-      "name": "mix_tape_tracks",
+    "downloads": {
+      "name": "downloads",
       "columns": {
-        "mix_tape_id": {
-          "name": "mix_tape_id",
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "file_size": {
+          "name": "file_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "downloaded_at": {
+          "name": "downloaded_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "synced_at": {
+          "name": "synced_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "retry_count": {
+          "name": "retry_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "downloads_status_idx": {
+          "name": "downloads_status_idx",
+          "columns": [
+            "status"
+          ],
+          "isUnique": false
+        },
+        "downloads_source_idx": {
+          "name": "downloads_source_idx",
+          "columns": [
+            "source_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "downloads_track_id_tracks_id_fk": {
+          "name": "downloads_track_id_tracks_id_fk",
+          "tableFrom": "downloads",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "track_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "downloads_source_id_sources_id_fk": {
+          "name": "downloads_source_id_sources_id_fk",
+          "tableFrom": "downloads",
+          "tableTo": "sources",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "offline_pins": {
+      "name": "offline_pins",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "offline_pins_unique": {
+          "name": "offline_pins_unique",
+          "columns": [
+            "entity_type",
+            "entity_id"
+          ],
+          "isUnique": true
+        },
+        "offline_pins_source_idx": {
+          "name": "offline_pins_source_idx",
+          "columns": [
+            "source_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "offline_pins_source_id_sources_id_fk": {
+          "name": "offline_pins_source_id_sources_id_fk",
+          "tableFrom": "offline_pins",
+          "tableTo": "sources",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "output_configs": {
+      "name": "output_configs",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "config": {
+          "name": "config",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'{}'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "playback_progress": {
+      "name": "playback_progress",
+      "columns": {
+        "track_id": {
+          "name": "track_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "position_ms": {
+          "name": "position_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "duration_ms": {
+          "name": "duration_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "is_completed": {
+          "name": "is_completed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "needs_sync": {
+          "name": "needs_sync",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "playback_progress_needs_sync_idx": {
+          "name": "playback_progress_needs_sync_idx",
+          "columns": [
+            "needs_sync"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "playback_progress_track_id_tracks_id_fk": {
+          "name": "playback_progress_track_id_tracks_id_fk",
+          "tableFrom": "playback_progress",
+          "tableTo": "tracks",
+          "columnsFrom": [
+            "track_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "playlist_tracks": {
+      "name": "playlist_tracks",
+      "columns": {
+        "playlist_id": {
+          "name": "playlist_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -229,29 +574,29 @@
         }
       },
       "indexes": {
-        "mix_tape_tracks_unique": {
-          "name": "mix_tape_tracks_unique",
+        "playlist_tracks_unique": {
+          "name": "playlist_tracks_unique",
           "columns": [
-            "mix_tape_id",
+            "playlist_id",
             "track_id"
           ],
           "isUnique": true
         },
-        "mix_tape_tracks_tape_idx": {
-          "name": "mix_tape_tracks_tape_idx",
+        "playlist_tracks_playlist_idx": {
+          "name": "playlist_tracks_playlist_idx",
           "columns": [
-            "mix_tape_id"
+            "playlist_id"
           ],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "mix_tape_tracks_mix_tape_id_mix_tapes_id_fk": {
-          "name": "mix_tape_tracks_mix_tape_id_mix_tapes_id_fk",
-          "tableFrom": "mix_tape_tracks",
-          "tableTo": "mix_tapes",
+        "playlist_tracks_playlist_id_playlists_id_fk": {
+          "name": "playlist_tracks_playlist_id_playlists_id_fk",
+          "tableFrom": "playlist_tracks",
+          "tableTo": "playlists",
           "columnsFrom": [
-            "mix_tape_id"
+            "playlist_id"
           ],
           "columnsTo": [
             "id"
@@ -259,9 +604,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "mix_tape_tracks_track_id_tracks_id_fk": {
-          "name": "mix_tape_tracks_track_id_tracks_id_fk",
-          "tableFrom": "mix_tape_tracks",
+        "playlist_tracks_track_id_tracks_id_fk": {
+          "name": "playlist_tracks_track_id_tracks_id_fk",
+          "tableFrom": "playlist_tracks",
           "tableTo": "tracks",
           "columnsFrom": [
             "track_id"
@@ -277,8 +622,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "mix_tapes": {
-      "name": "mix_tapes",
+    "playlists": {
+      "name": "playlists",
       "columns": {
         "id": {
           "name": "id",
@@ -287,12 +632,64 @@
           "notNull": true,
           "autoincrement": false
         },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "source_item_id": {
+          "name": "source_item_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_mix_tape": {
+          "name": "is_mix_tape",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 0
+        },
+        "artwork_source_item_id": {
+          "name": "artwork_source_item_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "track_count": {
+          "name": "track_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 0
+        },
+        "needs_sync": {
+          "name": "needs_sync",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 0
         },
         "created_at": {
           "name": "created_at",
@@ -307,10 +704,61 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "synced_at": {
+          "name": "synced_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
-      "indexes": {},
-      "foreignKeys": {},
+      "indexes": {
+        "playlists_source_unique": {
+          "name": "playlists_source_unique",
+          "columns": [
+            "source_id",
+            "source_item_id"
+          ],
+          "isUnique": true
+        },
+        "playlists_name_idx": {
+          "name": "playlists_name_idx",
+          "columns": [
+            "name"
+          ],
+          "isUnique": false
+        },
+        "playlists_mix_tape_idx": {
+          "name": "playlists_mix_tape_idx",
+          "columns": [
+            "is_mix_tape"
+          ],
+          "isUnique": false
+        },
+        "playlists_needs_sync_idx": {
+          "name": "playlists_needs_sync_idx",
+          "columns": [
+            "needs_sync"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "playlists_source_id_sources_id_fk": {
+          "name": "playlists_source_id_sources_id_fk",
+          "tableFrom": "playlists",
+          "tableTo": "sources",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -455,6 +903,56 @@
           "autoincrement": false,
           "default": 0
         },
+        "media_type": {
+          "name": "media_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'music'"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "episode_number": {
+          "name": "episode_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "content_url": {
+          "name": "content_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "chapter_start_ms": {
+          "name": "chapter_start_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "artwork_source_item_id": {
+          "name": "artwork_source_item_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "synced_at": {
           "name": "synced_at",
           "type": "text",
@@ -490,6 +988,20 @@
           "name": "tracks_title_idx",
           "columns": [
             "title"
+          ],
+          "isUnique": false
+        },
+        "tracks_media_type_idx": {
+          "name": "tracks_media_type_idx",
+          "columns": [
+            "media_type"
+          ],
+          "isUnique": false
+        },
+        "tracks_published_at_idx": {
+          "name": "tracks_published_at_idx",
+          "columns": [
+            "published_at"
           ],
           "isUnique": false
         }

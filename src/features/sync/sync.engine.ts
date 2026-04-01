@@ -99,6 +99,7 @@ export async function syncSource(
     artworkSourceItemId: a.artworkSourceItemId ?? null,
     trackCount: a.trackCount ?? null,
     mediaType: a.mediaType ?? "music",
+    chapters: a.chapters ? JSON.stringify(a.chapters) : null,
     syncedAt: now,
   }));
   await upsertAlbums(albumRows);
@@ -143,6 +144,9 @@ export async function syncSource(
     description: t.description ?? null,
     publishedAt: t.publishedAt ?? null,
     episodeNumber: t.episodeNumber ?? null,
+    contentUrl: t.contentUrl ?? null,
+    chapterStartMs: t.chapterStartMs ?? null,
+    artworkSourceItemId: t.artworkSourceItemId ?? null,
     syncedAt: now,
   }));
   await upsertTracks(trackRows);
@@ -182,6 +186,8 @@ export async function syncSource(
       addedAt: now,
     }));
     await replacePlaylistTracks(playlistId, trackEntries);
+    // Yield between playlists so the UI thread can render
+    await new Promise<void>((r) => setTimeout(r, 0));
   }
 
   emitProgress(onProgress, sid, adapter.name, "playlists", "completed", playlistRows.length);
@@ -281,7 +287,7 @@ async function pushPendingPlaylists(adapter: SourceAdapter) {
  */
 async function syncProgress(
   adapter: SourceAdapter,
-  trackRows: { id: string; sourceItemId: string }[]
+  trackRows: { id: string; sourceItemId: string; chapterStartMs?: number | null }[]
 ): Promise<number> {
   let count = 0;
 
@@ -290,9 +296,12 @@ async function syncProgress(
 
   // Step 2: Pull remote progress
   if (adapter.getProgress) {
-    const sourceItemIds = trackRows.map((t) => t.sourceItemId);
-    if (sourceItemIds.length > 0) {
-      const remoteProgress = await adapter.getProgress(sourceItemIds);
+    const trackDescriptors = trackRows.map((t) => ({
+      sourceItemId: t.sourceItemId,
+      chapterStartMs: t.chapterStartMs ?? undefined,
+    }));
+    if (trackDescriptors.length > 0) {
+      const remoteProgress = await adapter.getProgress(trackDescriptors);
       const now = new Date().toISOString();
 
       // Build a sourceItemId → trackId lookup

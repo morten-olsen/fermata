@@ -16,6 +16,7 @@ export interface Album {
   artworkSourceItemId?: string; // source-system item ID for artwork resolution
   trackCount?: number;
   mediaType?: MediaType; // defaults to 'music' if omitted
+  chapters?: Array<{ title: string; start: number; end: number }>; // audiobook chapter markers
 }
 
 export interface Track {
@@ -33,6 +34,9 @@ export interface Track {
   description?: string; // episode description, chapter summary
   publishedAt?: string; // ISO date — podcast episode publish date
   episodeNumber?: number; // podcast episode number
+  contentUrl?: string; // direct audio file path within the source
+  chapterStartMs?: number; // chapter offset in ms within shared audio file (audiobook)
+  artworkSourceItemId?: string; // source-system item ID for artwork resolution
 }
 
 export interface Playlist {
@@ -90,7 +94,9 @@ export interface SourceAdapter {
   getTracks(since?: Date): Promise<Track[]>;
   getPlaylists(): Promise<Playlist[]>;
 
-  getStreamUrl(trackId: string): string;
+  getStreamUrl(sourceItemId: string, contentUrl?: string | null): string | Promise<string>;
+  /** Optional HTTP headers required for streaming (e.g. auth tokens) */
+  getStreamHeaders?(): Record<string, string>;
   getArtworkUrl(itemId: string, size?: ImageSize): string;
 
   /** Declare what streaming capabilities this source provides */
@@ -107,14 +113,15 @@ export interface SourceAdapter {
 
   /** Report playback progress to the source. Optional — not all sources track progress. */
   reportProgress?(
-    trackSourceItemId: string,
+    sourceItemId: string,
     positionMs: number,
     durationMs: number,
     isCompleted: boolean,
+    chapterStartMs?: number,
   ): Promise<void>;
 
   /** Fetch playback progress for given tracks from the source. */
   getProgress?(
-    trackSourceItemIds: string[],
+    tracks: Array<{ sourceItemId: string; chapterStartMs?: number }>,
   ): Promise<Map<string, { positionMs: number; durationMs: number; isCompleted: boolean }>>;
 }
