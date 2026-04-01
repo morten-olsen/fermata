@@ -1,6 +1,7 @@
 import type { ExpoConfig, ConfigContext } from "expo/config";
 
 const IS_DEV = process.env.APP_VARIANT === "development";
+const BASE_PATH = process.env.EXPO_PUBLIC_BASE_PATH || "";
 
 const getUniqueIdentifier = () => {
   if (IS_DEV) return "app.fermata.dev";
@@ -70,6 +71,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   experiments: {
     typedRoutes: true,
+    baseUrl: BASE_PATH,
   },
   extra: {
     router: {},
