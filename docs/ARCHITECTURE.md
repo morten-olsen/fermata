@@ -60,6 +60,23 @@ The first adapter. Supports multiple simultaneous instances — a user can conne
 - `restore()` rehydrates from persisted `baseUrl`, `userId`, `accessToken` without re-authenticating
 - Stream URLs include the access token as a query parameter
 
+### Audiobookshelf Adapter
+
+Syncs podcast and audiobook libraries from Audiobookshelf servers. Maps podcasts and audiobooks into Fermata's Artist/Album/Track model with `mediaType` discrimination.
+
+- **`api.ts`** — HTTP client with Bearer token auth, library and item fetching, progress sync
+- **`adapter.ts`** — implements `SourceAdapter` plus optional `reportProgress()` and `getProgress()`
+- **`types.ts`** — ABS API response types
+
+**Key details:**
+- Podcasts: Podcast → Album, Episode → Track (`mediaType: 'podcast'`)
+- Audiobooks: Book → Album, Chapter → Track (`mediaType: 'audiobook'`)
+- Compound `sourceItemId` format: `{libraryItemId}:{episodeId}` for nested entities
+- No delta sync (ABS doesn't support `since` parameter)
+- Bidirectional playback progress tracking via `/api/me/progress/`
+
+See `docs/AUDIOBOOKSHELF.md` for full details.
+
 ## Library Layer
 
 A local SQLite database managed via **Drizzle ORM** that stores the unified catalog from all connected sources.
@@ -95,7 +112,16 @@ tracks
   ├── source_id, source_item_id   (unique together)
   ├── title, artist_name, album_title, album_id
   ├── duration, track_number, disc_number
+  ├── media_type                  ('music' | 'podcast' | 'audiobook', default 'music')
+  ├── description, published_at, episode_number  (podcast/audiobook metadata)
   └── synced_at
+
+playback_progress
+  ├── track_id                    (PK, FK → tracks)
+  ├── position_ms, duration_ms
+  ├── is_completed
+  ├── updated_at
+  └── needs_sync                  (1 = local change not yet pushed to source)
 
 mix_tapes
   ├── id                          (random: generateId())

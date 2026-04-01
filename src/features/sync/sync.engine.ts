@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import type { SourceAdapter } from "@/src/features/sources/sources";
 import { prefetchArtwork } from "@/src/features/artwork/artwork";
+import { pushProgressToSource } from "@/src/features/progress/progress";
 import {
   getPlaylistsNeedingSync,
   getPlaylistTracks,
@@ -19,12 +20,13 @@ import {
   upsertTracks,
   upsertPlaylists,
   replacePlaylistTracks,
+  upsertRemoteProgress,
 } from "./sync.queries";
 
 export interface SyncProgress {
   sourceId: string;
   sourceName: string;
-  phase: "artists" | "albums" | "tracks" | "playlists" | "done";
+  phase: "artists" | "albums" | "tracks" | "playlists" | "progress" | "done";
   status: "started" | "completed";
   itemCount: number;
 }
@@ -96,6 +98,7 @@ export async function syncSource(
     year: a.year ?? null,
     artworkSourceItemId: a.artworkSourceItemId ?? null,
     trackCount: a.trackCount ?? null,
+    mediaType: a.mediaType ?? "music",
     syncedAt: now,
   }));
   await upsertAlbums(albumRows);
@@ -136,6 +139,10 @@ export async function syncSource(
     trackNumber: t.trackNumber ?? null,
     discNumber: t.discNumber ?? null,
     isFavourite: t.isFavourite ? 1 : 0,
+    mediaType: t.mediaType ?? "music",
+    description: t.description ?? null,
+    publishedAt: t.publishedAt ?? null,
+    episodeNumber: t.episodeNumber ?? null,
     syncedAt: now,
   }));
   await upsertTracks(trackRows);
@@ -179,6 +186,20 @@ export async function syncSource(
 
   emitProgress(onProgress, sid, adapter.name, "playlists", "completed", playlistRows.length);
 
+  // ── Playback Progress (bidirectional) ──────────────
+  if (adapter.reportProgress || adapter.getProgress) {
+    emitProgress(onProgress, sid, adapter.name, "progress", "started", 0);
+    let progressCount = 0;
+
+    try {
+      progressCount = await syncProgress(adapter, trackRows);
+    } catch (e) {
+      log(`Progress sync failed for "${adapter.name}":`, e);
+    }
+
+    emitProgress(onProgress, sid, adapter.name, "progress", "completed", progressCount);
+  }
+
   // ── Update source last sync time ───────────────────
   await db
     .update(sources)
@@ -206,25 +227,25 @@ async function pushPendingPlaylists(adapter: SourceAdapter) {
   if (!adapter.addTracksToPlaylist) return;
 
   const pending = await getPlaylistsNeedingSync(adapter.id);
+  if (pending.length === 0) return;
+
+  // Fetch remote playlists once for all pending (avoids N API calls in the loop)
+  const remotePlaylists = adapter.removeTracksFromPlaylist
+    ? await adapter.getPlaylists()
+    : [];
+  const remoteBySourceItemId = new Map(
+    remotePlaylists.map((p) => [p.sourceItemId, p]),
+  );
 
   for (const playlist of pending) {
     if (!playlist.sourceItemId) continue;
 
     try {
-      // Get current local track list
       const localTracks = await getPlaylistTracks(playlist.id);
       const trackSourceItemIds = localTracks.map((t) => t.track.sourceItemId);
 
-      // Full replace: remove all, then add all in order
-      // This is simple and handles adds, removes, and reorders
       if (adapter.removeTracksFromPlaylist) {
-        // Fetch current remote tracks to get their entry IDs for removal
-        // For simplicity, we use the adapter's own getPlaylists to diff
-        // but the cleanest approach is full replace via the API
-        const remotePlaylists = await adapter.getPlaylists();
-        const remote = remotePlaylists.find(
-          (p) => p.sourceItemId === playlist.sourceItemId
-        );
+        const remote = remoteBySourceItemId.get(playlist.sourceItemId);
         if (remote && remote.trackSourceItemIds.length > 0) {
           await adapter.removeTracksFromPlaylist(
             playlist.sourceItemId,
@@ -251,6 +272,59 @@ async function pushPendingPlaylists(adapter: SourceAdapter) {
       }
     }
   }
+}
+
+/**
+ * Bidirectional progress sync:
+ * 1. Push local pending progress (needsSync = 1) to the source
+ * 2. Pull remote progress and upsert locally (respecting needsSync)
+ */
+async function syncProgress(
+  adapter: SourceAdapter,
+  trackRows: { id: string; sourceItemId: string }[]
+): Promise<number> {
+  let count = 0;
+
+  // Step 1: Push local changes to source (delegates to progress service)
+  count += await pushProgressToSource(adapter, adapter.id);
+
+  // Step 2: Pull remote progress
+  if (adapter.getProgress) {
+    const sourceItemIds = trackRows.map((t) => t.sourceItemId);
+    if (sourceItemIds.length > 0) {
+      const remoteProgress = await adapter.getProgress(sourceItemIds);
+      const now = new Date().toISOString();
+
+      // Build a sourceItemId → trackId lookup
+      const sidToTrackId = new Map(trackRows.map((t) => [t.sourceItemId, t.id]));
+
+      const progressRows: {
+        trackId: string;
+        positionMs: number;
+        durationMs: number;
+        isCompleted: boolean;
+        updatedAt: string;
+      }[] = [];
+
+      for (const [sourceItemId, progress] of remoteProgress) {
+        const trackId = sidToTrackId.get(sourceItemId);
+        if (trackId) {
+          progressRows.push({
+            trackId,
+            positionMs: progress.positionMs,
+            durationMs: progress.durationMs,
+            isCompleted: progress.isCompleted,
+            updatedAt: now,
+          });
+        }
+      }
+
+      await upsertRemoteProgress(progressRows);
+      count += progressRows.length;
+    }
+  }
+
+  return count;
 }
 
 /**

@@ -23,11 +23,12 @@ import { colors } from "@/src/shared/theme/theme";
 
 export default function AlbumDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getAlbum, getTracksByAlbum, toggleFavourite } = useLibraryStore(
+  const { getAlbum, getTracksByAlbum, toggleFavourite, toggleAlbumFavourite } = useLibraryStore(
     useShallow((s) => ({
       getAlbum: s.getAlbum,
       getTracksByAlbum: s.getTracksByAlbum,
       toggleFavourite: s.toggleFavourite,
+      toggleAlbumFavourite: s.toggleAlbumFavourite,
     })),
   );
   const { playAlbum, shuffleAlbum, currentTrack } = usePlaybackStore(
@@ -46,13 +47,17 @@ export default function AlbumDetailScreen() {
     })),
   );
   const [isOfflinePinned, setIsOfflinePinned] = useState(false);
+  const [isFavourite, setIsFavourite] = useState(false);
 
   const [album, setAlbum] = useState<AlbumRow>();
   const [tracks, setTracks] = useState<TrackRowType[]>([]);
 
   useEffect(() => {
     if (!id) return;
-    getAlbum(id).then(setAlbum);
+    getAlbum(id).then((a) => {
+      setAlbum(a);
+      setIsFavourite(!!a?.isFavourite);
+    });
     getTracksByAlbum(id).then(setTracks);
     isPinned("album", id).then(setIsOfflinePinned);
   }, [id]);
@@ -97,25 +102,41 @@ export default function AlbumDetailScreen() {
               <Pressable onPress={() => router.back()}>
                 <Ionicons name="chevron-back" size={26} color={colors.text} />
               </Pressable>
-              <Pressable
-                onPress={async () => {
-                  if (!id || !album) return;
-                  if (isOfflinePinned) {
-                    await unpinOffline("album", id);
-                    setIsOfflinePinned(false);
-                  } else {
-                    await pinForOffline("album", id, album.sourceId);
-                    setIsOfflinePinned(true);
-                  }
-                }}
-                style={{ padding: 8 }}
-              >
-                <Ionicons
-                  name={isOfflinePinned ? "cloud-done" : "cloud-download-outline"}
-                  size={22}
-                  color={isOfflinePinned ? colors.accent : colors.muted}
-                />
-              </Pressable>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Pressable
+                  onPress={async () => {
+                    if (!id) return;
+                    const newVal = await toggleAlbumFavourite(id);
+                    setIsFavourite(newVal);
+                  }}
+                  style={{ padding: 8 }}
+                >
+                  <Ionicons
+                    name={isFavourite ? "heart" : "heart-outline"}
+                    size={22}
+                    color={isFavourite ? colors.accent : colors.muted}
+                  />
+                </Pressable>
+                <Pressable
+                  onPress={async () => {
+                    if (!id || !album) return;
+                    if (isOfflinePinned) {
+                      await unpinOffline("album", id);
+                      setIsOfflinePinned(false);
+                    } else {
+                      await pinForOffline("album", id, album.sourceId);
+                      setIsOfflinePinned(true);
+                    }
+                  }}
+                  style={{ padding: 8 }}
+                >
+                  <Ionicons
+                    name={isOfflinePinned ? "cloud-done" : "cloud-download-outline"}
+                    size={22}
+                    color={isOfflinePinned ? colors.accent : colors.muted}
+                  />
+                </Pressable>
+              </View>
             </View>
 
             <View className="items-center px-8 mb-6">

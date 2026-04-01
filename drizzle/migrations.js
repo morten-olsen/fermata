@@ -6,6 +6,8 @@ import m0001 from './0001_faithful_randall_flagg.sql';
 import m0002 from './0002_replace_mixtapes_with_playlists.sql';
 import m0003 from './0003_add_offline_downloads.sql';
 import m0004 from './0004_add_output_configs.sql';
+import m0005 from './0005_add_media_types_and_progress.sql';
+import m0006 from './0006_add_album_favourites.sql';
 
 export default {
   journal,
@@ -15,5 +17,7 @@ export default {
     m0002,
     m0003,
     m0004,
+    m0005,
+    m0006,
   }
 }

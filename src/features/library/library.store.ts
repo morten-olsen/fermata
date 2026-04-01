@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { SourceAdapter } from "@/src/features/sources/sources";
+import type { SourceAdapter, MediaType } from "@/src/features/sources/sources";
 
 import {
   getAllAlbums,
@@ -20,6 +20,9 @@ import {
   addTrackToPlaylist as dbAddTrackToPlaylist,
   removeTrackFromPlaylist as dbRemoveTrackFromPlaylist,
   setTrackFavourite,
+  setAlbumFavourite,
+  getFavouriteAlbums,
+  getInProgressAlbums,
 } from "./library.queries";
 
 type AlbumRow = Awaited<ReturnType<typeof getAllAlbums>>[number];
@@ -40,9 +43,14 @@ interface LibraryState {
     tracks: number;
     playlists: number;
     mixTapes: number;
+    musicAlbums: number;
+    podcasts: number;
+    audiobooks: number;
   };
+  activeMediaType: MediaType | null;
   isLoading: boolean;
 
+  setMediaType: (type: MediaType | null) => void;
   loadAlbums: () => Promise<void>;
   loadArtists: () => Promise<void>;
   loadTracks: () => Promise<void>;
@@ -71,8 +79,11 @@ interface LibraryState {
     adapter?: SourceAdapter
   ) => Promise<void>;
 
-  // Track actions
+  // Track/album actions
   toggleFavourite: (trackId: string) => Promise<boolean>;
+  toggleAlbumFavourite: (albumId: string) => Promise<boolean>;
+  getFavouriteAlbums: (mediaType?: MediaType) => Promise<AlbumRow[]>;
+  getInProgressAlbums: (mediaType?: MediaType) => Promise<AlbumRow[]>;
 
   search: (
     query: string
@@ -84,27 +95,37 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   artists: [],
   tracks: [],
   playlists: [],
-  stats: { artists: 0, albums: 0, tracks: 0, playlists: 0, mixTapes: 0 },
+  stats: { artists: 0, albums: 0, tracks: 0, playlists: 0, mixTapes: 0, musicAlbums: 0, podcasts: 0, audiobooks: 0 },
+  activeMediaType: null,
   isLoading: false,
+
+  setMediaType: (type) => {
+    if (get().activeMediaType === type) return;
+    set({ activeMediaType: type });
+    void get().refreshAll();
+  },
 
   loadAlbums: async () => {
     const { useDownloadStore } = await import("@/src/features/downloads/downloads");
     const offline = useDownloadStore.getState().offlineMode;
-    const albums = await getAllAlbums(offline);
+    const mt = get().activeMediaType ?? undefined;
+    const albums = await getAllAlbums(offline, mt);
     set({ albums });
   },
 
   loadArtists: async () => {
     const { useDownloadStore } = await import("@/src/features/downloads/downloads");
     const offline = useDownloadStore.getState().offlineMode;
-    const artists = await getAllArtists(offline);
+    const mt = get().activeMediaType ?? undefined;
+    const artists = await getAllArtists(offline, mt);
     set({ artists });
   },
 
   loadTracks: async () => {
     const { useDownloadStore } = await import("@/src/features/downloads/downloads");
     const offline = useDownloadStore.getState().offlineMode;
-    const tracks = await getTracks(undefined, undefined, offline);
+    const mt = get().activeMediaType ?? undefined;
+    const tracks = await getTracks(undefined, undefined, offline, mt);
     set({ tracks });
   },
 
@@ -123,10 +144,11 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     try {
       const { useDownloadStore } = await import("@/src/features/downloads/downloads");
       const offline = useDownloadStore.getState().offlineMode;
+      const mt = get().activeMediaType ?? undefined;
       const [albums, artists, tracks, playlists, stats] = await Promise.all([
-        getAllAlbums(offline),
-        getAllArtists(offline),
-        getTracks(undefined, undefined, offline),
+        getAllAlbums(offline, mt),
+        getAllArtists(offline, mt),
+        getTracks(undefined, undefined, offline, mt),
         getAllPlaylistsWithCount(),
         getLibraryStats(),
       ]);
@@ -212,7 +234,18 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     return newValue;
   },
 
-  search: (query) => searchLibrary(query),
+  toggleAlbumFavourite: async (albumId: string) => {
+    const album = await getAlbum(albumId);
+    if (!album) return false;
+    const newValue = !album.isFavourite;
+    await setAlbumFavourite(albumId, newValue);
+    return newValue;
+  },
+
+  getFavouriteAlbums: (mediaType) => getFavouriteAlbums(mediaType),
+  getInProgressAlbums: (mediaType) => getInProgressAlbums(mediaType),
+
+  search: (query) => searchLibrary(query, get().activeMediaType ?? undefined),
 }));
 
 export type {

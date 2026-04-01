@@ -26,9 +26,27 @@ export default function TabLayout() {
       <Tabs.Screen
         name="library"
         options={{
-          title: "Library",
+          title: "Music",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="library" size={size} color={color} />
+            <Ionicons name="musical-notes" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="podcasts"
+        options={{
+          title: "Podcasts",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="mic" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="audiobooks"
+        options={{
+          title: "Audiobooks",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="book" size={size} color={color} />
           ),
         }}
       />

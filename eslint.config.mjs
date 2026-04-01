@@ -18,6 +18,7 @@ const ALL_FEATURES = [
   "feature-downloads",
   "feature-artwork",
   "feature-outputs",
+  "feature-progress",
 ];
 
 export default tseslint.config(
@@ -224,6 +225,10 @@ export default tseslint.config(
           pattern: ["src/features/outputs/**"],
         },
         {
+          type: "feature-progress",
+          pattern: ["src/features/progress/**"],
+        },
+        {
           type: "shared",
           pattern: ["src/shared/**"],
         },
@@ -298,6 +303,12 @@ export default tseslint.config(
                 { to: { type: "feature-outputs", internalPath: "!outputs.ts" } },
               ],
             },
+            {
+              from: { type: ALL_FEATURES.filter((f) => f !== "feature-progress") },
+              disallow: [
+                { to: { type: "feature-progress", internalPath: "!progress.ts" } },
+              ],
+            },
             // App screens must also go through barrels
             {
               from: { type: "app" },
@@ -309,6 +320,7 @@ export default tseslint.config(
                 { to: { type: "feature-downloads", internalPath: "!downloads.ts" } },
                 { to: { type: "feature-artwork", internalPath: "!artwork.ts" } },
                 { to: { type: "feature-outputs", internalPath: "!outputs.ts" } },
+                { to: { type: "feature-progress", internalPath: "!progress.ts" } },
               ],
             },
 
@@ -334,6 +346,20 @@ export default tseslint.config(
                 { to: { type: "feature-downloads" } },
                 { to: { type: "feature-artwork" } },
                 { to: { type: "feature-outputs" } },
+                { to: { type: "feature-progress" } },
+              ],
+            },
+            // Progress: leaf — cannot import any other feature
+            {
+              from: { type: "feature-progress" },
+              disallow: [
+                { to: { type: "feature-playback" } },
+                { to: { type: "feature-library" } },
+                { to: { type: "feature-sources" } },
+                { to: { type: "feature-sync" } },
+                { to: { type: "feature-downloads" } },
+                { to: { type: "feature-artwork" } },
+                { to: { type: "feature-outputs" } },
               ],
             },
             // Outputs: can depend on sources
@@ -345,6 +371,7 @@ export default tseslint.config(
                 { to: { type: "feature-sync" } },
                 { to: { type: "feature-downloads" } },
                 { to: { type: "feature-artwork" } },
+                { to: { type: "feature-progress" } },
               ],
             },
             // Artwork: can depend on sources
@@ -356,6 +383,7 @@ export default tseslint.config(
                 { to: { type: "feature-sync" } },
                 { to: { type: "feature-downloads" } },
                 { to: { type: "feature-outputs" } },
+                { to: { type: "feature-progress" } },
               ],
             },
             // Library: can depend on sources, artwork, playback, downloads
@@ -389,6 +417,7 @@ export default tseslint.config(
                 { to: { type: "feature-sync" } },
                 { to: { type: "feature-artwork" } },
                 { to: { type: "feature-outputs" } },
+                { to: { type: "feature-progress" } },
               ],
             },
             // Shared: cannot import from any feature

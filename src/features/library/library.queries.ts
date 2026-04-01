@@ -1,5 +1,7 @@
 import { eq, like, or, sql, desc, asc, and } from "drizzle-orm";
 
+import type { MediaType } from "@/src/features/sources/sources";
+
 import { db } from "@/src/shared/db/db.client";
 import {
   artists,
@@ -13,40 +15,60 @@ import { generateId, stableId } from "@/src/shared/lib/ids";
 
 // ── Artists ────────────────────────────────────────────
 
-export async function getAllArtists(offlineOnly = false) {
+export async function getAllArtists(offlineOnly = false, mediaType?: MediaType) {
+  const conditions = [];
+
   if (offlineOnly) {
-    return db
-      .select()
-      .from(artists)
-      .where(
-        sql`EXISTS (SELECT 1 FROM tracks t INNER JOIN downloads d ON d.track_id = t.id WHERE t.artist_name = ${artists.name} AND d.status = 'complete')`
-      )
-      .orderBy(asc(artists.name));
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM tracks t INNER JOIN downloads d ON d.track_id = t.id WHERE t.artist_name = ${artists.name} AND d.status = 'complete')`
+    );
   }
-  return db.select().from(artists).orderBy(asc(artists.name));
+
+  if (mediaType) {
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM tracks t WHERE t.artist_name = ${artists.name} AND t.media_type = ${mediaType})`
+    );
+  }
+
+  const where = conditions.length > 0
+    ? conditions.length === 1 ? conditions[0] : and(...conditions)
+    : undefined;
+
+  return db.select().from(artists).where(where).orderBy(asc(artists.name));
 }
 
-export async function getAlbumsByArtist(artistName: string) {
+export async function getAlbumsByArtist(artistName: string, mediaType?: MediaType) {
+  const conditions = [eq(albums.artistName, artistName)];
+  if (mediaType) {
+    conditions.push(eq(albums.mediaType, mediaType));
+  }
   return db
     .select()
     .from(albums)
-    .where(eq(albums.artistName, artistName))
+    .where(and(...conditions))
     .orderBy(desc(albums.year));
 }
 
 // ── Albums ─────────────────────────────────────────────
 
-export async function getAllAlbums(offlineOnly = false) {
+export async function getAllAlbums(offlineOnly = false, mediaType?: MediaType) {
+  const conditions = [];
+
   if (offlineOnly) {
-    return db
-      .select()
-      .from(albums)
-      .where(
-        sql`EXISTS (SELECT 1 FROM downloads d INNER JOIN tracks t ON d.track_id = t.id WHERE t.album_id = ${albums.id} AND d.status = 'complete')`
-      )
-      .orderBy(asc(albums.title));
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM downloads d INNER JOIN tracks t ON d.track_id = t.id WHERE t.album_id = ${albums.id} AND d.status = 'complete')`
+    );
   }
-  return db.select().from(albums).orderBy(asc(albums.title));
+
+  if (mediaType) {
+    conditions.push(eq(albums.mediaType, mediaType));
+  }
+
+  const where = conditions.length > 0
+    ? conditions.length === 1 ? conditions[0] : and(...conditions)
+    : undefined;
+
+  return db.select().from(albums).where(where).orderBy(asc(albums.title));
 }
 
 export async function getAlbum(id: string) {
@@ -55,12 +77,13 @@ export async function getAlbum(id: string) {
 
 // ── Tracks ─────────────────────────────────────────────
 
-export async function getTracks(limit?: number, offset = 0, offlineOnly = false) {
+export async function getTracks(limit?: number, offset = 0, offlineOnly = false, mediaType?: MediaType) {
   if (offlineOnly) {
     const q = db
       .select({ tracks })
       .from(tracks)
       .innerJoin(downloads, and(eq(downloads.trackId, tracks.id), eq(downloads.status, sql`'complete'`)))
+      .where(mediaType ? eq(tracks.mediaType, mediaType) : undefined)
       .orderBy(asc(tracks.title))
       .offset(offset);
     const rows = limit != null ? await q.limit(limit) : await q;
@@ -69,6 +92,7 @@ export async function getTracks(limit?: number, offset = 0, offlineOnly = false)
   const q = db
     .select()
     .from(tracks)
+    .where(mediaType ? eq(tracks.mediaType, mediaType) : undefined)
     .orderBy(asc(tracks.title))
     .offset(offset);
   return limit != null ? q.limit(limit) : q;
@@ -88,6 +112,42 @@ export async function getTrack(id: string) {
 
 // ── Favourites ────────────────────────────────────────
 
+export async function setAlbumFavourite(id: string, isFavourite: boolean) {
+  return db
+    .update(albums)
+    .set({ isFavourite: isFavourite ? 1 : 0 })
+    .where(eq(albums.id, id));
+}
+
+export async function getFavouriteAlbums(mediaType?: MediaType) {
+  const conditions = [eq(albums.isFavourite, 1)];
+  if (mediaType) {
+    conditions.push(eq(albums.mediaType, mediaType));
+  }
+  return db
+    .select()
+    .from(albums)
+    .where(and(...conditions))
+    .orderBy(asc(albums.title));
+}
+
+export async function getInProgressAlbums(mediaType?: MediaType) {
+  const mediaFilter = mediaType ? `AND a.media_type = '${mediaType}'` : "";
+  return db
+    .select()
+    .from(albums)
+    .where(
+      sql`EXISTS (
+        SELECT 1 FROM playback_progress pp
+        INNER JOIN tracks t ON pp.track_id = t.id
+        WHERE t.album_id = ${albums.id}
+        AND pp.is_completed = 0
+        AND pp.position_ms > 0
+      ) ${sql.raw(mediaFilter)}`
+    )
+    .orderBy(asc(albums.title));
+}
+
 export async function setTrackFavourite(id: string, isFavourite: boolean) {
   return db
     .update(tracks)
@@ -97,32 +157,48 @@ export async function setTrackFavourite(id: string, isFavourite: boolean) {
 
 // ── Search ─────────────────────────────────────────────
 
-export async function searchLibrary(query: string) {
+export async function searchLibrary(query: string, mediaType?: MediaType) {
   const pattern = `%${query}%`;
+
+  const artistNameFilter = like(artists.name, pattern);
+  const artistMediaFilter = mediaType
+    ? and(
+        artistNameFilter,
+        sql`EXISTS (SELECT 1 FROM tracks t WHERE t.artist_name = ${artists.name} AND t.media_type = ${mediaType})`,
+      )
+    : artistNameFilter;
+
+  const albumTextFilter = or(like(albums.title, pattern), like(albums.artistName, pattern));
+  const albumFilter = mediaType
+    ? and(albumTextFilter, eq(albums.mediaType, mediaType))
+    : albumTextFilter;
+
+  const trackTextFilter = or(
+    like(tracks.title, pattern),
+    like(tracks.artistName, pattern),
+    like(tracks.albumTitle, pattern),
+  );
+  const trackFilter = mediaType
+    ? and(trackTextFilter, eq(tracks.mediaType, mediaType))
+    : trackTextFilter;
 
   const [matchedArtists, matchedAlbums, matchedTracks] = await Promise.all([
     db
       .select()
       .from(artists)
-      .where(like(artists.name, pattern))
+      .where(artistMediaFilter)
       .orderBy(asc(artists.name))
       .limit(20),
     db
       .select()
       .from(albums)
-      .where(or(like(albums.title, pattern), like(albums.artistName, pattern)))
+      .where(albumFilter)
       .orderBy(asc(albums.title))
       .limit(20),
     db
       .select()
       .from(tracks)
-      .where(
-        or(
-          like(tracks.title, pattern),
-          like(tracks.artistName, pattern),
-          like(tracks.albumTitle, pattern)
-        )
-      )
+      .where(trackFilter)
       .orderBy(asc(tracks.title))
       .limit(30),
   ]);
@@ -298,6 +374,9 @@ export async function getLibraryStats() {
       trackCount: sql<number>`(SELECT count(*) FROM tracks)`,
       playlistCount: sql<number>`(SELECT count(*) FROM playlists)`,
       mixTapeCount: sql<number>`(SELECT count(*) FROM playlists WHERE is_mix_tape = 1)`,
+      musicAlbumCount: sql<number>`(SELECT count(*) FROM albums WHERE media_type = 'music')`,
+      podcastCount: sql<number>`(SELECT count(*) FROM albums WHERE media_type = 'podcast')`,
+      audiobookCount: sql<number>`(SELECT count(*) FROM albums WHERE media_type = 'audiobook')`,
     })
     .from(sql`(SELECT 1)`)
     .get();
@@ -308,5 +387,8 @@ export async function getLibraryStats() {
     tracks: result?.trackCount ?? 0,
     playlists: result?.playlistCount ?? 0,
     mixTapes: result?.mixTapeCount ?? 0,
+    musicAlbums: result?.musicAlbumCount ?? 0,
+    podcasts: result?.podcastCount ?? 0,
+    audiobooks: result?.audiobookCount ?? 0,
   };
 }

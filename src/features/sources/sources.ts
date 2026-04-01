@@ -17,4 +17,5 @@ export type {
   Track,
   Playlist,
   ImageSize,
+  MediaType,
 } from "./sources.types";

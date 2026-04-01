@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -44,6 +45,7 @@ export default function LibraryScreen() {
   const playlists = useLibraryStore((s) => s.playlists);
   const stats = useLibraryStore((s) => s.stats);
   const refreshAll = useLibraryStore((s) => s.refreshAll);
+  const setMediaType = useLibraryStore((s) => s.setMediaType);
   const createPlaylist = useLibraryStore((s) => s.createPlaylist);
   const toggleFavourite = useLibraryStore((s) => s.toggleFavourite);
 
@@ -53,9 +55,11 @@ export default function LibraryScreen() {
   const offlineMode = useDownloadStore((s) => s.offlineMode);
   const setOfflineMode = useDownloadStore((s) => s.setOfflineMode);
 
-  useEffect(() => {
-    refreshAll();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setMediaType("music");
+    }, [setMediaType]),
+  );
 
   const handleAlbumPress = useCallback(
     (id: string) =>
@@ -130,7 +134,7 @@ export default function LibraryScreen() {
     <View>
       <View style={{ paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <Text className="text-3xl font-bold text-fermata-text mt-4 mb-4">
-          Library
+          Music
         </Text>
         <Pressable
           onPress={() => {
@@ -165,7 +169,7 @@ export default function LibraryScreen() {
         <EmptyState
           icon="library-outline"
           title="Your library is empty"
-          subtitle="Connect a source in Settings to start syncing your music"
+          subtitle="Connect a Jellyfin source in Settings to sync your music"
         />
       </SafeAreaView>
     );

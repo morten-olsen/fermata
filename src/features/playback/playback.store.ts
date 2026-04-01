@@ -3,6 +3,10 @@ import { create } from "zustand";
 import { getTrack, getTracksByAlbum } from "@/src/features/library/library";
 import type { SourceAdapter } from "@/src/features/sources/sources";
 import { getDownloadedFilePath } from "@/src/features/downloads/downloads";
+import {
+  recordProgress,
+  getResumePosition,
+} from "@/src/features/progress/progress";
 import type {
   OutputAdapter,
   OutputTrackMetadata,
@@ -16,6 +20,12 @@ let currentAdapterUnsub: Unsubscribe | null = null;
 
 /** Tracks pending seek timers so they can be cancelled on new play/transfer */
 let pendingSeekTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Periodic progress recording interval for podcast/audiobook */
+let progressInterval: ReturnType<typeof setInterval> | null = null;
+
+/** Previous isPlaying state for detecting pause transitions */
+let wasPlaying = false;
 
 function cancelPendingSeek(): void {
   if (pendingSeekTimer) {
@@ -42,6 +52,7 @@ interface QueueTrack {
   duration: number;
   sourceId: string;
   sourceItemId: string;
+  mediaType: string;
 }
 
 interface PlaybackStoreState {
@@ -91,6 +102,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
   },
 
   playTrack: async (trackId) => {
+    saveCurrentTrackProgress();
     const adapter = resolveOutput();
     log("playTrack:", trackId);
 
@@ -108,6 +120,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
   },
 
   playAlbum: async (albumId, startIndex = 0) => {
+    saveCurrentTrackProgress();
     const adapter = resolveOutput();
     log("playAlbum:", albumId, "startIndex:", startIndex);
 
@@ -124,6 +137,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
   },
 
   shuffleAlbum: async (albumId) => {
+    saveCurrentTrackProgress();
     const adapter = resolveOutput();
     const dbTracks = await getTracksByAlbum(albumId);
     if (dbTracks.length === 0) return;
@@ -134,6 +148,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
   },
 
   playTracks: async (trackIds, startIndex = 0) => {
+    saveCurrentTrackProgress();
     const adapter = resolveOutput();
     const dbTracks = await Promise.all(trackIds.map(getTrack));
     const validDbTracks = dbTracks.filter(Boolean) as NonNullable<
@@ -156,6 +171,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
   },
 
   skipNext: async () => {
+    saveCurrentTrackProgress();
     const adapter = resolveOutput();
     const { queue, currentTrack } = get();
     const currentIndex = currentTrack
@@ -175,6 +191,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
   },
 
   skipPrevious: async () => {
+    saveCurrentTrackProgress();
     const adapter = resolveOutput();
     const { queue, currentTrack, positionMs } = get();
 
@@ -207,6 +224,7 @@ export const usePlaybackStore = create<PlaybackStoreState>((set, get) => ({
   },
 
   skipToIndex: async (index) => {
+    saveCurrentTrackProgress();
     const adapter = resolveOutput();
     const { queue } = get();
     if (index < 0 || index >= queue.length) return;
@@ -293,7 +311,13 @@ function dbTrackToQueueTrack(dbTrack: DbTrack): QueueTrack {
     duration: dbTrack.duration,
     sourceId: dbTrack.sourceId,
     sourceItemId: dbTrack.sourceItemId,
+    mediaType: dbTrack.mediaType,
   };
+}
+
+/** Whether this track type needs progress tracking */
+function needsProgressTracking(mediaType: string): boolean {
+  return mediaType === "podcast" || mediaType === "audiobook";
 }
 
 /**
@@ -345,23 +369,75 @@ async function syncLockScreenMetadata(
 }
 
 /** Subscribe to the adapter's playback state changes and sync to the store.
- *  Automatically unsubscribes from any previous adapter. */
+ *  Automatically unsubscribes from any previous adapter.
+ *  Records progress for podcast/audiobook on pause. */
 function subscribeToAdapter(
   adapter: OutputAdapter,
   set: (partial: Partial<PlaybackStoreState>) => void,
 ): void {
   // Unsubscribe from previous adapter to prevent stale state updates
   currentAdapterUnsub?.();
+  stopProgressInterval();
+  wasPlaying = false;
+
   currentAdapterUnsub = adapter.onPlaybackStateChange((state) => {
     set({
       isPlaying: state.isPlaying,
       positionMs: state.positionMs,
       durationMs: state.durationMs,
     });
+
+    // Record progress on pause transition for podcast/audiobook
+    if (wasPlaying && !state.isPlaying && state.positionMs > 0) {
+      const { currentTrack } = usePlaybackStore.getState();
+      if (currentTrack && needsProgressTracking(currentTrack.mediaType)) {
+        recordProgress(currentTrack.id, state.positionMs, state.durationMs)
+          .catch(() => { /* progress save is best-effort */ });
+      }
+    }
+
+    // Manage periodic progress interval
+    if (state.isPlaying && !wasPlaying) {
+      startProgressInterval();
+    } else if (!state.isPlaying && wasPlaying) {
+      stopProgressInterval();
+    }
+
+    wasPlaying = state.isPlaying;
   });
 }
 
-/** Resolve a track, set it as current, play on adapter, sync lock screen. */
+const PROGRESS_INTERVAL_MS = 30_000;
+
+function startProgressInterval(): void {
+  stopProgressInterval();
+  progressInterval = setInterval(() => {
+    const { currentTrack, positionMs, durationMs } = usePlaybackStore.getState();
+    if (currentTrack && needsProgressTracking(currentTrack.mediaType) && positionMs > 0) {
+      recordProgress(currentTrack.id, positionMs, durationMs)
+        .catch(() => { /* progress save is best-effort */ });
+    }
+  }, PROGRESS_INTERVAL_MS);
+}
+
+function stopProgressInterval(): void {
+  if (progressInterval) {
+    clearInterval(progressInterval);
+    progressInterval = null;
+  }
+}
+
+/** Save progress for the current track before switching to a new one. */
+function saveCurrentTrackProgress(): void {
+  const { currentTrack, positionMs, durationMs } = usePlaybackStore.getState();
+  if (currentTrack && needsProgressTracking(currentTrack.mediaType) && positionMs > 0) {
+    recordProgress(currentTrack.id, positionMs, durationMs)
+      .catch(() => { /* progress save is best-effort */ });
+  }
+}
+
+/** Resolve a track, set it as current, play on adapter, sync lock screen.
+ *  For podcast/audiobook tracks, resumes from saved position. */
 async function playTrackOnAdapter(
   track: QueueTrack,
   adapter: OutputAdapter,
@@ -369,10 +445,29 @@ async function playTrackOnAdapter(
 ): Promise<boolean> {
   cancelPendingSeek();
   const resolved = resolveTrackForOutput(track, adapter);
-  if (!resolved) return false;
+  if (!resolved) {
+    warn("playTrackOnAdapter: could not resolve track:", track.id, track.title);
+    return false;
+  }
+  log("playTrackOnAdapter: playing", track.title, "→", resolved.streamUrl.substring(0, 100));
   set({ currentTrack: track });
-  await adapter.play(resolved.streamUrl, resolved.metadata);
+  try {
+    await adapter.play(resolved.streamUrl, resolved.metadata);
+  } catch (e) {
+    logError("playTrackOnAdapter: adapter.play() failed for", track.title, ":", e);
+    return false;
+  }
   await syncLockScreenMetadata(resolved.metadata);
+
+  // Resume from saved position for podcast/audiobook tracks
+  if (needsProgressTracking(track.mediaType) && adapter.capabilities.canSeek) {
+    const resumeMs = await getResumePosition(track.id);
+    if (resumeMs > 0) {
+      log("Resuming", track.title, "from", Math.round(resumeMs / 1000), "s");
+      scheduleSeekAfterLoad(adapter, resumeMs);
+    }
+  }
+
   return true;
 }
 
@@ -505,6 +600,16 @@ async function loadQueueOnAdapter(
     }
     const metaTarget = resolved[startIndex] ?? resolved[0];
     await syncLockScreenMetadata(metaTarget.metadata);
+
+    // Resume from saved position for podcast/audiobook tracks
+    const startTrack = queueTracks[startIndex] ?? queueTracks[0];
+    if (needsProgressTracking(startTrack.mediaType) && adapter.capabilities.canSeek) {
+      const resumeMs = await getResumePosition(startTrack.id);
+      if (resumeMs > 0) {
+        log("Resuming", startTrack.title, "from", Math.round(resumeMs / 1000), "s");
+        scheduleSeekAfterLoad(adapter, resumeMs);
+      }
+    }
   } catch (e) {
     logError("loadQueueOnAdapter failed:", e);
   }

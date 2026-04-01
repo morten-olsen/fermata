@@ -20,10 +20,16 @@ import { useLibraryStore } from "@/src/features/library/library";
 import { colors } from "@/src/shared/theme/theme";
 import { isValidHttpUrl } from "@/src/shared/lib/validate";
 
+const SOURCE_TYPES = [
+  { type: "jellyfin", label: "Jellyfin", icon: "musical-notes" as const, placeholder: "https://jellyfin.example.com" },
+  { type: "audiobookshelf", label: "Audiobookshelf", icon: "headset" as const, placeholder: "https://abs.example.com" },
+];
+
 export default function AddSourceScreen() {
   const addSource = useSourcesStore((s) => s.addSource);
   const syncOne = useSyncStore((s) => s.syncOne);
 
+  const [sourceType, setSourceType] = useState(SOURCE_TYPES[0]);
   const [name, setName] = useState("");
   const [serverUrl, setServerUrl] = useState("");
   const [username, setUsername] = useState("");
@@ -42,7 +48,7 @@ export default function AddSourceScreen() {
     setError(null);
 
     try {
-      await addSource("jellyfin", name.trim(), serverUrl.trim(), {
+      await addSource(sourceType.type, name.trim(), serverUrl.trim(), {
         username: username.trim(),
         password: password.trim(),
       });
@@ -83,10 +89,34 @@ export default function AddSourceScreen() {
             <View style={{ width: 50 }} />
           </View>
 
-          {/* Source type indicator */}
-          <View className="flex-row items-center bg-fermata-surface rounded-xl px-4 py-3 mb-6">
-            <Ionicons name="server" size={20} color={colors.accent} />
-            <Text className="text-fermata-text text-base ml-3">Jellyfin</Text>
+          {/* Source type selector */}
+          <View className="flex-row gap-3 mb-6">
+            {SOURCE_TYPES.map((st) => (
+              <Pressable
+                key={st.type}
+                onPress={() => setSourceType(st)}
+                className={`flex-1 flex-row items-center rounded-xl px-4 py-3 ${
+                  sourceType.type === st.type
+                    ? "bg-fermata-accent/15 border border-fermata-accent"
+                    : "bg-fermata-surface"
+                }`}
+              >
+                <Ionicons
+                  name={st.icon}
+                  size={20}
+                  color={sourceType.type === st.type ? colors.accent : colors.muted}
+                />
+                <Text
+                  className={`text-base ml-3 ${
+                    sourceType.type === st.type
+                      ? "text-fermata-accent font-medium"
+                      : "text-fermata-text"
+                  }`}
+                >
+                  {st.label}
+                </Text>
+              </Pressable>
+            ))}
           </View>
 
           {/* Form */}
@@ -98,7 +128,7 @@ export default function AddSourceScreen() {
               <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="My Jellyfin Server"
+                placeholder={`My ${sourceType.label} Server`}
                 placeholderTextColor={colors.muted}
                 className="bg-fermata-surface text-fermata-text rounded-xl px-4 py-3 text-base"
                 autoCorrect={false}
@@ -112,7 +142,7 @@ export default function AddSourceScreen() {
               <TextInput
                 value={serverUrl}
                 onChangeText={setServerUrl}
-                placeholder="https://jellyfin.example.com"
+                placeholder={sourceType.placeholder}
                 placeholderTextColor={colors.muted}
                 className="bg-fermata-surface text-fermata-text rounded-xl px-4 py-3 text-base"
                 autoCapitalize="none"

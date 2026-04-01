@@ -1,4 +1,4 @@
-import { eq, asc } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 import { db } from "@/src/shared/db/db.client";
 import {
@@ -7,6 +7,7 @@ import {
   tracks,
   playlists,
   playlistTracks,
+  playbackProgress,
 } from "@/src/shared/db/db.schema";
 
 // ── Upserts (used by sync engine) ──────────────────────
@@ -45,6 +46,7 @@ export async function upsertAlbums(rows: (typeof albums.$inferInsert)[]) {
             year: row.year,
             artworkSourceItemId: row.artworkSourceItemId,
             trackCount: row.trackCount,
+            mediaType: row.mediaType,
             syncedAt: row.syncedAt,
           },
         });
@@ -70,6 +72,10 @@ export async function upsertTracks(rows: (typeof tracks.$inferInsert)[]) {
             trackNumber: row.trackNumber,
             discNumber: row.discNumber,
             isFavourite: row.isFavourite,
+            mediaType: row.mediaType,
+            description: row.description,
+            publishedAt: row.publishedAt,
+            episodeNumber: row.episodeNumber,
             syncedAt: row.syncedAt,
           },
         });
@@ -110,6 +116,63 @@ export async function replacePlaylistTracks(
       .where(eq(playlistTracks.playlistId, playlistId));
     for (const row of rows) {
       await tx.insert(playlistTracks).values(row).onConflictDoNothing();
+    }
+  });
+}
+
+// ── Playback Progress (used by sync engine) ──────────
+
+/**
+ * Upsert progress from a remote source.
+ * Respects needsSync: if a local row has needsSync = 1, the remote update
+ * is skipped (local is authoritative until pushed).
+ */
+export async function upsertRemoteProgress(
+  rows: {
+    trackId: string;
+    positionMs: number;
+    durationMs: number;
+    isCompleted: boolean;
+    updatedAt: string;
+  }[]
+) {
+  if (rows.length === 0) return;
+
+  // Batch-read all existing needsSync flags to avoid N+1 SELECTs
+  const trackIds = rows.map((r) => r.trackId);
+  const existing = await db
+    .select({ trackId: playbackProgress.trackId, needsSync: playbackProgress.needsSync })
+    .from(playbackProgress)
+    .where(inArray(playbackProgress.trackId, trackIds));
+
+  const pendingSyncIds = new Set(
+    existing.filter((e) => e.needsSync === 1).map((e) => e.trackId),
+  );
+
+  await db.transaction(async (tx) => {
+    for (const row of rows) {
+      if (pendingSyncIds.has(row.trackId)) continue; // local change takes priority
+
+      await tx
+        .insert(playbackProgress)
+        .values({
+          trackId: row.trackId,
+          positionMs: row.positionMs,
+          durationMs: row.durationMs,
+          isCompleted: row.isCompleted ? 1 : 0,
+          updatedAt: row.updatedAt,
+          needsSync: 0,
+        })
+        .onConflictDoUpdate({
+          target: playbackProgress.trackId,
+          set: {
+            positionMs: row.positionMs,
+            durationMs: row.durationMs,
+            isCompleted: row.isCompleted ? 1 : 0,
+            updatedAt: row.updatedAt,
+            needsSync: 0,
+          },
+        });
     }
   });
 }

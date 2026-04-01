@@ -55,12 +55,15 @@ export const albums = sqliteTable(
     year: integer("year"),
     artworkSourceItemId: text("artwork_source_item_id"),
     trackCount: integer("track_count"),
+    mediaType: text("media_type").notNull().default("music"), // 'music' | 'podcast' | 'audiobook'
+    isFavourite: integer("is_favourite").default(0),
     syncedAt: text("synced_at").notNull(),
   },
   (table) => [
     uniqueIndex("albums_source_unique").on(table.sourceId, table.sourceItemId),
     index("albums_artist_idx").on(table.artistName),
     index("albums_title_idx").on(table.title),
+    index("albums_media_type_idx").on(table.mediaType),
   ]
 );
 
@@ -82,6 +85,10 @@ export const tracks = sqliteTable(
     trackNumber: integer("track_number"),
     discNumber: integer("disc_number"),
     isFavourite: integer("is_favourite").default(0),
+    mediaType: text("media_type").notNull().default("music"), // 'music' | 'podcast' | 'audiobook'
+    description: text("description"), // episode description, chapter summary
+    publishedAt: text("published_at"), // ISO date — podcast episode publish date
+    episodeNumber: integer("episode_number"), // podcast episode number
     syncedAt: text("synced_at").notNull(),
   },
   (table) => [
@@ -89,6 +96,7 @@ export const tracks = sqliteTable(
     index("tracks_album_idx").on(table.albumId),
     index("tracks_artist_idx").on(table.artistName),
     index("tracks_title_idx").on(table.title),
+    index("tracks_media_type_idx").on(table.mediaType),
   ]
 );
 
@@ -181,6 +189,26 @@ export const downloads = sqliteTable(
   ]
 );
 
+// ── Playback Progress ─────────────────────────────────
+
+/** Per-track playback progress for podcast/audiobook resume and played/unplayed tracking */
+export const playbackProgress = sqliteTable(
+  "playback_progress",
+  {
+    trackId: text("track_id")
+      .primaryKey()
+      .references(() => tracks.id, { onDelete: "cascade" }),
+    positionMs: integer("position_ms").notNull().default(0),
+    durationMs: integer("duration_ms").notNull().default(0),
+    isCompleted: integer("is_completed").notNull().default(0), // 0 = in progress, 1 = finished
+    updatedAt: text("updated_at").notNull(),
+    needsSync: integer("needs_sync").notNull().default(0), // 1 = local change not yet pushed to source
+  },
+  (table) => [
+    index("playback_progress_needs_sync_idx").on(table.needsSync),
+  ]
+);
+
 // ── Output Configs ───────────────────────────────────
 
 export const outputConfigs = sqliteTable("output_configs", {
@@ -253,5 +281,12 @@ export const downloadsRelations = relations(downloads, ({ one }) => ({
   source: one(sources, {
     fields: [downloads.sourceId],
     references: [sources.id],
+  }),
+}));
+
+export const playbackProgressRelations = relations(playbackProgress, ({ one }) => ({
+  track: one(tracks, {
+    fields: [playbackProgress.trackId],
+    references: [tracks.id],
   }),
 }));

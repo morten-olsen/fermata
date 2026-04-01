@@ -1,6 +1,6 @@
 # Fermata
 
-A calm, multi-source music player built with Expo (React Native).
+A calm, multi-source media player built with Expo (React Native). Supports music (Jellyfin), podcasts, and audiobooks (Audiobookshelf).
 
 ## Tech Stack
 
@@ -54,6 +54,11 @@ src/
         jellyfin.ts               # Barrel
         jellyfin.api.ts
         jellyfin.adapter.ts
+      audiobookshelf/
+        audiobookshelf.ts         # Barrel
+        audiobookshelf.api.ts
+        audiobookshelf.adapter.ts
+        audiobookshelf.types.ts
 
     sync/                         # Pulling data from sources → DB
       sync.ts                     # Barrel
@@ -66,6 +71,12 @@ src/
       downloads.store.ts
       downloads.service.ts
       downloads.queries.ts
+
+    progress/                     # Playback progress tracking (podcast/audiobook)
+      progress.ts                 # Barrel
+      progress.types.ts
+      progress.queries.ts
+      progress.service.ts
 
     artwork/                      # Artwork resolution and caching
       artwork.ts                  # Barrel
@@ -124,6 +135,9 @@ docs/                             # Architecture, design, standards, code guidel
 - **Artwork is a source item ID** — DB stores `artworkSourceItemId`, not URLs. Resolve via `resolveArtworkUrl()` at read time.
 - **Deterministic IDs** — `stableId(sourceId, sourceItemId)` for synced entities, `generateId()` for local-only. Both in `shared/lib/ids.ts`.
 - **Lazy Track Player** — loaded via `require()` in try/catch. App works in Expo Go without audio.
+- **Media types** — `albums` and `tracks` have a `mediaType` column: `'music' | 'podcast' | 'audiobook'`. Defaults to `'music'`. Library queries accept an optional `mediaType` filter.
+- **Playback progress** — `playback_progress` table tracks position/completion for podcast and audiobook tracks. `needsSync` flag enables offline-first bidirectional sync. Not used for music.
+- **Compound sourceItemId** — Audiobookshelf episodes/chapters use `"{libraryItemId}:{episodeId}"` format since they're nested under library items. Parsed internally by the adapter.
 - **Mix tapes** — Fermata's term for playlists.
 - **Stores are decoupled** — Zustand stores don't import other stores directly; dependencies passed as arguments.
 - **Screens are thin** — business logic lives in feature stores and queries, not in `app/` files.
@@ -140,11 +154,12 @@ docs/                             # Architecture, design, standards, code guidel
 
 ```
 sources     ← (leaf)
+progress    ← (leaf)
 outputs     ← sources
 artwork     ← sources
 library     ← sources, artwork, playback, downloads
-playback    ← sources, library, downloads, artwork, outputs
-sync        ← sources, library, artwork
+playback    ← sources, library, downloads, artwork, outputs, progress
+sync        ← sources, library, artwork, progress
 downloads   ← sources, library
 shared      ← no feature deps
 ```
@@ -170,6 +185,8 @@ npm run lint:fix         # Auto-fix ESLint issues
 - `docs/DESIGN.md` — design philosophy and inspiration
 - `docs/STANDARDS.md` — coding principles (superseded by CODE-GUIDELINES.md)
 - `docs/OUTPUT-ADAPTERS.md` — output adapter design (Spotify Connect-like speaker routing)
+- `docs/AUDIOBOOKSHELF.md` — Audiobookshelf adapter: API, data mapping, compound IDs, progress sync
+- `docs/PROGRESS-TRACKING.md` — playback progress: schema, local tracking, bidirectional sync protocol
 
 ## License
 

@@ -1,5 +1,6 @@
 import type { SourceAdapter } from "./sources.types";
 import { JellyfinAdapter } from "./jellyfin/jellyfin";
+import { AudiobookshelfAdapter } from "./audiobookshelf/audiobookshelf";
 
 type AdapterConstructor = new (id: string, name: string) => SourceAdapter;
 
@@ -27,3 +28,4 @@ export function getRegisteredTypes(): string[] {
 
 // ── Register built-in adapters ─────────────────────────
 registerAdapter("jellyfin", JellyfinAdapter);
+registerAdapter("audiobookshelf", AudiobookshelfAdapter);

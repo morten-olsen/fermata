@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "@/src/shared/lib/fetch";
+
 const CLIENT_NAME = "Fermata";
 const CLIENT_VERSION = "0.1.0";
 const DEVICE_NAME = "Fermata Mobile";
@@ -58,20 +60,6 @@ interface JellyfinView {
   Id: string;
   Name: string;
   CollectionType?: string;
-}
-
-const DEFAULT_TIMEOUT_MS = 15_000;
-
-function fetchWithTimeout(
-  url: string,
-  init: RequestInit,
-  timeoutMs = DEFAULT_TIMEOUT_MS
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  return fetch(url, { ...init, signal: controller.signal }).finally(() =>
-    clearTimeout(timer)
-  );
 }
 
 async function apiFetch<T>(

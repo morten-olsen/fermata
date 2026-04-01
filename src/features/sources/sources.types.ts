@@ -1,3 +1,5 @@
+export type MediaType = "music" | "podcast" | "audiobook";
+
 export interface Artist {
   sourceId: string;
   sourceItemId: string;
@@ -13,6 +15,7 @@ export interface Album {
   year?: number;
   artworkSourceItemId?: string; // source-system item ID for artwork resolution
   trackCount?: number;
+  mediaType?: MediaType; // defaults to 'music' if omitted
 }
 
 export interface Track {
@@ -26,6 +29,10 @@ export interface Track {
   trackNumber?: number;
   discNumber?: number;
   isFavourite?: boolean;
+  mediaType?: MediaType; // defaults to 'music' if omitted
+  description?: string; // episode description, chapter summary
+  publishedAt?: string; // ISO date — podcast episode publish date
+  episodeNumber?: number; // podcast episode number
 }
 
 export interface Playlist {
@@ -97,4 +104,17 @@ export interface SourceAdapter {
   deletePlaylist?(sourceItemId: string): Promise<void>;
   addTracksToPlaylist?(playlistSourceItemId: string, trackSourceItemIds: string[]): Promise<void>;
   removeTracksFromPlaylist?(playlistSourceItemId: string, trackSourceItemIds: string[]): Promise<void>;
+
+  /** Report playback progress to the source. Optional — not all sources track progress. */
+  reportProgress?(
+    trackSourceItemId: string,
+    positionMs: number,
+    durationMs: number,
+    isCompleted: boolean,
+  ): Promise<void>;
+
+  /** Fetch playback progress for given tracks from the source. */
+  getProgress?(
+    trackSourceItemIds: string[],
+  ): Promise<Map<string, { positionMs: number; durationMs: number; isCompleted: boolean }>>;
 }

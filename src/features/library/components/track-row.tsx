@@ -18,6 +18,10 @@ interface TrackRowProps {
   isFavourite?: boolean;
   isDownloaded?: boolean;
   isQueued?: boolean;
+  /** Progress 0–1 for podcast/audiobook tracks. undefined = no progress. */
+  progress?: number;
+  /** Whether the track has been fully played */
+  isCompleted?: boolean;
   onPress: () => void;
   onMorePress?: () => void;
   onToggleFavourite?: () => void;
@@ -32,6 +36,8 @@ export const TrackRow = memo(function TrackRow({
   isFavourite,
   isDownloaded,
   isQueued,
+  progress,
+  isCompleted,
   onPress,
   onMorePress,
   onToggleFavourite,
@@ -50,10 +56,12 @@ export const TrackRow = memo(function TrackRow({
       onPress={onPress}
       style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 4 }}
     >
-      {/* Track number or playing indicator */}
+      {/* Track number, playing indicator, or completed checkmark */}
       <View style={{ width: 32, alignItems: "center" }}>
         {isPlaying ? (
           <EqualizerBars size={16} color={colors.accent} />
+        ) : isCompleted ? (
+          <Ionicons name="checkmark-circle" size={18} color={colors.muted} />
         ) : trackNumber ? (
           <Text style={{ color: colors.muted, fontSize: 14 }}>{trackNumber}</Text>
         ) : null}
@@ -65,7 +73,7 @@ export const TrackRow = memo(function TrackRow({
           style={{
             fontSize: 16,
             fontWeight: "500",
-            color: isPlaying ? colors.accent : colors.text,
+            color: isPlaying ? colors.accent : isCompleted ? colors.muted : colors.text,
           }}
           numberOfLines={1}
         >
@@ -77,6 +85,19 @@ export const TrackRow = memo(function TrackRow({
         >
           {artistName}
         </Text>
+        {/* Progress bar for podcast/audiobook tracks */}
+        {progress != null && progress > 0 && !isCompleted && (
+          <View style={{ height: 2, backgroundColor: colors.border, borderRadius: 1, marginTop: 4 }}>
+            <View
+              style={{
+                height: 2,
+                backgroundColor: colors.accent,
+                borderRadius: 1,
+                width: `${Math.min(Math.round(progress * 100), 100)}%`,
+              }}
+            />
+          </View>
+        )}
       </View>
 
       {/* Download status indicator */}
