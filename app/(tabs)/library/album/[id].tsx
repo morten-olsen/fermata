@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, memo } from "react";
+import { useEffect, useState, useCallback, useMemo, memo, useRef } from "react";
 import { View, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,6 +20,7 @@ import { NavBar, NavBarAction } from "@/src/shared/components/nav-bar";
 import { DetailHeader } from "@/src/shared/components/detail-header";
 import { ActionButton } from "@/src/shared/components/action-button";
 import { colors } from "@/src/shared/theme/theme";
+import { formatDurationLong, formatDownloadMeta } from "@/src/shared/lib/format";
 
 export default function AlbumDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -46,6 +47,7 @@ export default function AlbumDetailScreen() {
       isPinned: s.isPinned,
     })),
   );
+  const listRef = useRef<FlatList<TrackRowType>>(null);
   const [isOfflinePinned, setIsOfflinePinned] = useState(false);
   const [isFavourite, setIsFavourite] = useState(false);
 
@@ -85,6 +87,22 @@ export default function AlbumDetailScreen() {
     [tracks],
   );
 
+  const totalDurationSec = useMemo(
+    () => tracks.reduce((sum, t) => sum + t.duration, 0),
+    [tracks],
+  );
+
+  const currentTrackId = currentTrack?.id;
+  useEffect(() => {
+    if (!currentTrackId || tracks.length === 0) return;
+    const idx = tracks.findIndex((t) => t.id === currentTrackId);
+    if (idx <= 2) return;
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToIndex({ index: idx, animated: true, viewOffset: 100 });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [currentTrackId, tracks]);
+
   if (!album) return null;
 
   const artworkUrl = resolveArtworkUrl(
@@ -92,16 +110,14 @@ export default function AlbumDetailScreen() {
     album.artworkSourceItemId,
     "large"
   );
-  const dlMeta = isOfflinePinned
-    ? dlCount < tracks.length
-      ? ` · ${dlCount}/${tracks.length} downloaded`
-      : " · Downloaded"
-    : "";
-  const meta = `${album.year ? `${album.year} · ` : ""}${tracks.length} ${tracks.length === 1 ? "track" : "tracks"}${dlMeta}`;
+  const dlMeta = formatDownloadMeta(isOfflinePinned, dlCount, tracks.length);
+  const durationMeta = totalDurationSec > 0 ? ` · ${formatDurationLong(totalDurationSec)}` : "";
+  const meta = `${album.year ? `${album.year} · ` : ""}${tracks.length} ${tracks.length === 1 ? "track" : "tracks"}${durationMeta}${dlMeta}`;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
       <FlatList
+        ref={listRef}
         style={{ flex: 1 }}
         data={tracks}
         keyExtractor={(item) => item.id}

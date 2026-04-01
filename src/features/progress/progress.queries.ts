@@ -1,9 +1,23 @@
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/src/shared/db/db.client";
 import { playbackProgress, tracks } from "@/src/shared/db/db.schema";
 
 import type { ProgressEntry } from "./progress.types";
+
+// ── Helpers ──────────────────────────────────────────
+
+type ProgressRow = typeof playbackProgress.$inferSelect;
+
+function toProgressEntry(row: ProgressRow): ProgressEntry {
+  return {
+    trackId: row.trackId,
+    positionMs: row.positionMs,
+    durationMs: row.durationMs,
+    isCompleted: row.isCompleted === 1,
+    updatedAt: row.updatedAt,
+  };
+}
 
 // ── Read ──────────────────────────────────────────────
 
@@ -16,15 +30,7 @@ export async function getProgress(
     .where(eq(playbackProgress.trackId, trackId))
     .get();
 
-  if (!row) return undefined;
-
-  return {
-    trackId: row.trackId,
-    positionMs: row.positionMs,
-    durationMs: row.durationMs,
-    isCompleted: row.isCompleted === 1,
-    updatedAt: row.updatedAt,
-  };
+  return row ? toProgressEntry(row) : undefined;
 }
 
 export async function getProgressBatch(
@@ -39,12 +45,39 @@ export async function getProgressBatch(
 
   const map = new Map<string, ProgressEntry>();
   for (const row of rows) {
-    map.set(row.trackId, {
-      trackId: row.trackId,
-      positionMs: row.positionMs,
-      durationMs: row.durationMs,
-      isCompleted: row.isCompleted === 1,
-      updatedAt: row.updatedAt,
+    map.set(row.trackId, toProgressEntry(row));
+  }
+  return map;
+}
+
+/**
+ * Per-album progress summary: completed track count and total track count.
+ * Returns a Map of albumId → { completed, total, fraction }.
+ */
+export async function getAlbumProgressSummaries(
+  albumIds: string[],
+): Promise<Map<string, { completed: number; total: number; fraction: number }>> {
+  if (albumIds.length === 0) return new Map();
+
+  const rows = await db
+    .select({
+      albumId: tracks.albumId,
+      total: sql<number>`count(*)`.as("total"),
+      completed: sql<number>`sum(case when ${playbackProgress.isCompleted} = 1 then 1 else 0 end)`.as("completed"),
+    })
+    .from(tracks)
+    .leftJoin(playbackProgress, eq(tracks.id, playbackProgress.trackId))
+    .where(inArray(tracks.albumId, albumIds))
+    .groupBy(tracks.albumId);
+
+  const map = new Map<string, { completed: number; total: number; fraction: number }>();
+  for (const row of rows) {
+    const completed = row.completed || 0;
+    const total = row.total;
+    map.set(row.albumId, {
+      completed,
+      total,
+      fraction: total > 0 ? completed / total : 0,
     });
   }
   return map;

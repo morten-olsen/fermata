@@ -54,7 +54,7 @@ export const ShowCard = memo(function ShowCard({
   return (
     <PressableScale onPress={onPress} className="mb-4">
       <View style={{ position: "relative" }}>
-        <Artwork uri={artworkUrl} aspect="square" fallbackIcon="mic" badge={badge} />
+        <Artwork uri={artworkUrl} aspect="square" fill fallbackIcon="mic" badge={badge} />
         {hasNew && (
           <View
             style={{

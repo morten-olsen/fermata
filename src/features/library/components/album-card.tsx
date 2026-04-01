@@ -45,7 +45,7 @@ export const AlbumCard = memo(function AlbumCard({
 
   return (
     <PressableScale onPress={onPress} className="mb-4">
-      <Artwork uri={artworkUrl} aspect="square" fallbackIcon="disc" badge={badge} />
+      <Artwork uri={artworkUrl} aspect="square" fill fallbackIcon="disc" badge={badge} />
       <Text className="text-fermata-text text-sm font-medium mt-2" numberOfLines={1}>
         {title}
       </Text>

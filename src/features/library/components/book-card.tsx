@@ -52,6 +52,7 @@ export const BookCard = memo(function BookCard({
       <Artwork
         uri={artworkUrl}
         aspect="portrait"
+        fill
         fallbackIcon="book"
         badge={badge}
       />

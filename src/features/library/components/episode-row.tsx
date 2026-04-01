@@ -7,7 +7,7 @@ import { EqualizerBars } from "@/src/features/playback/playback";
 
 import { ProgressBar } from "@/src/shared/components/progress-bar";
 import { colors } from "@/src/shared/theme/theme";
-import { formatDuration } from "@/src/shared/lib/format";
+import { formatRemainingDuration } from "@/src/shared/lib/format";
 
 interface EpisodeRowProps {
   title: string;
@@ -35,69 +35,51 @@ export const EpisodeRow = memo(function EpisodeRow({
   isCompleted,
   onPress,
 }: EpisodeRowProps) {
+  const hasPartialProgress = progress != null && progress > 0 && !isCompleted;
+
   return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 12,
-        paddingHorizontal: 4,
-      }}
-    >
-      <View style={{ width: 32, alignItems: "center" }}>
+    <Pressable onPress={onPress} className="flex-row items-center py-3 px-1">
+      <View className="w-8 items-center">
         {isPlaying ? (
           <EqualizerBars size={16} color={colors.accent} />
         ) : isCompleted ? (
           <Ionicons name="checkmark-circle" size={18} color={colors.muted} />
         ) : episodeNumber ? (
-          <Text style={{ color: colors.muted, fontSize: 14 }}>
-            {episodeNumber}
-          </Text>
+          <Text className="text-fermata-muted text-sm">{episodeNumber}</Text>
         ) : (
           <Ionicons name="mic-outline" size={16} color={colors.muted} />
         )}
       </View>
 
-      <View style={{ flex: 1, marginLeft: 8 }}>
+      <View className="flex-1 ml-2">
         <Text
-          style={{
-            fontSize: 16,
-            fontWeight: "500",
-            color: isPlaying
-              ? colors.accent
+          className={`text-base font-medium ${
+            isPlaying
+              ? "text-fermata-accent"
               : isCompleted
-                ? colors.muted
-                : colors.text,
-          }}
+                ? "text-fermata-muted"
+                : "text-fermata-text"
+          }`}
           numberOfLines={1}
         >
           {title}
         </Text>
-        <Text
-          style={{ color: colors.textSecondary, fontSize: 12 }}
-          numberOfLines={1}
-        >
+        <Text className="text-fermata-text-secondary text-xs" numberOfLines={1}>
           {dateLabel}
         </Text>
-        {progress != null && progress > 0 && !isCompleted && (
-          <View style={{ marginTop: 4 }}>
+        {hasPartialProgress && (
+          <View className="mt-1">
             <ProgressBar value={progress} />
           </View>
         )}
       </View>
 
       {isDownloaded && (
-        <Ionicons
-          name="cloud-done"
-          size={12}
-          color={colors.muted}
-          style={{ marginLeft: 4 }}
-        />
+        <Ionicons name="cloud-done" size={12} color={colors.muted} style={{ marginLeft: 4 }} />
       )}
 
-      <Text style={{ color: colors.muted, fontSize: 14, marginLeft: 8 }}>
-        {formatDuration(duration)}
+      <Text className="text-fermata-muted text-sm ml-2">
+        {formatRemainingDuration(duration, progress, isCompleted)}
       </Text>
     </Pressable>
   );

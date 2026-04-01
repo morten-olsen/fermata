@@ -53,75 +53,61 @@ export const TrackRow = memo(function TrackRow({
   };
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 4 }}
-    >
-      {/* Track number, playing indicator, or completed checkmark */}
-      <View style={{ width: 32, alignItems: "center" }}>
+    <Pressable onPress={onPress} className="flex-row items-center py-3 px-1">
+      <View className="w-8 items-center">
         {isPlaying ? (
           <EqualizerBars size={16} color={colors.accent} />
         ) : isCompleted ? (
           <Ionicons name="checkmark-circle" size={18} color={colors.muted} />
         ) : trackNumber ? (
-          <Text style={{ color: colors.muted, fontSize: 14 }}>{trackNumber}</Text>
+          <Text className="text-fermata-muted text-sm">{trackNumber}</Text>
         ) : null}
       </View>
 
-      {/* Track info */}
-      <View style={{ flex: 1, marginLeft: 8 }}>
+      <View className="flex-1 ml-2">
         <Text
-          style={{
-            fontSize: 16,
-            fontWeight: "500",
-            color: isPlaying ? colors.accent : isCompleted ? colors.muted : colors.text,
-          }}
+          className={`text-base font-medium ${
+            isPlaying
+              ? "text-fermata-accent"
+              : isCompleted
+                ? "text-fermata-muted"
+                : "text-fermata-text"
+          }`}
           numberOfLines={1}
         >
           {title}
         </Text>
-        <Text
-          style={{ color: colors.textSecondary, fontSize: 12 }}
-          numberOfLines={1}
-        >
+        <Text className="text-fermata-text-secondary text-xs" numberOfLines={1}>
           {artistName}
         </Text>
-        {/* Progress bar for podcast/audiobook tracks */}
         {progress != null && progress > 0 && !isCompleted && (
-          <View style={{ marginTop: 4 }}>
+          <View className="mt-1">
             <ProgressBar value={progress} />
           </View>
         )}
       </View>
 
-      {/* Download status indicator */}
       {isDownloaded ? (
         <Ionicons name="cloud-done" size={12} color={colors.muted} style={{ marginLeft: 4 }} />
       ) : isQueued ? (
         <Ionicons name="cloud-download-outline" size={12} color={colors.border} style={{ marginLeft: 4 }} />
       ) : null}
 
-      {/* Favourite heart — only shown when favourited */}
       {isFavourite && onToggleFavourite && (
-        <Pressable onPress={handleToggleFavourite} hitSlop={8} style={{ padding: 6 }}>
+        <Pressable onPress={handleToggleFavourite} hitSlop={8} className="p-1.5">
           <Ionicons name="heart" size={14} color={colors.accent} />
         </Pressable>
       )}
 
-      {/* Duration */}
-      <Text style={{ color: colors.muted, fontSize: 14, marginLeft: 4 }}>
+      <Text className="text-fermata-muted text-sm ml-1">
         {formatDuration(duration)}
       </Text>
 
-      {/* More button */}
       {onMorePress && (
-        <Pressable onPress={onMorePress} hitSlop={8} style={{ padding: 6, marginLeft: 2 }}>
+        <Pressable onPress={onMorePress} hitSlop={8} className="p-1.5 ml-0.5">
           <Ionicons name="ellipsis-horizontal" size={16} color={colors.muted} />
         </Pressable>
       )}
     </Pressable>
   );
 });
-
-// Re-export for backwards compat
-export { formatDuration } from "@/src/shared/lib/format";

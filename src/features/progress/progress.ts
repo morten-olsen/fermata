@@ -6,6 +6,7 @@ export {
 export {
   getProgress,
   getProgressBatch,
+  getAlbumProgressSummaries,
   getPendingProgressForSource,
   clearProgressNeedsSync,
 } from "./progress.queries";

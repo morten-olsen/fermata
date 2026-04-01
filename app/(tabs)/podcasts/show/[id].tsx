@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, memo } from "react";
+import { useEffect, useState, useCallback, useMemo, memo, useRef } from "react";
 import { View, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,7 +18,9 @@ import { resolveArtworkUrl } from "@/src/features/artwork/artwork";
 
 import { NavBar, NavBarAction } from "@/src/shared/components/nav-bar";
 import { DetailHeader } from "@/src/shared/components/detail-header";
+import { ActionButton } from "@/src/shared/components/action-button";
 import { colors } from "@/src/shared/theme/theme";
+import { formatDownloadMeta } from "@/src/shared/lib/format";
 
 export default function PodcastShowScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -42,9 +44,10 @@ export default function PodcastShowScreen() {
     })),
   );
 
+  const listRef = useRef<FlatList<TrackRowType>>(null);
   const [show, setShow] = useState<AlbumRow>();
   const [episodes, setEpisodes] = useState<TrackRowType[]>([]);
-  const [progressMap, setProgressMap] = useState(new Map<string, ProgressEntry>());
+  const [progressMap, setProgressMap] = useState(() => new Map<string, ProgressEntry>());
   const [isOfflinePinned, setIsOfflinePinned] = useState(false);
 
   useEffect(() => {
@@ -81,6 +84,37 @@ export default function PodcastShowScreen() {
     [episodes],
   );
 
+  const resumeEpisode = useMemo(() => {
+    for (const ep of episodes) {
+      const p = progressMap.get(ep.id);
+      if (p && p.positionMs > 0 && !p.isCompleted) return ep;
+    }
+    return null;
+  }, [episodes, progressMap]);
+
+  const handlePlayLatest = useCallback(() => {
+    if (episodes.length > 0) {
+      void playTracks(episodeIds, 0);
+    }
+  }, [episodes.length, playTracks, episodeIds]);
+
+  const handleResume = useCallback(() => {
+    if (resumeEpisode) {
+      handleEpisodePress(resumeEpisode.id);
+    }
+  }, [resumeEpisode, handleEpisodePress]);
+
+  const currentTrackId = currentTrack?.id;
+  useEffect(() => {
+    if (!currentTrackId || episodes.length === 0) return;
+    const idx = episodes.findIndex((e) => e.id === currentTrackId);
+    if (idx <= 0) return;
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToIndex({ index: idx, animated: true, viewOffset: 100 });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [currentTrackId, episodes]);
+
   if (!show) return null;
 
   const artworkUrl = resolveArtworkUrl(
@@ -88,16 +122,27 @@ export default function PodcastShowScreen() {
     show.artworkSourceItemId,
     "large",
   );
-  const dlMeta = isOfflinePinned
-    ? dlCount < episodes.length
-      ? ` · ${dlCount}/${episodes.length} downloaded`
-      : " · Downloaded"
-    : "";
+  const dlMeta = formatDownloadMeta(isOfflinePinned, dlCount, episodes.length);
   const meta = `${episodes.length} ${episodes.length === 1 ? "episode" : "episodes"}${dlMeta}`;
+
+  let headerActions;
+  if (resumeEpisode) {
+    headerActions = (
+      <>
+        <ActionButton label="Resume" icon="play" variant="primary" onPress={handleResume} />
+        <ActionButton label="Latest" icon="play-skip-forward" variant="secondary" onPress={handlePlayLatest} />
+      </>
+    );
+  } else if (episodes.length > 0) {
+    headerActions = (
+      <ActionButton label="Play Latest" icon="play" variant="primary" onPress={handlePlayLatest} />
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
       <FlatList
+        ref={listRef}
         style={{ flex: 1 }}
         data={episodes}
         keyExtractor={(item) => item.id}
@@ -126,6 +171,7 @@ export default function PodcastShowScreen() {
               title={show.title}
               subtitle={show.artistName}
               meta={meta}
+              actions={headerActions}
             />
           </View>
         }
