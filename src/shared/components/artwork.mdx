@@ -1,0 +1,87 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as ArtworkStories from "./artwork.stories";
+
+<Meta of={ArtworkStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# Artwork
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  The foundational image primitive — renders album art, podcast covers, or book covers with consistent sizing, fallbacks, and optional badges.
+</p>
+
+<Canvas of={ArtworkStories.AllSizes} />
+
+## Design rationale
+
+Fermata's first principle is **"the music is the interface"** — and artwork is how that manifests visually. This component standardizes how artwork appears across every context: cards, grids, detail headers, search results, and the mini player.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Two aspect ratios</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>
+      <code style={{ color: '#D4A0FF' }}>square</code> for music albums and podcast shows (the standard). <code style={{ color: '#D4A0FF' }}>portrait</code> (3:4) for audiobooks — because books are tall, not square.
+    </p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Four predefined sizes</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>
+      <code style={{ color: '#D4A0FF' }}>sm</code> (44px) for mini player and list rows. <code style={{ color: '#D4A0FF' }}>md</code> (80px) for search results. <code style={{ color: '#D4A0FF' }}>lg</code> (192px) and <code style={{ color: '#D4A0FF' }}>xl</code> (256px) for detail headers. Custom widths supported.
+    </p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Graceful fallbacks</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>
+      When artwork is unavailable, a centered icon on <code style={{ color: '#D4A0FF' }}>bg-fermata-surface</code>. The fallback icon is configurable: disc for music, mic for podcasts, book for audiobooks.
+    </p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Badge slot</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>
+      An optional badge renders at bottom-right — used for download indicators, episode counts, or progress rings without cluttering the artwork.
+    </p>
+  </div>
+</div>
+
+<Controls of={ArtworkStories.SquareMedium} />
+
+## Aspect ratios
+
+### Square (music, podcasts)
+<Canvas of={ArtworkStories.SquareLarge} />
+
+### Portrait (audiobooks)
+<Canvas of={ArtworkStories.Portrait} />
+
+<Canvas of={ArtworkStories.SquareVsPortrait} />
+
+## Sizes
+
+<Canvas of={ArtworkStories.AllSizes} />
+
+## States
+
+### No artwork (fallback)
+<Canvas of={ArtworkStories.NoArtwork} />
+
+### With badge overlay
+<Canvas of={ArtworkStories.WithBadge} />
+
+## Usage
+
+```tsx
+// In a card
+<Artwork uri={artworkUrl} size="md" />
+
+// In a detail header
+<Artwork uri={artworkUrl} size="xl" heroTransition />
+
+// Audiobook card
+<Artwork uri={artworkUrl} aspect="portrait" size="lg" fallbackIcon="book" />
+
+// With download badge
+<Artwork uri={artworkUrl} size="md" badge={<DownloadBadge />} />
+```
+
+</div>

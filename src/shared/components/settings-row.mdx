@@ -1,0 +1,35 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as SettingsRowStories from "./settings-row.stories";
+
+<Meta of={SettingsRowStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# SettingsRow
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  A tappable row for settings screens — icon, label, optional detail, and disclosure indicator.
+</p>
+
+<Canvas of={SettingsRowStories.SettingsList} />
+
+## Design rationale
+
+Settings rows are surface-level cards (`bg-fermata-surface rounded-xl`) rather than flat list items. This gives each action visual weight and clear tap targets, consistent with Fermata's preference for spacing over borders.
+
+<Controls of={SettingsRowStories.Default} />
+
+## Variants
+
+### Default (with disclosure)
+<Canvas of={SettingsRowStories.Default} />
+
+### With detail text
+<Canvas of={SettingsRowStories.WithDetail} />
+
+### Destructive
+<Canvas of={SettingsRowStories.Destructive} />
+
+Red icon and text, no disclosure chevron. Used for irreversible actions like "Remove All Downloads".
+
+</div>

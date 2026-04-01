@@ -1,0 +1,51 @@
+import { Meta, Canvas } from "@storybook/addon-docs/blocks";
+import * as NavBarStories from "./nav-bar.stories";
+
+<Meta of={NavBarStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# NavBar
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  Top navigation bar for detail screens — back button on the left, action icons on the right.
+</p>
+
+<Canvas of={NavBarStories.WithFavouriteAndDownload} />
+
+## Design rationale
+
+Fermata uses the iPod pattern: drill down, then back out. The NavBar provides consistent back navigation across all detail screens (albums, shows, books) while offering a slot for contextual actions like favourite and download.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Composable actions</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Right-side actions are passed as children using <code style={{ color: '#D4A0FF' }}>NavBarAction</code>. Different screens compose different sets — album detail has favourite + download, podcast show has just download.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>No title in the bar</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Following the design system: no navigation headers. Screen titles are inline content below the artwork, not in a header chrome.</p>
+  </div>
+</div>
+
+## Variants
+
+### Back only
+<Canvas of={NavBarStories.BackOnly} />
+
+### With favourite
+<Canvas of={NavBarStories.WithFavourite} />
+
+### With favourite and download
+<Canvas of={NavBarStories.WithFavouriteAndDownload} />
+
+## Layout anatomy
+
+```
+┌────────────────────────────────┐
+│  ‹   ·····················  ♡ ☁│  px-4 py-3
+└────────────────────────────────┘
+ back                      actions
+```
+
+</div>

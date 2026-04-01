@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { View, Text, FlatList } from "react-native";
+import { View, Text } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
@@ -7,13 +7,15 @@ import { router } from "expo-router";
 
 import {
   useLibraryStore,
-  AlbumCard,
-  AlbumGrid,
+  BookCard,
+  BookGrid,
 } from "@/src/features/library/library";
 import type { AlbumRow } from "@/src/features/library/library";
 
-import { colors } from "@/src/shared/theme/theme";
+import { SectionHeader } from "@/src/shared/components/section-header";
+import { HorizontalList } from "@/src/shared/components/horizontal-list";
 import { EmptyState } from "@/src/shared/components/empty-state";
+import { colors } from "@/src/shared/theme/theme";
 
 export default function AudiobooksScreen() {
   const albums = useLibraryStore((s) => s.albums);
@@ -40,18 +42,15 @@ export default function AudiobooksScreen() {
   );
 
   const renderHorizontalCard = useCallback(
-    ({ item }: { item: AlbumRow }) => (
-      <View style={{ width: 130, marginRight: 12 }}>
-        <AlbumCard
-          id={item.id}
-          title={item.title}
-          artistName={item.artistName}
-          year={item.year}
-          sourceId={item.sourceId}
-          artworkSourceItemId={item.artworkSourceItemId}
-          onPress={() => handleBookPress(item.id)}
-        />
-      </View>
+    (item: AlbumRow) => (
+      <BookCard
+        id={item.id}
+        title={item.title}
+        artistName={item.artistName}
+        sourceId={item.sourceId}
+        artworkSourceItemId={item.artworkSourceItemId}
+        onPress={() => handleBookPress(item.id)}
+      />
     ),
     [handleBookPress],
   );
@@ -64,45 +63,30 @@ export default function AudiobooksScreen() {
         </Text>
       </View>
 
-      {/* Currently Listening */}
       {inProgress.length > 0 && (
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-fermata-text px-4 mb-3">
-            Currently Listening
-          </Text>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
+          <SectionHeader title="Currently Listening" />
+          <HorizontalList
             data={inProgress}
             keyExtractor={(item) => item.id}
             renderItem={renderHorizontalCard}
-            contentContainerStyle={{ paddingHorizontal: 16 }}
           />
         </View>
       )}
 
-      {/* Favourites */}
       {favourites.length > 0 && (
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-fermata-text px-4 mb-3">
-            Favourites
-          </Text>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
+          <SectionHeader title="Favourites" />
+          <HorizontalList
             data={favourites}
             keyExtractor={(item) => item.id}
             renderItem={renderHorizontalCard}
-            contentContainerStyle={{ paddingHorizontal: 16 }}
           />
         </View>
       )}
 
-      {/* "All Audiobooks" section header */}
       {(inProgress.length > 0 || favourites.length > 0) && (
-        <Text className="text-lg font-semibold text-fermata-text px-4 mb-3">
-          All Audiobooks
-        </Text>
+        <SectionHeader title="All Audiobooks" />
       )}
     </View>
   ), [inProgress, favourites, renderHorizontalCard]);
@@ -126,10 +110,10 @@ export default function AudiobooksScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
-      <AlbumGrid
+      <BookGrid
         style={{ flex: 1 }}
-        albums={albums}
-        onAlbumPress={handleBookPress}
+        books={albums}
+        onBookPress={handleBookPress}
         ListHeaderComponent={listHeader}
       />
     </SafeAreaView>

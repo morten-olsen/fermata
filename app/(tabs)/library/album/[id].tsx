@@ -1,10 +1,8 @@
-import { useEffect, useState, useCallback, memo } from "react";
-import { View, Text, FlatList, Pressable } from "react-native";
+import { useEffect, useState, useCallback, useMemo, memo } from "react";
+import { View, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
-import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -18,7 +16,9 @@ import { usePlaybackStore } from "@/src/features/playback/playback";
 import { useDownloadStore, isTrackDownloaded, isTrackQueued } from "@/src/features/downloads/downloads";
 import { resolveArtworkUrl } from "@/src/features/artwork/artwork";
 
-import { PressableScale } from "@/src/shared/components/pressable-scale";
+import { NavBar, NavBarAction } from "@/src/shared/components/nav-bar";
+import { DetailHeader } from "@/src/shared/components/detail-header";
+import { ActionButton } from "@/src/shared/components/action-button";
 import { colors } from "@/src/shared/theme/theme";
 
 export default function AlbumDetailScreen() {
@@ -54,13 +54,13 @@ export default function AlbumDetailScreen() {
 
   useEffect(() => {
     if (!id) return;
-    getAlbum(id).then((a) => {
+    void getAlbum(id).then((a) => {
       setAlbum(a);
       setIsFavourite(!!a?.isFavourite);
     });
-    getTracksByAlbum(id).then(setTracks);
-    isPinned("album", id).then(setIsOfflinePinned);
-  }, [id]);
+    void getTracksByAlbum(id).then(setTracks);
+    void isPinned("album", id).then(setIsOfflinePinned);
+  }, [id, getAlbum, getTracksByAlbum, isPinned]);
 
   const handleToggleFavourite = useCallback(
     async (item: TrackRowType) => {
@@ -80,6 +80,11 @@ export default function AlbumDetailScreen() {
     [album]
   );
 
+  const dlCount = useMemo(
+    () => tracks.filter((t) => isTrackDownloaded(t.id)).length,
+    [tracks],
+  );
+
   if (!album) return null;
 
   const artworkUrl = resolveArtworkUrl(
@@ -87,9 +92,15 @@ export default function AlbumDetailScreen() {
     album.artworkSourceItemId,
     "large"
   );
+  const dlMeta = isOfflinePinned
+    ? dlCount < tracks.length
+      ? ` · ${dlCount}/${tracks.length} downloaded`
+      : " · Downloaded"
+    : "";
+  const meta = `${album.year ? `${album.year} · ` : ""}${tracks.length} ${tracks.length === 1 ? "track" : "tracks"}${dlMeta}`;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#0A0A0B" }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
       <FlatList
         style={{ flex: 1 }}
         data={tracks}
@@ -98,115 +109,58 @@ export default function AlbumDetailScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
           <View>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 }}>
-              <Pressable onPress={() => router.back()}>
-                <Ionicons name="chevron-back" size={26} color={colors.text} />
-              </Pressable>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Pressable
-                  onPress={async () => {
-                    if (!id) return;
-                    const newVal = await toggleAlbumFavourite(id);
-                    setIsFavourite(newVal);
-                  }}
-                  style={{ padding: 8 }}
-                >
-                  <Ionicons
-                    name={isFavourite ? "heart" : "heart-outline"}
-                    size={22}
-                    color={isFavourite ? colors.accent : colors.muted}
+            <NavBar>
+              <NavBarAction
+                icon={isFavourite ? "heart" : "heart-outline"}
+                color={isFavourite ? colors.accent : colors.muted}
+                onPress={async () => {
+                  if (!id) return;
+                  const newVal = await toggleAlbumFavourite(id);
+                  setIsFavourite(newVal);
+                }}
+              />
+              <NavBarAction
+                icon={isOfflinePinned ? "cloud-done" : "cloud-download-outline"}
+                color={isOfflinePinned ? colors.accent : colors.muted}
+                onPress={async () => {
+                  if (isOfflinePinned) {
+                    await unpinOffline("album", id);
+                    setIsOfflinePinned(false);
+                  } else {
+                    await pinForOffline("album", id, album.sourceId);
+                    setIsOfflinePinned(true);
+                  }
+                }}
+              />
+            </NavBar>
+            <DetailHeader
+              artworkUri={artworkUrl}
+              title={album.title}
+              subtitle={album.artistName}
+              onSubtitlePress={() =>
+                router.push({
+                  pathname: "/(tabs)/library/artist/[name]",
+                  params: { name: album.artistName },
+                })
+              }
+              meta={meta}
+              actions={
+                <>
+                  <ActionButton
+                    label="Play"
+                    icon="play"
+                    variant="primary"
+                    onPress={() => id && playAlbum(id)}
                   />
-                </Pressable>
-                <Pressable
-                  onPress={async () => {
-                    if (!id || !album) return;
-                    if (isOfflinePinned) {
-                      await unpinOffline("album", id);
-                      setIsOfflinePinned(false);
-                    } else {
-                      await pinForOffline("album", id, album.sourceId);
-                      setIsOfflinePinned(true);
-                    }
-                  }}
-                  style={{ padding: 8 }}
-                >
-                  <Ionicons
-                    name={isOfflinePinned ? "cloud-done" : "cloud-download-outline"}
-                    size={22}
-                    color={isOfflinePinned ? colors.accent : colors.muted}
+                  <ActionButton
+                    label="Shuffle"
+                    icon="shuffle"
+                    variant="secondary"
+                    onPress={() => id && shuffleAlbum(id)}
                   />
-                </Pressable>
-              </View>
-            </View>
-
-            <View className="items-center px-8 mb-6">
-              <View className="w-64 h-64 rounded-2xl bg-fermata-surface overflow-hidden shadow-lg">
-                {artworkUrl ? (
-                  <Image
-                    source={{ uri: artworkUrl }}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="cover"
-                    cachePolicy="disk"
-                    transition={300}
-                  />
-                ) : (
-                  <View className="flex-1 items-center justify-center">
-                    <Ionicons name="disc" size={64} color={colors.muted} />
-                  </View>
-                )}
-              </View>
-            </View>
-
-            <View className="px-4 mb-2">
-              <Text className="text-2xl font-bold text-fermata-text">
-                {album.title}
-              </Text>
-              <Pressable
-                onPress={() =>
-                  router.push({
-                    pathname: "/(tabs)/library/artist/[name]",
-                    params: { name: album.artistName },
-                  })
-                }
-              >
-                <Text className="text-base text-fermata-accent mt-1">
-                  {album.artistName}
-                </Text>
-              </Pressable>
-              <Text className="text-sm text-fermata-text-secondary mt-1">
-                {album.year ? `${album.year} · ` : ""}
-                {tracks.length} {tracks.length === 1 ? "track" : "tracks"}
-                {isOfflinePinned && (() => {
-                  const dlCount = tracks.filter(t => isTrackDownloaded(t.id)).length;
-                  return dlCount < tracks.length
-                    ? ` · ${dlCount}/${tracks.length} downloaded`
-                    : " · Downloaded";
-                })()}
-              </Text>
-            </View>
-
-            <View className="flex-row px-4 mt-4 mb-4 gap-3">
-              <PressableScale
-                onPress={() => id && playAlbum(id)}
-                className="flex-1 flex-row items-center justify-center bg-fermata-text py-3 rounded-xl"
-              >
-                <Ionicons name="play" size={18} color={colors.bg} />
-                <Text className="text-fermata-bg font-semibold text-base ml-2">
-                  Play
-                </Text>
-              </PressableScale>
-              <PressableScale
-                onPress={() => id && shuffleAlbum(id)}
-                className="flex-1 flex-row items-center justify-center bg-fermata-elevated py-3 rounded-xl"
-              >
-                <Ionicons name="shuffle" size={18} color={colors.text} />
-                <Text className="text-fermata-text font-semibold text-base ml-2">
-                  Shuffle
-                </Text>
-              </PressableScale>
-            </View>
-
-            <View className="h-px bg-fermata-border mx-4 mb-2" />
+                </>
+              }
+            />
           </View>
         }
         renderItem={({ item, index }) => (
@@ -225,8 +179,6 @@ export default function AlbumDetailScreen() {
     </SafeAreaView>
   );
 }
-
-const TRACK_ROW_HEIGHT = 56;
 
 const AlbumTrackItem = memo(function AlbumTrackItem({
   item,

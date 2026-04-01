@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { View, Text, FlatList } from "react-native";
+import { View, Text } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
@@ -7,13 +7,15 @@ import { router } from "expo-router";
 
 import {
   useLibraryStore,
-  AlbumCard,
   AlbumGrid,
+  ShowCard,
 } from "@/src/features/library/library";
 import type { AlbumRow } from "@/src/features/library/library";
 
-import { colors } from "@/src/shared/theme/theme";
+import { SectionHeader } from "@/src/shared/components/section-header";
+import { HorizontalList } from "@/src/shared/components/horizontal-list";
 import { EmptyState } from "@/src/shared/components/empty-state";
+import { colors } from "@/src/shared/theme/theme";
 
 export default function PodcastsScreen() {
   const albums = useLibraryStore((s) => s.albums);
@@ -37,18 +39,15 @@ export default function PodcastsScreen() {
   );
 
   const renderHorizontalCard = useCallback(
-    ({ item }: { item: AlbumRow }) => (
-      <View style={{ width: 130, marginRight: 12 }}>
-        <AlbumCard
-          id={item.id}
-          title={item.title}
-          artistName={item.artistName}
-          year={item.year}
-          sourceId={item.sourceId}
-          artworkSourceItemId={item.artworkSourceItemId}
-          onPress={() => handleShowPress(item.id)}
-        />
-      </View>
+    (item: AlbumRow) => (
+      <ShowCard
+        id={item.id}
+        title={item.title}
+        artistName={item.artistName}
+        sourceId={item.sourceId}
+        artworkSourceItemId={item.artworkSourceItemId}
+        onPress={() => handleShowPress(item.id)}
+      />
     ),
     [handleShowPress],
   );
@@ -63,24 +62,17 @@ export default function PodcastsScreen() {
 
       {recent.length > 0 && (
         <View className="mb-6">
-          <Text className="text-lg font-semibold text-fermata-text px-4 mb-3">
-            Recent
-          </Text>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
+          <SectionHeader title="Recent" />
+          <HorizontalList
             data={recent}
             keyExtractor={(item) => item.id}
             renderItem={renderHorizontalCard}
-            contentContainerStyle={{ paddingHorizontal: 16 }}
           />
         </View>
       )}
 
       {recent.length > 0 && (
-        <Text className="text-lg font-semibold text-fermata-text px-4 mb-3">
-          All Shows
-        </Text>
+        <SectionHeader title="All Shows" />
       )}
     </View>
   ), [recent, renderHorizontalCard]);

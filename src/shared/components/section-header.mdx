@@ -1,0 +1,30 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as SectionHeaderStories from "./section-header.stories";
+
+<Meta of={SectionHeaderStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# SectionHeader
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  Section title for content groupings — "Recent", "Favourites", "All Shows".
+</p>
+
+<Canvas of={SectionHeaderStories.Multiple} />
+
+## Design rationale
+
+Section headers create rhythm in list-based screens (podcasts index, audiobooks index). They follow the typography scale: `text-lg font-semibold` — prominent enough to scan, subtle enough not to compete with artwork.
+
+<Controls of={SectionHeaderStories.Default} />
+
+## Variants
+
+### Default
+<Canvas of={SectionHeaderStories.Default} />
+
+### With trailing action
+<Canvas of={SectionHeaderStories.WithTrailing} />
+
+</div>

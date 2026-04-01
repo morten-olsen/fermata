@@ -1,0 +1,60 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as EpisodeRowStories from "./episode-row.stories";
+
+<Meta of={EpisodeRowStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# EpisodeRow
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  A podcast episode in a show's episode list — date-first, progress-aware, stripped of music-specific controls.
+</p>
+
+<Canvas of={EpisodeRowStories.EpisodeList} />
+
+## Design rationale
+
+Podcast episodes have fundamentally different browsing needs than music tracks. You scan by **date** (what's new?), care about **progress** (where did I leave off?), and don't need favourites or contextual menus.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Date as subtitle</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Instead of artist name, episodes show a formatted date. Podcasts are time-bound content — recency matters more than attribution.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>No favourite, no more</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Episodes don't have favourite hearts or "..." menus. Podcast listening is sequential, not curated. This keeps the row clean and focused.</p>
+  </div>
+</div>
+
+<Controls of={EpisodeRowStories.Default} />
+
+## States
+
+### Default
+<Canvas of={EpisodeRowStories.Default} />
+
+### Now Playing
+<Canvas of={EpisodeRowStories.NowPlaying} />
+
+### In Progress
+<Canvas of={EpisodeRowStories.InProgress} />
+
+### Completed
+<Canvas of={EpisodeRowStories.Completed} />
+
+### Downloaded
+<Canvas of={EpisodeRowStories.Downloaded} />
+
+## How it differs from TrackRow
+
+| | TrackRow | EpisodeRow |
+|---|---|---|
+| **Subtitle** | Artist name | Publish date |
+| **Favourite** | Heart toggle | None |
+| **More menu** | "..." button | None |
+| **Progress** | Optional bar | Built-in bar |
+| **Leading** | Track number | Episode number or mic icon |
+
+</div>

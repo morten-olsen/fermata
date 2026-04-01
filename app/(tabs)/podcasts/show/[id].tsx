@@ -1,15 +1,13 @@
-import { useEffect, useState, useCallback, memo } from "react";
-import { View, Text, FlatList, Pressable } from "react-native";
+import { useEffect, useState, useCallback, useMemo, memo } from "react";
+import { View, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, router } from "expo-router";
-import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
 import { useShallow } from "zustand/react/shallow";
 
 import {
   useLibraryStore,
-  TrackRow,
+  EpisodeRow,
 } from "@/src/features/library/library";
 import type { AlbumRow, TrackRowType } from "@/src/features/library/library";
 import { usePlaybackStore } from "@/src/features/playback/playback";
@@ -18,6 +16,8 @@ import { getProgressBatch } from "@/src/features/progress/progress";
 import type { ProgressEntry } from "@/src/features/progress/progress";
 import { resolveArtworkUrl } from "@/src/features/artwork/artwork";
 
+import { NavBar, NavBarAction } from "@/src/shared/components/nav-bar";
+import { DetailHeader } from "@/src/shared/components/detail-header";
 import { colors } from "@/src/shared/theme/theme";
 
 export default function PodcastShowScreen() {
@@ -52,7 +52,6 @@ export default function PodcastShowScreen() {
     void getAlbum(id).then(setShow);
     void isPinned("album", id).then(setIsOfflinePinned);
     void getTracksByAlbum(id).then((tracks) => {
-      // Sort episodes by published date (newest first) or episode number
       const sorted = [...tracks].sort((a, b) => {
         if (a.publishedAt && b.publishedAt) {
           return b.publishedAt.localeCompare(a.publishedAt);
@@ -60,24 +59,26 @@ export default function PodcastShowScreen() {
         return (b.episodeNumber ?? 0) - (a.episodeNumber ?? 0);
       });
       setEpisodes(sorted);
-
-      // Load progress for all episodes
       const ids = sorted.map((t) => t.id);
       void getProgressBatch(ids).then(setProgressMap);
     });
   }, [id, getAlbum, getTracksByAlbum, isPinned]);
 
+  const episodeIds = useMemo(() => episodes.map((e) => e.id), [episodes]);
+
   const handleEpisodePress = useCallback(
     (episodeId: string) => {
-      const idx = episodes.findIndex((e) => e.id === episodeId);
+      const idx = episodeIds.indexOf(episodeId);
       if (idx >= 0) {
-        void playTracks(
-          episodes.map((e) => e.id),
-          idx,
-        );
+        void playTracks(episodeIds, idx);
       }
     },
-    [episodes, playTracks],
+    [episodeIds, playTracks],
+  );
+
+  const dlCount = useMemo(
+    () => episodes.filter((t) => isTrackDownloaded(t.id)).length,
+    [episodes],
   );
 
   if (!show) return null;
@@ -87,6 +88,12 @@ export default function PodcastShowScreen() {
     show.artworkSourceItemId,
     "large",
   );
+  const dlMeta = isOfflinePinned
+    ? dlCount < episodes.length
+      ? ` · ${dlCount}/${episodes.length} downloaded`
+      : " · Downloaded"
+    : "";
+  const meta = `${episodes.length} ${episodes.length === 1 ? "episode" : "episodes"}${dlMeta}`;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
@@ -98,11 +105,10 @@ export default function PodcastShowScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
           <View>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 }}>
-              <Pressable onPress={() => router.back()}>
-                <Ionicons name="chevron-back" size={26} color={colors.text} />
-              </Pressable>
-              <Pressable
+            <NavBar>
+              <NavBarAction
+                icon={isOfflinePinned ? "cloud-done" : "cloud-download-outline"}
+                color={isOfflinePinned ? colors.accent : colors.muted}
                 onPress={async () => {
                   if (isOfflinePinned) {
                     await unpinOffline("album", id);
@@ -112,57 +118,19 @@ export default function PodcastShowScreen() {
                     setIsOfflinePinned(true);
                   }
                 }}
-                style={{ padding: 8 }}
-              >
-                <Ionicons
-                  name={isOfflinePinned ? "cloud-done" : "cloud-download-outline"}
-                  size={22}
-                  color={isOfflinePinned ? colors.accent : colors.muted}
-                />
-              </Pressable>
-            </View>
-
-            <View className="items-center px-8 mb-6">
-              <View className="w-48 h-48 rounded-2xl bg-fermata-surface overflow-hidden shadow-lg">
-                {artworkUrl ? (
-                  <Image
-                    source={{ uri: artworkUrl }}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="cover"
-                    cachePolicy="disk"
-                    transition={300}
-                  />
-                ) : (
-                  <View className="flex-1 items-center justify-center">
-                    <Ionicons name="mic" size={48} color={colors.muted} />
-                  </View>
-                )}
-              </View>
-            </View>
-
-            <View className="px-4 mb-4">
-              <Text className="text-2xl font-bold text-fermata-text">
-                {show.title}
-              </Text>
-              <Text className="text-base text-fermata-text-secondary mt-1">
-                {show.artistName}
-              </Text>
-              <Text className="text-sm text-fermata-muted mt-1">
-                {episodes.length} {episodes.length === 1 ? "episode" : "episodes"}
-                {isOfflinePinned && (() => {
-                  const dlCount = episodes.filter(t => isTrackDownloaded(t.id)).length;
-                  return dlCount < episodes.length
-                    ? ` · ${dlCount}/${episodes.length} downloaded`
-                    : " · Downloaded";
-                })()}
-              </Text>
-            </View>
-
-            <View className="h-px bg-fermata-border mx-4 mb-2" />
+              />
+            </NavBar>
+            <DetailHeader
+              artworkUri={artworkUrl}
+              fallbackIcon="mic"
+              title={show.title}
+              subtitle={show.artistName}
+              meta={meta}
+            />
           </View>
         }
         renderItem={({ item }) => (
-          <EpisodeItem
+          <ShowEpisodeItem
             item={item}
             currentTrackId={currentTrack?.id}
             progress={progressMap.get(item.id)}
@@ -174,7 +142,7 @@ export default function PodcastShowScreen() {
   );
 }
 
-const EpisodeItem = memo(function EpisodeItem({
+const ShowEpisodeItem = memo(function ShowEpisodeItem({
   item,
   currentTrackId,
   progress,
@@ -192,13 +160,21 @@ const EpisodeItem = memo(function EpisodeItem({
       ? progress.positionMs / progress.durationMs
       : undefined;
 
+  const dateLabel = item.publishedAt
+    ? new Date(item.publishedAt).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : item.artistName;
+
   return (
     <View className="px-4">
-      <TrackRow
+      <EpisodeRow
         title={item.title}
-        artistName={item.publishedAt ? new Date(item.publishedAt).toLocaleDateString() : item.artistName}
+        dateLabel={dateLabel}
         duration={item.duration}
-        trackNumber={item.episodeNumber ?? item.trackNumber}
+        episodeNumber={item.episodeNumber ?? item.trackNumber}
         isPlaying={currentTrackId === item.id}
         isDownloaded={isTrackDownloaded(item.id)}
         progress={progressFraction}

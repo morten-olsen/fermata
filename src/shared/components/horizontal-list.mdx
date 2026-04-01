@@ -1,0 +1,39 @@
+import { Meta, Canvas } from "@storybook/addon-docs/blocks";
+import * as HorizontalListStories from "./horizontal-list.stories";
+
+<Meta of={HorizontalListStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# HorizontalList
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  A horizontal scroll row for card collections — used for "Recent" podcasts, "Currently Listening" audiobooks, and mix tapes.
+</p>
+
+<Canvas of={HorizontalListStories.Default} />
+
+## Design rationale
+
+Horizontal carousels surface curated subsets without consuming vertical space. They follow the pattern established by mix tapes in the library tab: a focused horizontal strip above the main grid.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Consistent padding</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>16px horizontal padding matches the screen's <code style={{ color: '#D4A0FF' }}>px-4</code> standard. Items peek from the right edge, hinting at scrollability.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Configurable item width</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Default 130px for standard cards. Adjustable for wider content like audiobook portrait cards or landscape banners.</p>
+  </div>
+</div>
+
+## Variants
+
+### Default (130px items)
+<Canvas of={HorizontalListStories.Default} />
+
+### Wide items (180px)
+<Canvas of={HorizontalListStories.WideItems} />
+
+</div>

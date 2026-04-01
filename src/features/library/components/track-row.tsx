@@ -6,6 +6,7 @@ import * as Haptics from "expo-haptics";
 
 import { EqualizerBars } from "@/src/features/playback/playback";
 
+import { ProgressBar } from "@/src/shared/components/progress-bar";
 import { colors } from "@/src/shared/theme/theme";
 import { formatDuration } from "@/src/shared/lib/format";
 
@@ -43,7 +44,7 @@ export const TrackRow = memo(function TrackRow({
   onToggleFavourite,
 }: TrackRowProps) {
   const handleToggleFavourite = () => {
-    Haptics.impactAsync(
+    void Haptics.impactAsync(
       isFavourite
         ? Haptics.ImpactFeedbackStyle.Light
         : Haptics.ImpactFeedbackStyle.Medium
@@ -87,15 +88,8 @@ export const TrackRow = memo(function TrackRow({
         </Text>
         {/* Progress bar for podcast/audiobook tracks */}
         {progress != null && progress > 0 && !isCompleted && (
-          <View style={{ height: 2, backgroundColor: colors.border, borderRadius: 1, marginTop: 4 }}>
-            <View
-              style={{
-                height: 2,
-                backgroundColor: colors.accent,
-                borderRadius: 1,
-                width: `${Math.min(Math.round(progress * 100), 100)}%`,
-              }}
-            />
+          <View style={{ marginTop: 4 }}>
+            <ProgressBar value={progress} />
           </View>
         )}
       </View>

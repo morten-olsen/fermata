@@ -1,15 +1,13 @@
 import { useEffect, useState, useCallback, useMemo, memo } from "react";
-import { View, Text, FlatList, Pressable } from "react-native";
+import { View, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, router } from "expo-router";
-import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
 import { useShallow } from "zustand/react/shallow";
 
 import {
   useLibraryStore,
-  TrackRow,
+  ChapterRow,
 } from "@/src/features/library/library";
 import type { AlbumRow, TrackRowType } from "@/src/features/library/library";
 import { usePlaybackStore } from "@/src/features/playback/playback";
@@ -18,7 +16,9 @@ import { getProgressBatch } from "@/src/features/progress/progress";
 import type { ProgressEntry } from "@/src/features/progress/progress";
 import { resolveArtworkUrl } from "@/src/features/artwork/artwork";
 
-import { PressableScale } from "@/src/shared/components/pressable-scale";
+import { NavBar, NavBarAction } from "@/src/shared/components/nav-bar";
+import { DetailHeader } from "@/src/shared/components/detail-header";
+import { ActionButton } from "@/src/shared/components/action-button";
 import { colors } from "@/src/shared/theme/theme";
 
 export default function BookDetailScreen() {
@@ -65,27 +65,22 @@ export default function BookDetailScreen() {
     });
   }, [id, getAlbum, getTracksByAlbum, isPinned]);
 
+  const chapterIds = useMemo(() => chapters.map((c) => c.id), [chapters]);
+
   const handleChapterPress = useCallback(
     (chapterId: string) => {
-      const idx = chapters.findIndex((c) => c.id === chapterId);
+      const idx = chapterIds.indexOf(chapterId);
       if (idx >= 0) {
-        void playTracks(
-          chapters.map((c) => c.id),
-          idx,
-        );
+        void playTracks(chapterIds, idx);
       }
     },
-    [chapters, playTracks],
+    [chapterIds, playTracks],
   );
 
-  // Compute per-chapter progress from individual chapter progress entries.
-  // If no per-chapter entries exist but there's a book-level entry (from ABS sync),
-  // derive chapter states from cumulative durations vs the book position.
   const chapterProgressMap = useMemo(() => {
     const map = new Map<string, { fraction: number; isCompleted: boolean }>();
     if (chapters.length === 0) return map;
 
-    // Check if we have any per-chapter progress (from local playback tracking)
     let hasPerChapterProgress = false;
     for (const c of chapters) {
       const p = progressMap.get(c.id);
@@ -96,7 +91,6 @@ export default function BookDetailScreen() {
     }
 
     if (hasPerChapterProgress) {
-      // Use per-chapter progress directly
       for (const c of chapters) {
         const p = progressMap.get(c.id);
         if (p) {
@@ -110,8 +104,6 @@ export default function BookDetailScreen() {
       return map;
     }
 
-    // Fallback: check if the first chapter has book-level progress from ABS sync
-    // (adapter maps book progress to all chapters with the same positionMs/durationMs)
     const bookProgress = progressMap.get(chapters[0].id);
     if (!bookProgress || bookProgress.durationMs === 0) return map;
 
@@ -147,6 +139,11 @@ export default function BookDetailScreen() {
     [chapters, chapterProgressMap],
   );
 
+  const dlCount = useMemo(
+    () => chapters.filter((t) => isTrackDownloaded(t.id)).length,
+    [chapters],
+  );
+
   if (!book) return null;
 
   const artworkUrl = resolveArtworkUrl(
@@ -154,6 +151,17 @@ export default function BookDetailScreen() {
     book.artworkSourceItemId,
     "large",
   );
+  const dlMeta = isOfflinePinned
+    ? dlCount < chapters.length
+      ? ` · ${dlCount}/${chapters.length} downloaded`
+      : " · Downloaded"
+    : "";
+  const progressMeta = totalProgress > 0
+    ? ` · ${Math.round(totalProgress * 100)}% complete`
+    : "";
+  const meta = `${chapters.length} ${chapters.length === 1 ? "chapter" : "chapters"}${progressMeta}${dlMeta}`;
+
+  const playLabel = totalProgress > 0 && totalProgress < 1 ? "Continue" : "Play";
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
@@ -165,105 +173,55 @@ export default function BookDetailScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
           <View>
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 }}>
-              <Pressable onPress={() => router.back()}>
-                <Ionicons name="chevron-back" size={26} color={colors.text} />
-              </Pressable>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Pressable
-                  onPress={async () => {
-                    const newVal = await toggleAlbumFavourite(id);
-                    setIsFavourite(newVal);
-                  }}
-                  style={{ padding: 8 }}
-                >
-                  <Ionicons
-                    name={isFavourite ? "heart" : "heart-outline"}
-                    size={22}
-                    color={isFavourite ? colors.accent : colors.muted}
-                  />
-                </Pressable>
-                <Pressable
-                  onPress={async () => {
-                    if (isOfflinePinned) {
-                      await unpinOffline("album", id);
-                      setIsOfflinePinned(false);
-                    } else {
-                      await pinForOffline("album", id, book.sourceId);
-                      setIsOfflinePinned(true);
-                    }
-                  }}
-                  style={{ padding: 8 }}
-                >
-                  <Ionicons
-                    name={isOfflinePinned ? "cloud-done" : "cloud-download-outline"}
-                    size={22}
-                    color={isOfflinePinned ? colors.accent : colors.muted}
-                  />
-                </Pressable>
-              </View>
-            </View>
-
-            <View className="items-center px-8 mb-6">
-              <View className="w-48 h-64 rounded-2xl bg-fermata-surface overflow-hidden shadow-lg">
-                {artworkUrl ? (
-                  <Image
-                    source={{ uri: artworkUrl }}
-                    style={{ width: "100%", height: "100%" }}
-                    contentFit="cover"
-                    cachePolicy="disk"
-                    transition={300}
-                  />
-                ) : (
-                  <View className="flex-1 items-center justify-center">
-                    <Ionicons name="book" size={48} color={colors.muted} />
-                  </View>
-                )}
-              </View>
-            </View>
-
-            <View className="px-4 mb-2">
-              <Text className="text-2xl font-bold text-fermata-text">
-                {book.title}
-              </Text>
-              <Text className="text-base text-fermata-text-secondary mt-1">
-                {book.artistName}
-              </Text>
-              <Text className="text-sm text-fermata-muted mt-1">
-                {chapters.length} {chapters.length === 1 ? "chapter" : "chapters"}
-                {totalProgress > 0 && ` · ${Math.round(totalProgress * 100)}% complete`}
-                {isOfflinePinned && (() => {
-                  const dlCount = chapters.filter(t => isTrackDownloaded(t.id)).length;
-                  return dlCount < chapters.length
-                    ? ` · ${dlCount}/${chapters.length} downloaded`
-                    : " · Downloaded";
-                })()}
-              </Text>
-            </View>
-
-            <View className="flex-row px-4 mt-4 mb-4 gap-3">
-              <PressableScale
-                onPress={() => {
-                  if (firstUnfinished) {
-                    handleChapterPress(firstUnfinished.id);
-                  } else if (id) {
-                    void playAlbum(id);
+            <NavBar>
+              <NavBarAction
+                icon={isFavourite ? "heart" : "heart-outline"}
+                color={isFavourite ? colors.accent : colors.muted}
+                onPress={async () => {
+                  const newVal = await toggleAlbumFavourite(id);
+                  setIsFavourite(newVal);
+                }}
+              />
+              <NavBarAction
+                icon={isOfflinePinned ? "cloud-done" : "cloud-download-outline"}
+                color={isOfflinePinned ? colors.accent : colors.muted}
+                onPress={async () => {
+                  if (isOfflinePinned) {
+                    await unpinOffline("album", id);
+                    setIsOfflinePinned(false);
+                  } else {
+                    await pinForOffline("album", id, book.sourceId);
+                    setIsOfflinePinned(true);
                   }
                 }}
-                className="flex-1 flex-row items-center justify-center bg-fermata-text py-3 rounded-xl"
-              >
-                <Ionicons name="play" size={18} color={colors.bg} />
-                <Text className="text-fermata-bg font-semibold text-base ml-2">
-                  {totalProgress > 0 && totalProgress < 1 ? "Continue" : "Play"}
-                </Text>
-              </PressableScale>
-            </View>
-
-            <View className="h-px bg-fermata-border mx-4 mb-2" />
+              />
+            </NavBar>
+            <DetailHeader
+              artworkUri={artworkUrl}
+              artworkAspect="portrait"
+              fallbackIcon="book"
+              title={book.title}
+              subtitle={book.artistName}
+              meta={meta}
+              actions={
+                <ActionButton
+                  label={playLabel}
+                  icon="play"
+                  variant="primary"
+                  onPress={() => {
+                    if (firstUnfinished) {
+                      handleChapterPress(firstUnfinished.id);
+                    } else if (id) {
+                      void playAlbum(id);
+                    }
+                  }}
+                />
+              }
+            />
           </View>
         }
         renderItem={({ item }) => (
-          <ChapterItem
+          <BookChapterItem
             item={item}
             currentTrackId={currentTrack?.id}
             chapterProgress={chapterProgressMap.get(item.id)}
@@ -275,7 +233,7 @@ export default function BookDetailScreen() {
   );
 }
 
-const ChapterItem = memo(function ChapterItem({
+const BookChapterItem = memo(function BookChapterItem({
   item,
   currentTrackId,
   chapterProgress,
@@ -290,11 +248,11 @@ const ChapterItem = memo(function ChapterItem({
 
   return (
     <View className="px-4">
-      <TrackRow
+      <ChapterRow
         title={item.title}
         artistName={item.artistName}
         duration={item.duration}
-        trackNumber={item.trackNumber}
+        chapterNumber={item.trackNumber}
         isPlaying={currentTrackId === item.id}
         isDownloaded={isTrackDownloaded(item.id)}
         progress={chapterProgress?.fraction}

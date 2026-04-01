@@ -1,0 +1,57 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as ActionButtonStories from "./action-button.stories";
+
+<Meta of={ActionButtonStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# ActionButton
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  Primary and secondary action buttons for detail screens — Play, Shuffle, Continue.
+</p>
+
+<Canvas of={ActionButtonStories.PlayAndShuffle} />
+
+## Design rationale
+
+Action buttons are the gateway to listening. They sit below the album/show/book metadata and represent the most important decision on the screen: *start playing*.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Primary = commitment</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>White background with dark text. The brightest element below the artwork. <strong>Play</strong> and <strong>Continue</strong> use this — they represent the main action.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Secondary = alternative</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Elevated surface with light text. Subtle but accessible. <strong>Shuffle</strong> uses this — it's an option, not the default.</p>
+  </div>
+</div>
+
+<Controls of={ActionButtonStories.Play} />
+
+## Variants
+
+### Primary (Play)
+<Canvas of={ActionButtonStories.Play} />
+
+### Secondary (Shuffle)
+<Canvas of={ActionButtonStories.Shuffle} />
+
+### Continue (audiobooks)
+<Canvas of={ActionButtonStories.Continue} />
+
+## Layout anatomy
+
+```
+┌─────────────────┐ ┌─────────────────┐
+│  ▶  Play        │ │  ⤮  Shuffle     │
+└─────────────────┘ └─────────────────┘
+   primary (white)    secondary (elevated)
+   flex-1, py-3       flex-1, py-3
+   rounded-xl         rounded-xl
+```
+
+Both buttons use `flex-1` inside a `flex-row gap-3` container, making them equal width.
+
+</div>

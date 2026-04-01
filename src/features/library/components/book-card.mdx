@@ -1,0 +1,57 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as BookCardStories from "./book-card.stories";
+
+<Meta of={BookCardStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# BookCard
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  An audiobook in the library — portrait artwork (3:4 ratio) with progress badge. Books are tall, not square.
+</p>
+
+<Canvas of={BookCardStories.BookShelf} />
+
+## Design rationale
+
+The most distinctive visual choice in Fermata's content-type system. Audiobooks use **portrait (3:4) artwork** because books are tall — and that shape immediately communicates "this is a book, not an album" when scanning the grid.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Portrait aspect (3:4)</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>The tall shape evokes a book spine or cover. In a grid of 3 columns, portrait cards create a bookshelf feel — visually distinct from the 2-column square album grid.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Progress badge</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>A compact percentage badge at bottom-right. Audiobooks are long-form — knowing you're "68% through" is essential at the grid level, unlike music albums.</p>
+  </div>
+</div>
+
+<Controls of={BookCardStories.Default} />
+
+## Variants
+
+### Default (no progress)
+<Canvas of={BookCardStories.Default} />
+
+### In progress
+<Canvas of={BookCardStories.InProgress} />
+
+### Downloaded
+<Canvas of={BookCardStories.Downloaded} />
+
+### No artwork
+<Canvas of={BookCardStories.NoArtwork} />
+
+## How it differs from AlbumCard
+
+| | AlbumCard | BookCard |
+|---|---|---|
+| **Aspect ratio** | Square (1:1) | Portrait (3:4) |
+| **Grid columns** | 2 | 3 |
+| **Badge** | Download indicator | Progress percentage |
+| **Fallback icon** | disc | book |
+| **Feel** | Record collection | Bookshelf |
+
+</div>

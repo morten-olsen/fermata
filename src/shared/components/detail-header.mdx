@@ -1,0 +1,70 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as DetailHeaderStories from "./detail-header.stories";
+
+<Meta of={DetailHeaderStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# DetailHeader
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  The composable header for detail screens — artwork, title, metadata, and action buttons. Adapts to music albums, podcast shows, and audiobooks.
+</p>
+
+<Canvas of={DetailHeaderStories.Album} />
+
+## Design rationale
+
+Every detail screen in Fermata follows the same visual rhythm: large artwork at the top, title and metadata below, action buttons, then a list. This component codifies that pattern while allowing each content type to configure its own shape, metadata, and actions.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Content-type aware</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Music albums get square artwork + Play/Shuffle. Audiobooks get portrait artwork + Continue. Podcasts get square artwork + no action buttons. Same component, different configuration.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Tappable subtitle</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>When <code style={{ color: '#D4A0FF' }}>onSubtitlePress</code> is provided, the artist/author name turns accent and becomes tappable — navigating to the artist page.</p>
+  </div>
+</div>
+
+<Controls of={DetailHeaderStories.Album} />
+
+## Content types
+
+### Music album
+<Canvas of={DetailHeaderStories.Album} />
+Square artwork (256px), tappable artist, Play + Shuffle buttons.
+
+### Podcast show
+<Canvas of={DetailHeaderStories.PodcastShow} />
+Square artwork (192px), episode count in meta, no action buttons.
+
+### Audiobook
+<Canvas of={DetailHeaderStories.Audiobook} />
+Portrait artwork (3:4 ratio), progress in meta, Continue button.
+
+### No artwork
+<Canvas of={DetailHeaderStories.NoArtwork} />
+
+## Layout anatomy
+
+```
+       ┌────────────────┐
+       │                │
+       │   [artwork]    │  square or portrait
+       │                │
+       └────────────────┘
+
+  Title                          text-2xl bold
+  Subtitle (tappable)            text-base accent
+  1997 · 12 tracks               text-sm muted
+
+  ┌─────────┐ ┌─────────┐
+  │  ▶ Play │ │ ⤮ Shuf │      action buttons
+  └─────────┘ └─────────┘
+
+  ────────────────────────       divider
+```
+
+</div>

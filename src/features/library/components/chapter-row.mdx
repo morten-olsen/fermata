@@ -1,0 +1,60 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as ChapterRowStories from "./chapter-row.stories";
+
+<Meta of={ChapterRowStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# ChapterRow
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  An audiobook chapter in a book's chapter list — numbered, progress-aware, with remaining time display.
+</p>
+
+<Canvas of={ChapterRowStories.ChapterList} />
+
+## Design rationale
+
+Audiobook chapters are sequential, numbered content. Unlike podcast episodes (date-driven) or music tracks (curated), chapters form a linear progression through a single narrative.
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Remaining time</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>When a chapter is partially complete, the duration shows <strong>time remaining</strong> (prefixed with "-") rather than total duration. "How much is left?" matters more than "how long was it?"</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Sequential completion</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Completed chapters show a checkmark, creating a visual trail of progress through the book. The completed/in-progress/unstarted states tell you exactly where you are at a glance.</p>
+  </div>
+</div>
+
+<Controls of={ChapterRowStories.Default} />
+
+## States
+
+### Default
+<Canvas of={ChapterRowStories.Default} />
+
+### Now Playing
+<Canvas of={ChapterRowStories.NowPlaying} />
+
+### In Progress (remaining time)
+<Canvas of={ChapterRowStories.InProgress} />
+
+### Completed
+<Canvas of={ChapterRowStories.Completed} />
+
+### Downloaded
+<Canvas of={ChapterRowStories.Downloaded} />
+
+## How it differs from TrackRow
+
+| | TrackRow | ChapterRow |
+|---|---|---|
+| **Duration** | Total | Remaining (when in progress) |
+| **Favourite** | Heart toggle | None |
+| **More menu** | "..." button | None |
+| **Progress** | Optional bar | Built-in bar |
+| **Feel** | Curated tracks | Sequential chapters |
+
+</div>

@@ -9,49 +9,71 @@ import { Artwork } from "@/src/shared/components/artwork";
 import { PressableScale } from "@/src/shared/components/pressable-scale";
 import { colors } from "@/src/shared/theme/theme";
 
-interface AlbumCardProps {
+interface ShowCardProps {
   id: string;
   title: string;
   artistName: string;
-  year?: number | null;
+  episodeCount?: number;
   sourceId: string;
   artworkSourceItemId: string | null;
-  isDownloaded?: boolean;
+  /** Whether the show has unplayed episodes. */
+  hasNew?: boolean;
   onPress: () => void;
 }
 
-export const AlbumCard = memo(function AlbumCard({
+export const ShowCard = memo(function ShowCard({
   title,
   artistName,
-  year,
+  episodeCount,
   sourceId,
   artworkSourceItemId,
-  isDownloaded,
+  hasNew,
   onPress,
-}: AlbumCardProps) {
+}: ShowCardProps) {
   const artworkUrl = resolveArtworkUrl(sourceId, artworkSourceItemId);
 
-  const badge = isDownloaded ? (
+  const badge = episodeCount != null ? (
     <View
       style={{
-        backgroundColor: "rgba(0,0,0,0.6)",
+        backgroundColor: "rgba(0,0,0,0.7)",
         borderRadius: 10,
-        padding: 3,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 3,
       }}
     >
-      <Ionicons name="cloud-done" size={12} color={colors.accent} />
+      <Ionicons name="mic" size={10} color={colors.textSecondary} />
+      <Text style={{ color: colors.textSecondary, fontSize: 10, fontWeight: "600" }}>
+        {episodeCount}
+      </Text>
     </View>
   ) : undefined;
 
   return (
     <PressableScale onPress={onPress} className="mb-4">
-      <Artwork uri={artworkUrl} aspect="square" fallbackIcon="disc" badge={badge} />
+      <View style={{ position: "relative" }}>
+        <Artwork uri={artworkUrl} aspect="square" fallbackIcon="mic" badge={badge} />
+        {hasNew && (
+          <View
+            style={{
+              position: "absolute",
+              top: 6,
+              right: 6,
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: colors.accent,
+            }}
+          />
+        )}
+      </View>
       <Text className="text-fermata-text text-sm font-medium mt-2" numberOfLines={1}>
         {title}
       </Text>
       <Text className="text-fermata-text-secondary text-xs" numberOfLines={1}>
         {artistName}
-        {year ? ` · ${year}` : ""}
       </Text>
     </PressableScale>
   );

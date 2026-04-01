@@ -1,0 +1,32 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as StatRowStories from "./stat-row.stories";
+
+<Meta of={StatRowStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# StatRow
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  A horizontal row of key-value statistics — library counts, download stats, and storage usage.
+</p>
+
+<Canvas of={StatRowStories.LibraryStats} />
+
+## Design rationale
+
+Stats are read-only information presented in a compact horizontal layout. Numbers are prominent (`text-lg font-semibold`), labels are secondary (`text-xs text-secondary`). The row sits in a surface card for visual grouping.
+
+<Controls of={StatRowStories.LibraryStats} />
+
+## Variants
+
+### Library stats
+<Canvas of={StatRowStories.LibraryStats} />
+
+### Download stats
+<Canvas of={StatRowStories.DownloadStats} />
+
+Supports custom `formatted` strings for non-numeric values like storage ("2.4 GB").
+
+</div>

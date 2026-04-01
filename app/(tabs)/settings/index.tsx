@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,47 +12,10 @@ import { useLibraryStore } from "@/src/features/library/library";
 import { useDownloadStore } from "@/src/features/downloads/downloads";
 import { useOutputsStore } from "@/src/features/outputs/outputs";
 
+import { SettingsRow } from "@/src/shared/components/settings-row";
+import { StatRow } from "@/src/shared/components/stat-row";
 import { colors } from "@/src/shared/theme/theme";
-
-function SettingsRow({
-  icon,
-  label,
-  detail,
-  onPress,
-  destructive,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  detail?: string;
-  onPress?: () => void;
-  destructive?: boolean;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center bg-fermata-surface rounded-xl px-4 py-4 mb-2"
-    >
-      <Ionicons
-        name={icon}
-        size={22}
-        color={destructive ? "#FF6B6B" : colors.textSecondary}
-      />
-      <Text
-        className={`flex-1 text-base ml-3 ${destructive ? "text-red-400" : "text-fermata-text"}`}
-      >
-        {label}
-      </Text>
-      {detail && (
-        <Text className="text-fermata-text-secondary text-sm mr-2">
-          {detail}
-        </Text>
-      )}
-      {onPress && !destructive && (
-        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-      )}
-    </Pressable>
-  );
-}
+import { formatBytes } from "@/src/shared/lib/format";
 
 export default function SettingsScreen() {
   const { sources, removeSource, getAllAdapters } = useSourcesStore(
@@ -103,7 +67,6 @@ export default function SettingsScreen() {
           Settings
         </Text>
 
-        {/* Sources section */}
         <Text className="text-sm font-medium text-fermata-text-secondary uppercase tracking-wider mb-2 ml-1">
           Sources
         </Text>
@@ -122,7 +85,7 @@ export default function SettingsScreen() {
                 onPress={() => removeSource(source.id)}
                 className="p-2"
               >
-                <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+                <Ionicons name="trash-outline" size={18} color={colors.destructive} />
               </Pressable>
             </View>
           </View>
@@ -138,7 +101,6 @@ export default function SettingsScreen() {
           </Text>
         </Pressable>
 
-        {/* Library section */}
         <Text className="text-sm font-medium text-fermata-text-secondary uppercase tracking-wider mb-2 ml-1 mt-6">
           Library
         </Text>
@@ -163,33 +125,27 @@ export default function SettingsScreen() {
           )}
         </Pressable>
 
-        {/* Stats */}
-        <View className="bg-fermata-surface rounded-xl px-4 py-4 mb-2">
-          <View className="flex-row justify-between">
-            <StatItem label="Artists" value={stats.artists} />
-            <StatItem label="Albums" value={stats.albums} />
-            <StatItem label="Tracks" value={stats.tracks} />
-            <StatItem label="Playlists" value={stats.playlists} />
-          </View>
-        </View>
+        <StatRow
+          items={[
+            { label: "Artists", value: stats.artists },
+            { label: "Albums", value: stats.albums },
+            { label: "Tracks", value: stats.tracks },
+            { label: "Playlists", value: stats.playlists },
+          ]}
+        />
 
-        {/* Downloads section */}
         <Text className="text-sm font-medium text-fermata-text-secondary uppercase tracking-wider mb-2 ml-1 mt-6">
           Downloads
         </Text>
 
-        <View className="bg-fermata-surface rounded-xl px-4 py-4 mb-2">
-          <View className="flex-row justify-between">
-            <StatItem label="Downloaded" value={dlStats.completedTracks} />
-            <StatItem label="Pending" value={dlStats.pendingTracks} />
-            <StatItem label="Failed" value={dlStats.errorTracks} />
-            <StatItem
-              label="Storage"
-              value={0}
-              formatted={formatBytes(dlStats.totalBytes)}
-            />
-          </View>
-        </View>
+        <StatRow
+          items={[
+            { label: "Downloaded", value: dlStats.completedTracks },
+            { label: "Pending", value: dlStats.pendingTracks },
+            { label: "Failed", value: dlStats.errorTracks },
+            { label: "Storage", value: 0, formatted: formatBytes(dlStats.totalBytes) },
+          ]}
+        />
 
         {dlStats.errorTracks > 0 && (
           <SettingsRow
@@ -211,38 +167,17 @@ export default function SettingsScreen() {
           />
         )}
 
-        {/* Output section */}
         <Text className="text-sm font-medium text-fermata-text-secondary uppercase tracking-wider mb-2 ml-1 mt-6">
           Output
         </Text>
 
         <OutputSection />
 
-        {/* Footer */}
         <Text className="text-center text-fermata-muted text-xs mt-12 mb-8">
           Fermata 𝄐 v0.1.0
         </Text>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function StatItem({
-  label,
-  value,
-  formatted,
-}: {
-  label: string;
-  value: number;
-  formatted?: string;
-}) {
-  return (
-    <View className="items-center">
-      <Text className="text-fermata-text text-lg font-semibold">
-        {formatted ?? value.toLocaleString()}
-      </Text>
-      <Text className="text-fermata-text-secondary text-xs">{label}</Text>
-    </View>
   );
 }
 
@@ -266,6 +201,14 @@ function OutputSection() {
     : null;
   const activeLabel = activeSpeaker?.name ?? "This Device";
 
+  const speakerCountByOutput = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const s of availableSpeakers) {
+      counts.set(s.outputId, (counts.get(s.outputId) ?? 0) + 1);
+    }
+    return counts;
+  }, [availableSpeakers]);
+
   return (
     <>
       <SettingsRow
@@ -287,14 +230,14 @@ function OutputSection() {
                 {output.name}
               </Text>
               <Text className="text-fermata-text-secondary text-xs">
-                {output.type} · {availableSpeakers.filter((s) => s.outputId === output.id).length} speakers
+                {output.type} · {speakerCountByOutput.get(output.id) ?? 0} speakers
               </Text>
             </View>
             <Pressable
               onPress={() => void removeOutput(output.id)}
               className="p-2"
             >
-              <Ionicons name="trash-outline" size={18} color="#FF6B6B" />
+              <Ionicons name="trash-outline" size={18} color={colors.destructive} />
             </Pressable>
           </View>
         </View>
@@ -311,13 +254,4 @@ function OutputSection() {
       </Pressable>
     </>
   );
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  if (bytes < 1024 * 1024 * 1024)
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
