@@ -20,6 +20,7 @@ import { useDownloadStore, setDownloadAdapterResolver } from "@/src/features/dow
 import { useOutputsStore, setTransferPlaybackCallback } from "@/src/features/outputs/outputs";
 import { TrackActionsProvider } from "@/src/features/library/library";
 import { initArtworkCache } from "@/src/features/artwork/artwork";
+import { ServicesProvider } from "@/src/features/services/services";
 
 import migrations from "@/drizzle/migrations";
 
@@ -105,6 +106,7 @@ export default function RootLayout() {
   }
 
   return (
+    <ServicesProvider>
     <ThemeProvider value={fermataTheme}>
       <TrackActionsProvider>
         <Stack
@@ -120,5 +122,6 @@ export default function RootLayout() {
       </TrackActionsProvider>
       <StatusBar style="light" />
     </ThemeProvider>
+    </ServicesProvider>
   );
 }

@@ -6,11 +6,11 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useShallow } from "zustand/react/shallow";
 
-import { useSourcesStore } from "@/src/features/sources/sources";
-import { useSyncStore } from "@/src/features/sync/sync";
-import { useLibraryStore } from "@/src/features/library/library";
 import { useDownloadStore } from "@/src/features/downloads/downloads";
 import { useOutputsStore } from "@/src/features/outputs/outputs";
+
+import { useSources, useRemoveSource } from "@/src/hooks/sources/sources";
+import { useSyncAll, useSyncProgress } from "@/src/hooks/sync/sync";
 
 import { SettingsRow } from "@/src/shared/components/settings-row";
 import { StatRow } from "@/src/shared/components/stat-row";
@@ -18,23 +18,10 @@ import { colors } from "@/src/shared/theme/theme";
 import { formatBytes } from "@/src/shared/lib/format";
 
 export default function SettingsScreen() {
-  const { sources, removeSource, getAllAdapters } = useSourcesStore(
-    useShallow((s) => ({
-      sources: s.sources,
-      removeSource: s.removeSource,
-      getAllAdapters: s.getAllAdapters,
-    })),
-  );
-  const { isSyncing, progress, syncAll } = useSyncStore(
-    useShallow((s) => ({
-      isSyncing: s.isSyncing,
-      progress: s.progress,
-      syncAll: s.syncAll,
-    })),
-  );
-  const { stats, refreshAll } = useLibraryStore(
-    useShallow((s) => ({ stats: s.stats, refreshAll: s.refreshAll })),
-  );
+  const { sources } = useSources();
+  const { mutate: removeSource } = useRemoveSource();
+  const { mutate: syncAll } = useSyncAll();
+  const { isSyncing, progress } = useSyncProgress();
   const {
     stats: dlStats,
     removeAll: removeAllDownloads,
@@ -49,9 +36,8 @@ export default function SettingsScreen() {
     })),
   );
 
-  const handleSync = async () => {
-    await syncAll(getAllAdapters());
-    await refreshAll();
+  const handleSync = () => {
+    void syncAll(sources);
   };
 
   const syncDetail = isSyncing
@@ -78,11 +64,11 @@ export default function SettingsScreen() {
               <View className="flex-1 ml-3">
                 <Text className="text-fermata-text text-base">{source.name}</Text>
                 <Text className="text-fermata-text-secondary text-xs">
-                  {source.type} · {source.baseUrl}
+                  {source.type} · {source.config.baseUrl}
                 </Text>
               </View>
               <Pressable
-                onPress={() => removeSource(source.id)}
+                onPress={() => void removeSource(source.id)}
                 className="p-2"
               >
                 <Ionicons name="trash-outline" size={18} color={colors.destructive} />
@@ -124,15 +110,6 @@ export default function SettingsScreen() {
             </Text>
           )}
         </Pressable>
-
-        <StatRow
-          items={[
-            { label: "Artists", value: stats.artists },
-            { label: "Albums", value: stats.albums },
-            { label: "Tracks", value: stats.tracks },
-            { label: "Playlists", value: stats.playlists },
-          ]}
-        />
 
         <Text className="text-sm font-medium text-fermata-text-secondary uppercase tracking-wider mb-2 ml-1 mt-6">
           Downloads
