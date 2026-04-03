@@ -7,7 +7,7 @@ A calm, multi-source media player built with Expo (React Native). Supports music
 - **Expo SDK 55** with Expo Router (file-based routing in `app/`)
 - **NativeWind v4** (Tailwind CSS for React Native) — use `className` not `StyleSheet`
 - **Drizzle ORM** with **expo-sqlite** — typed schema, queries, and migrations
-- **react-native-track-player v5** — audio playback (requires dev build, not Expo Go). Alpha version needed for RN 0.83 new arch compatibility.
+- **expo-audio** — audio playback with `AudioPlaylist` (gapless queue, lock screen, background audio, web support)
 - **Zustand** — state management
 - **TypeScript** — strict mode
 - **ESLint 9** — flat config (`eslint.config.mjs`) enforcing architecture boundaries
@@ -134,7 +134,7 @@ docs/                             # Architecture, design, standards, code guidel
 - **Library sync, not live fetch** — UI reads from local SQLite, never remote APIs directly.
 - **Artwork is a source item ID** — DB stores `artworkSourceItemId`, not URLs. Resolve via `resolveArtworkUrl()` at read time.
 - **Deterministic IDs** — `stableId(sourceId, sourceItemId)` for synced entities, `generateId()` for local-only. Both in `shared/lib/ids.ts`.
-- **Lazy Track Player** — loaded via `require()` in try/catch. App works in Expo Go without audio.
+- **expo-audio playback** — `AudioPlaylist` for gapless queue, `AudioPlayer` for lock screen metadata. Background audio via `setAudioModeAsync`.
 - **Media types** — `albums` and `tracks` have a `mediaType` column: `'music' | 'podcast' | 'audiobook'`. Defaults to `'music'`. Library queries accept an optional `mediaType` filter.
 - **Playback progress** — `playback_progress` table tracks position/completion for podcast and audiobook tracks. `needsSync` flag enables offline-first bidirectional sync. Not used for music. `QueueTrack.tracksProgress` boolean (pre-computed from `mediaType`) avoids runtime type checks during playback.
 - **Scoped sourceItemId** — Audiobookshelf episodes/chapters use `"{libraryItemId}:{subId}"` format since they're nested under library items. Parsed by `splitSourceItemId()` in the adapter. Streaming path, chapter offsets, and artwork IDs are separate DB columns (`contentUrl`, `chapterStartMs`, `artworkSourceItemId` on tracks), not packed into the ID.

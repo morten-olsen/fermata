@@ -17,6 +17,8 @@ type FileSystem = {
   fileExists(...segments: string[]): Promise<boolean>;
   deleteFile(...segments: string[]): Promise<void>;
   getFileUri(...segments: string[]): string;
+  /** Get a playable URL for a file. On native, returns the file URI. On web, reads from OPFS and returns a fresh blob URL. */
+  getPlayableUrl(...segments: string[]): Promise<string | null>;
 };
 
 export type { FileSystem, FsEntry, DownloadResult };

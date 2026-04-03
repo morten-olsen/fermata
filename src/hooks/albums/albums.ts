@@ -4,6 +4,7 @@ import { AlbumsService } from "@/src/services/albums/albums";
 
 import { useService } from "../service/service";
 import { useServiceQuery } from "../service/service.query";
+import { useServiceMutation } from "../service/service.mutation";
 
 const albumEvents = ['changed'] as const;
 
@@ -62,4 +63,14 @@ const useAlbumsByArtist = (artistName: string) => {
   return { albums, loading };
 };
 
-export { useAlbums, useAlbum, useAlbumTracks, useAlbumsByArtist };
+const useToggleAlbumFavourite = () => {
+  const albumsService = useService(AlbumsService);
+  return useServiceMutation(albumsService.toggleFavourite);
+};
+
+const useSearchAlbums = () => {
+  const albumsService = useService(AlbumsService);
+  return useServiceMutation(albumsService.search);
+};
+
+export { useAlbums, useAlbum, useAlbumTracks, useAlbumsByArtist, useToggleAlbumFavourite, useSearchAlbums };

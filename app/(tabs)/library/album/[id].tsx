@@ -3,19 +3,14 @@ import { View, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
-import { useShallow } from "zustand/react/shallow";
-
-import {
-  useLibraryStore,
-  TrackRow,
-  useTrackActions,
-  toActionTarget,
-} from "@/src/features/library/library";
-import type { TrackRowType } from "@/src/features/library/library";
-import { usePlaybackStore } from "@/src/features/playback/playback";
-
+import { TrackRow } from "@/src/components/media/track-row";
+import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
+import type { TrackRow as TrackRowType } from "@/src/services/database/database.schemas";
+import { useToggleTrackFavourite } from "@/src/hooks/tracks/tracks";
+import { useToggleAlbumFavourite } from "@/src/hooks/albums/albums";
 import { useAlbum, useAlbumTracks } from "@/src/hooks/albums/albums";
 import { useIsPinned, usePinForOffline, useUnpinOffline } from "@/src/hooks/downloads/downloads";
+import { usePlayAlbum, useShuffleAlbum, useCurrentTrack } from "@/src/hooks/playback/playback";
 import { useService } from "@/src/hooks/service/service";
 import { DownloadService } from "@/src/services/downloads/downloads";
 
@@ -29,19 +24,11 @@ export default function AlbumDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { album } = useAlbum(id);
   const { tracks } = useAlbumTracks(id);
-  const { toggleFavourite, toggleAlbumFavourite } = useLibraryStore(
-    useShallow((s) => ({
-      toggleFavourite: s.toggleFavourite,
-      toggleAlbumFavourite: s.toggleAlbumFavourite,
-    })),
-  );
-  const { playAlbum, shuffleAlbum, currentTrack } = usePlaybackStore(
-    useShallow((s) => ({
-      playAlbum: s.playAlbum,
-      shuffleAlbum: s.shuffleAlbum,
-      currentTrack: s.currentTrack,
-    })),
-  );
+  const { mutate: toggleFavourite } = useToggleTrackFavourite();
+  const { mutate: toggleAlbumFavourite } = useToggleAlbumFavourite();
+  const { mutate: playAlbum } = usePlayAlbum();
+  const { mutate: shuffleAlbum } = useShuffleAlbum();
+  const { data: currentTrack } = useCurrentTrack();
   const { showTrackActions } = useTrackActions();
   const { mutate: pinForOffline } = usePinForOffline();
   const { mutate: unpinOffline } = useUnpinOffline();
@@ -68,7 +55,7 @@ export default function AlbumDetailScreen() {
 
   const trackToAction = useCallback(
     (item: TrackRowType) =>
-      toActionTarget(item, album?.artworkSourceItemId),
+      toActionTarget({ ...item, artworkUri: item.artworkUri ?? album?.artworkUri }),
     [album]
   );
 
@@ -134,8 +121,7 @@ export default function AlbumDetailScreen() {
               />
             </NavBar>
             <DetailHeader
-              sourceId={album.sourceId}
-              artworkSourceItemId={album.artworkSourceItemId}
+              artworkUri={album.artworkUri}
               title={album.title}
               subtitle={album.artistName}
               onSubtitlePress={() =>
@@ -151,7 +137,7 @@ export default function AlbumDetailScreen() {
                     label="Play"
                     icon="play"
                     variant="primary"
-                    onPress={() => id && playAlbum(id)}
+                    onPress={() => id && playAlbum({ albumId: id })}
                   />
                   <ActionButton
                     label="Shuffle"
@@ -195,13 +181,13 @@ const AlbumTrackItem = memo(function AlbumTrackItem({
   index: number;
   albumId: string;
   currentTrackId: string | undefined;
-  playAlbum: (albumId: string, startIndex?: number) => Promise<void>;
+  playAlbum: (params: { albumId: string; startIndex?: number }) => Promise<void>;
   showTrackActions: (target: ReturnType<typeof toActionTarget>) => void;
   trackToAction: (item: TrackRowType) => ReturnType<typeof toActionTarget>;
   handleToggleFavourite: (item: TrackRowType) => void;
 }) {
   const downloadService = useService(DownloadService);
-  const handlePress = useCallback(() => playAlbum(albumId, index), [playAlbum, albumId, index]);
+  const handlePress = useCallback(() => playAlbum({ albumId, startIndex: index }), [playAlbum, albumId, index]);
   const handleMore = useCallback(() => showTrackActions(trackToAction(item)), [showTrackActions, trackToAction, item]);
   const handleFav = useCallback(() => handleToggleFavourite(item), [handleToggleFavourite, item]);
 

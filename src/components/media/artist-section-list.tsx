@@ -129,8 +129,7 @@ export function ArtistSectionList({
         <View style={{ height: ARTIST_ROW_HEIGHT }}>
           <ArtistRow
             name={item.artist.name}
-            sourceId={item.artist.sourceId}
-            artworkSourceItemId={item.artist.artworkSourceItemId}
+            artworkUri={item.artist.artworkUri}
             onPress={() => onArtistPress(item.artist.name)}
           />
         </View>

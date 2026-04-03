@@ -12,8 +12,7 @@ interface AlbumCardProps {
   title: string;
   artistName: string;
   year?: number | null;
-  sourceId: string;
-  artworkSourceItemId: string | null;
+  artworkUri?: string | null;
   isDownloaded?: boolean;
   onPress: () => void;
 }
@@ -22,8 +21,7 @@ export const AlbumCard = memo(function AlbumCard({
   title,
   artistName,
   year,
-  sourceId,
-  artworkSourceItemId,
+  artworkUri,
   isDownloaded,
   onPress,
 }: AlbumCardProps) {
@@ -41,7 +39,7 @@ export const AlbumCard = memo(function AlbumCard({
 
   return (
     <PressableScale onPress={onPress} className="mb-4">
-      <SourceArtwork sourceId={sourceId} artworkSourceItemId={artworkSourceItemId} fill fallbackIcon="disc" badge={badge} />
+      <SourceArtwork artworkUri={artworkUri} fill fallbackIcon="disc" badge={badge} />
       <Text className="text-fermata-text text-sm font-medium mt-2" numberOfLines={1}>
         {title}
       </Text>

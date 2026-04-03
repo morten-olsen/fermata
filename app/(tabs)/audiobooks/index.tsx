@@ -4,7 +4,8 @@ import { View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
-import { BookCard, BookGrid } from "@/src/features/library/library";
+import { BookCard } from "@/src/components/media/book-card";
+import { BookGrid } from "@/src/components/media/book-grid";
 
 import { useAudiobooks } from "@/src/hooks/audiobooks/audiobooks";
 import { useLibraryStats } from "@/src/hooks/library/library";
@@ -29,8 +30,7 @@ export default function AudiobooksScreen() {
         id={item.id}
         title={item.title}
         artistName={item.authorName}
-        sourceId={item.sourceId}
-        artworkSourceItemId={item.artworkSourceItemId}
+        artworkUri={item.artworkUri}
         onPress={() => handleBookPress(item.id)}
       />
     ),

@@ -59,6 +59,11 @@ class FileSystemService implements FileSystem {
   public getFileUri = (...segments: string[]) => {
     return resolveFile(...segments).uri;
   };
+
+  public getPlayableUrl = async (...segments: string[]): Promise<string | null> => {
+    const file = resolveFile(...segments);
+    return file.exists ? file.uri : null;
+  };
 }
 
 export { FileSystemService };

@@ -4,8 +4,8 @@ import { View, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 
-import { ChapterRow } from "@/src/features/library/library";
-import { usePlaybackStore } from "@/src/features/playback/playback";
+import { ChapterRow } from "@/src/components/media/chapter-row";
+import { useSeekTo } from "@/src/hooks/playback/playback";
 
 import { useAudiobook } from "@/src/hooks/audiobooks/audiobooks";
 
@@ -20,7 +20,7 @@ type Chapter = { title: string; startMs: number; endMs: number };
 export default function BookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { audiobook } = useAudiobook(id);
-  const seekTo = usePlaybackStore((s) => s.seekTo);
+  const { mutate: seekTo } = useSeekTo();
 
   const chapters = useMemo(() => audiobook?.chapters ?? [], [audiobook]);
 
@@ -56,8 +56,7 @@ export default function BookDetailScreen() {
           <View>
             <NavBar />
             <DetailHeader
-              sourceId={audiobook.sourceId}
-              artworkSourceItemId={audiobook.artworkSourceItemId}
+              artworkUri={audiobook.artworkUri}
               artworkAspect="portrait"
               fallbackIcon="book"
               title={audiobook.title}

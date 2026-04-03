@@ -41,6 +41,7 @@ const artistRowSchema = z.object({
   sourceItemId: z.string(),
   name: z.string(),
   artworkSourceItemId: z.string().nullish(),
+  artworkUri: z.string().nullish(),
   isFavourite: z.boolean().nullish(),
   syncedAt: z.string(),
 });
@@ -57,6 +58,7 @@ const albumRowSchema = z.object({
   artistName: z.string(),
   year: z.number().nullish(),
   artworkSourceItemId: z.string().nullish(),
+  artworkUri: z.string().nullish(),
   trackCount: z.number().nullish(),
   isFavourite: z.boolean().nullish(),
   syncedAt: z.string(),
@@ -79,6 +81,7 @@ const trackRowSchema = z.object({
   discNumber: z.number().nullish(),
   isFavourite: z.boolean().nullish(),
   artworkSourceItemId: z.string().nullish(),
+  artworkUri: z.string().nullish(),
   syncedAt: z.string(),
 });
 
@@ -113,6 +116,7 @@ const audiobookRowSchema = z.object({
   description: z.string().nullish(),
   duration: z.number(),
   artworkSourceItemId: z.string().nullish(),
+  artworkUri: z.string().nullish(),
   chapters: z.array(z.object({
     title: z.string(),
     startMs: z.number(),
@@ -133,6 +137,7 @@ const showRowSchema = z.object({
   authorName: z.string().nullish(),
   description: z.string().nullish(),
   artworkSourceItemId: z.string().nullish(),
+  artworkUri: z.string().nullish(),
   episodeCount: z.number().nullish(),
   syncedAt: z.string(),
 });
@@ -154,6 +159,7 @@ const episodeRowSchema = z.object({
   seasonNumber: z.number().nullish(),
   contentUrl: z.string().nullish(),
   artworkSourceItemId: z.string().nullish(),
+  artworkUri: z.string().nullish(),
   syncedAt: z.string(),
 });
 

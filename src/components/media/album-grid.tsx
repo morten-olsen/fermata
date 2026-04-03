@@ -83,8 +83,7 @@ export function AlbumGrid({
             title={item.title}
             artistName={item.artistName}
             year={item.year}
-            sourceId={item.sourceId}
-            artworkSourceItemId={item.artworkSourceItemId}
+            artworkUri={item.artworkUri}
             onPress={() => onAlbumPress(item.id)}
           />
         )}

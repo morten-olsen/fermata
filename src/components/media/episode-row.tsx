@@ -3,7 +3,7 @@ import { View, Text, Pressable } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
-import { EqualizerBars } from "@/src/features/playback/playback";
+import { EqualizerBars } from "@/src/components/playback/equalizer-bars";
 
 import { ProgressBar } from "@/src/shared/components/progress-bar";
 import { colors } from "@/src/shared/theme/theme";

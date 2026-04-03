@@ -4,7 +4,8 @@ import { View, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
-import { AlbumGrid, ShowCard } from "@/src/features/library/library";
+import { AlbumGrid } from "@/src/components/media/album-grid";
+import { ShowCard } from "@/src/components/media/show-card";
 
 import { useShows } from "@/src/hooks/shows/shows";
 import { useLibraryStats } from "@/src/hooks/library/library";
@@ -30,8 +31,7 @@ export default function PodcastsScreen() {
         title={item.title}
         artistName={item.authorName ?? "Unknown"}
         episodeCount={item.episodeCount ?? undefined}
-        sourceId={item.sourceId}
-        artworkSourceItemId={item.artworkSourceItemId}
+        artworkUri={item.artworkUri}
         onPress={() => handleShowPress(item.id)}
       />
     ),

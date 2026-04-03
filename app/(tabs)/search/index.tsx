@@ -5,8 +5,17 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useLibraryStore, type AlbumRow, type ArtistRowType, type TrackRowType, AlbumCard, ArtistRow, TrackRow, useTrackActions, toActionTarget } from "@/src/features/library/library";
-import { usePlaybackStore } from "@/src/features/playback/playback";
+import { AlbumCard } from "@/src/components/media/album-card";
+import { ArtistRow } from "@/src/components/media/artist-row";
+import { TrackRow } from "@/src/components/media/track-row";
+import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
+import type { AlbumRow, ArtistRow as ArtistRowType, TrackRow as TrackRowType } from "@/src/services/database/database.schemas";
+import { usePlayTrack } from "@/src/hooks/playback/playback";
+import { useToggleTrackFavourite } from "@/src/hooks/tracks/tracks";
+import { useService } from "@/src/hooks/service/service";
+import { TracksService } from "@/src/services/tracks/tracks";
+import { AlbumsService } from "@/src/services/albums/albums";
+import { ArtistsService } from "@/src/services/artists/artists";
 
 import { EmptyState } from "@/src/shared/components/empty-state";
 import { colors } from "@/src/shared/theme/theme";
@@ -18,9 +27,11 @@ interface SearchResults {
 }
 
 export default function SearchScreen() {
-  const search = useLibraryStore((s) => s.search);
-  const toggleFavourite = useLibraryStore((s) => s.toggleFavourite);
-  const playTrack = usePlaybackStore((s) => s.playTrack);
+  const tracksService = useService(TracksService);
+  const albumsService = useService(AlbumsService);
+  const artistsService = useService(ArtistsService);
+  const { mutate: toggleFavourite } = useToggleTrackFavourite();
+  const { mutate: playTrack } = usePlayTrack();
   const { showTrackActions } = useTrackActions();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
@@ -35,8 +46,13 @@ export default function SearchScreen() {
     }
 
     debounceRef.current = setTimeout(async () => {
-      const r = await search(query.trim());
-      setResults(r);
+      const q = query.trim();
+      const [artists, albums, tracks] = await Promise.all([
+        artistsService.search(q),
+        albumsService.search(q),
+        tracksService.search(q),
+      ]);
+      setResults({ artists, albums, tracks });
     }, 300);
 
     return () => {
@@ -107,8 +123,7 @@ export default function SearchScreen() {
                       <ArtistRow
                         key={artist.id}
                         name={artist.name}
-                        sourceId={artist.sourceId}
-                        artworkSourceItemId={artist.artworkSourceItemId}
+                        artworkUri={artist.artworkUri}
                         onPress={() =>
                           router.push({
                             pathname: "/(tabs)/library/artist/[name]",

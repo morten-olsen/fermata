@@ -11,8 +11,7 @@ interface BookCardProps {
   id: string;
   title: string;
   artistName: string;
-  sourceId: string;
-  artworkSourceItemId: string | null;
+  artworkUri?: string | null;
   /** Overall progress 0–1. undefined = not started. */
   progress?: number;
   isDownloaded?: boolean;
@@ -22,8 +21,7 @@ interface BookCardProps {
 export const BookCard = memo(function BookCard({
   title,
   artistName,
-  sourceId,
-  artworkSourceItemId,
+  artworkUri,
   progress,
   isDownloaded,
   onPress,
@@ -46,8 +44,7 @@ export const BookCard = memo(function BookCard({
   return (
     <PressableScale onPress={onPress} className="mb-4">
       <SourceArtwork
-        sourceId={sourceId}
-        artworkSourceItemId={artworkSourceItemId}
+        artworkUri={artworkUri}
         aspect="portrait"
         fill
         fallbackIcon="book"

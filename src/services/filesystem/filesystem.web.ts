@@ -115,7 +115,17 @@ class FileSystemService implements FileSystem {
   };
 
   public getFileUri = (...segments: string[]) => {
-    return `opfs:///${segments.join("/")}`;
+    // Returns a stable URL intercepted by the OPFS service worker.
+    // The SW reads the file from OPFS and serves it as a response.
+    return `/_opfs/${segments.join("/")}`;
+  };
+
+  public getPlayableUrl = async (...segments: string[]): Promise<string | null> => {
+    // Use the same stable /_opfs/ URL scheme. The service worker handles
+    // reading from OPFS and serving with the correct Content-Type.
+    const exists = await this.fileExists(...segments);
+    if (!exists) return null;
+    return this.getFileUri(...segments);
   };
 }
 

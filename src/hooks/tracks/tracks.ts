@@ -4,6 +4,7 @@ import { TracksService } from "@/src/services/tracks/tracks";
 
 import { useService } from "../service/service";
 import { useServiceQuery } from "../service/service.query";
+import { useServiceMutation } from "../service/service.mutation";
 
 const trackEvents = ['changed'] as const;
 
@@ -33,4 +34,14 @@ const useTrack = (id: string) => {
   return { track, loading };
 };
 
-export { useTracks, useTrack };
+const useToggleTrackFavourite = () => {
+  const tracksService = useService(TracksService);
+  return useServiceMutation(tracksService.toggleFavourite);
+};
+
+const useSearchTracks = () => {
+  const tracksService = useService(TracksService);
+  return useServiceMutation(tracksService.search);
+};
+
+export { useTracks, useTrack, useToggleTrackFavourite, useSearchTracks };

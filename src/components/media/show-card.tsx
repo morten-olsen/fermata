@@ -12,8 +12,7 @@ interface ShowCardProps {
   title: string;
   artistName: string;
   episodeCount?: number;
-  sourceId: string;
-  artworkSourceItemId: string | null;
+  artworkUri?: string | null;
   /** Whether the show has unplayed episodes. */
   hasNew?: boolean;
   onPress: () => void;
@@ -23,8 +22,7 @@ export const ShowCard = memo(function ShowCard({
   title,
   artistName,
   episodeCount,
-  sourceId,
-  artworkSourceItemId,
+  artworkUri,
   hasNew,
   onPress,
 }: ShowCardProps) {
@@ -50,7 +48,7 @@ export const ShowCard = memo(function ShowCard({
   return (
     <PressableScale onPress={onPress} className="mb-4">
       <View style={{ position: "relative" }}>
-        <SourceArtwork sourceId={sourceId} artworkSourceItemId={artworkSourceItemId} fill fallbackIcon="mic" badge={badge} />
+        <SourceArtwork artworkUri={artworkUri} fill fallbackIcon="mic" badge={badge} />
         {hasNew && (
           <View
             style={{

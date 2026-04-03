@@ -31,6 +31,16 @@ class ArtistsService extends EventEmitter<ArtistsServiceEvents> {
     const db = await this.#db();
     return db.sql<ArtistRow>`SELECT * FROM artists ORDER BY name ASC`;
   };
+
+  public search = async (query: string, limit = 20): Promise<ArtistRow[]> => {
+    const db = await this.#db();
+    const pattern = `%${query}%`;
+    return db.sql<ArtistRow>`
+      SELECT * FROM artists
+      WHERE name LIKE ${pattern}
+      ORDER BY name ASC LIMIT ${limit}
+    `;
+  };
 }
 
 export { ArtistsService };

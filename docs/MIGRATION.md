@@ -114,16 +114,17 @@ const { mutate: addItem } = useAddItem();
 | Library stats | `features/library/library.store.ts` (stats) | `services/sync/sync.ts` (`getStats`) | Counts from all entity tables. |
 | Database layer | `shared/db/` (Drizzle) | `services/database/` | Raw SQL, Zod validation, web support via sql.js. |
 | Downloads | `features/downloads/` | `services/downloads/downloads.ts` | Polymorphic `(itemId, itemType)` key supports tracks, episodes, audiobooks. Centralized queue, retries, filesystem. Pins resolve to downloadable items via entity queries. |
+| Playback | `features/playback/playback.store.ts` | `services/playback/playback.service.ts` | Single source of truth + reconcile pattern. Service owns queue, position, volume. Players are dumb I/O devices receiving full state snapshots. |
+| Outputs | `features/outputs/outputs.store.ts` | `services/outputs/outputs.service.ts` | Speaker CRUD, connection lifecycle, player creation. Creates `PlaybackPlayer` instances and swaps them on the PlaybackService via `setPlayer()`. |
+| Output adapters | `features/outputs/{adapter}/` | `services/playback/players/` | Replaced `OutputAdapter` interface with `PlaybackPlayer` abstract class. `reconcile()` replaces `play()`/`loadQueue()`/`skipToIndex()`. Local (expo-audio) and HA players. |
+| Progress tracking | `features/progress/` | `services/progress/progress.ts` + `services/playback/playback.service.ts` | Recording absorbed into PlaybackService (reacts to player events). Queries, sync push, and classification in ProgressService. |
 
 ### Not Yet Migrated
 
 | Feature | Old Location | Blocked By | Notes |
 |---------|-------------|-----------|-------|
 | Library browsing | `features/library/` | — | Read queries for albums, tracks, artists, shows, episodes, audiobooks. |
-| Playback | `features/playback/` | Library | Queue management, transport, RNTP integration. |
 | Artwork | `features/artwork/` | — | URL resolution, filesystem cache, color extraction. |
-| Outputs | `features/outputs/` | Playback | Output adapter lifecycle, speaker routing. |
-| Progress tracking | `features/progress/` | Sync | Bidirectional sync, local tracking for episodes/audiobooks. |
 | Playlists | `features/library/` (playlists) | Library | Mix tapes, playlist sync. |
 
 ## Coexistence

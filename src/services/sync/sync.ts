@@ -6,7 +6,7 @@ import type { SourceRow } from "../database/database.schemas";
 import { DatabaseService } from "../database/database.service";
 import type { Services } from "../services/services";
 import { SourcesService } from "../sources/sources";
-import { ArtworkService } from "../artwork/artwork";
+import { FileSystemService } from "../filesystem/filesystem";
 
 import type { SyncPhase, SyncProgress, SyncResult, SyncServiceEvents } from "./sync.types";
 
@@ -163,25 +163,77 @@ class SyncService extends EventEmitter<SyncServiceEvents> {
     progress('audiobooks', remoteAudiobooks.length);
 
     // ── Artwork ─────────────────────────────────────
-    const artworkItems = new Map<string, string>();
-    const collect = (itemId: string | null | undefined) => {
-      if (itemId && !artworkItems.has(itemId)) {
-        artworkItems.set(itemId, adapter.getArtworkUrl(itemId, 'medium'));
+    // Download artwork and store a stable URI on each entity row.
+    // On native: file URI from filesystem. On web: stable /opfs/ URL served by service worker.
+    const fs = this.#services.get(FileSystemService);
+    const artworkDir = ['downloads', 'artwork'];
+    await fs.ensureDir(...artworkDir);
+
+    const resolveArtworkUri = async (artworkSourceItemId: string | null | undefined): Promise<string | null> => {
+      if (!artworkSourceItemId) return null;
+      const fileName = `${sid}_${artworkSourceItemId}.jpg`;
+
+      // Already downloaded — return stable URI
+      const exists = await fs.fileExists(...artworkDir, fileName);
+      if (exists) return fs.getFileUri(...artworkDir, fileName);
+
+      // Download and return stable URI
+      try {
+        const remoteUrl = adapter.getArtworkUrl(artworkSourceItemId, 'medium');
+        await fs.downloadFile(remoteUrl, ...artworkDir, fileName);
+        return fs.getFileUri(...artworkDir, fileName);
+      } catch {
+        return null;
       }
     };
 
-    for (const a of remoteArtists) collect(a.artworkSourceItemId);
-    for (const a of remoteAlbums) collect(a.artworkSourceItemId);
-    for (const s of remoteShows) collect(s.artworkSourceItemId);
-    for (const a of remoteAudiobooks) collect(a.artworkSourceItemId);
-
-    const artworkService = this.#services.get(ArtworkService);
     let artworkCount = 0;
-    for (const [itemId, url] of artworkItems) {
-      await artworkService.download(url, sid, itemId, 'medium');
-      artworkCount++;
+
+    for (const a of remoteArtists) {
+      const uri = await resolveArtworkUri(a.artworkSourceItemId);
+      if (uri) {
+        const id = stableId(sid, a.sourceItemId);
+        await db.sql`UPDATE artists SET artworkUri = ${uri} WHERE id = ${id}`;
+        artworkCount++;
+      }
     }
+
+    for (const a of remoteAlbums) {
+      const uri = await resolveArtworkUri(a.artworkSourceItemId);
+      if (uri) {
+        const id = stableId(sid, a.sourceItemId);
+        await db.sql`UPDATE albums SET artworkUri = ${uri} WHERE id = ${id}`;
+        artworkCount++;
+      }
+    }
+
+    for (const s of remoteShows) {
+      const uri = await resolveArtworkUri(s.artworkSourceItemId);
+      if (uri) {
+        const id = stableId(sid, s.sourceItemId);
+        await db.sql`UPDATE shows SET artworkUri = ${uri} WHERE id = ${id}`;
+        artworkCount++;
+      }
+    }
+
+    for (const a of remoteAudiobooks) {
+      const uri = await resolveArtworkUri(a.artworkSourceItemId);
+      if (uri) {
+        const id = stableId(sid, a.sourceItemId);
+        await db.sql`UPDATE audiobooks SET artworkUri = ${uri} WHERE id = ${id}`;
+        artworkCount++;
+      }
+    }
+
     progress('artwork', artworkCount);
+
+    // ── Propagate album artwork to tracks without their own ──
+    await db.sql`
+      UPDATE tracks SET artworkUri = (
+        SELECT a.artworkUri FROM albums a WHERE a.id = tracks.albumId
+      )
+      WHERE tracks.artworkUri IS NULL AND tracks.albumId IS NOT NULL AND tracks.sourceId = ${sid}
+    `;
 
     // ── Update source last sync time ────────────────
     await sourcesService.update(source.id, { lastSyncedAt: now });

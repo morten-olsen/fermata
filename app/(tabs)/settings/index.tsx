@@ -4,14 +4,11 @@ import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useShallow } from "zustand/react/shallow";
-
-import { useOutputsStore } from "@/src/features/outputs/outputs";
-
 import { useSources, useRemoveSource } from "@/src/hooks/sources/sources";
 import { useSyncAll, useSyncProgress } from "@/src/hooks/sync/sync";
 import { useLibraryStats } from "@/src/hooks/library/library";
 import { useDownloadStats, useRetryFailedDownloads, useRemoveAllDownloads } from "@/src/hooks/downloads/downloads";
+import { useOutputConfigs, useActiveTarget, useOutputSpeakers, useRemoveOutput } from "@/src/hooks/outputs/outputs";
 
 import { SettingsRow } from "@/src/shared/components/settings-row";
 import { StatRow } from "@/src/shared/components/stat-row";
@@ -175,15 +172,10 @@ export default function SettingsScreen() {
 }
 
 function OutputSection() {
-  const { outputs, activeTarget, availableSpeakers, removeOutput } =
-    useOutputsStore(
-      useShallow((s) => ({
-        outputs: s.outputs,
-        activeTarget: s.activeTarget,
-        availableSpeakers: s.availableSpeakers,
-        removeOutput: s.removeOutput,
-      })),
-    );
+  const { data: outputs = [] } = useOutputConfigs();
+  const { data: activeTarget } = useActiveTarget();
+  const { data: availableSpeakers = [] } = useOutputSpeakers();
+  const { mutate: removeOutput } = useRemoveOutput();
 
   const activeSpeaker = activeTarget
     ? availableSpeakers.find(

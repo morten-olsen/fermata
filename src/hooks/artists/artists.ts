@@ -4,6 +4,7 @@ import { ArtistsService } from "@/src/services/artists/artists";
 
 import { useService } from "../service/service";
 import { useServiceQuery } from "../service/service.query";
+import { useServiceMutation } from "../service/service.mutation";
 
 const artistEvents = ['changed'] as const;
 
@@ -20,4 +21,9 @@ const useArtists = () => {
   return { artists, loading };
 };
 
-export { useArtists };
+const useSearchArtists = () => {
+  const artistsService = useService(ArtistsService);
+  return useServiceMutation(artistsService.search);
+};
+
+export { useArtists, useSearchArtists };

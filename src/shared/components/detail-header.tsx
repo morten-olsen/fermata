@@ -3,13 +3,13 @@ import type { ReactNode } from "react";
 import { View, Text, Pressable } from "react-native";
 
 import { Artwork, type ArtworkAspect } from "@/src/shared/components/artwork";
-import { SourceArtwork } from "@/src/shared/components/source-artwork";
 
-interface BaseDetailHeaderProps {
+interface DetailHeaderProps {
   /** @default "square" */
   artworkAspect?: ArtworkAspect;
   /** Fallback icon when no artwork. @default "disc" */
   fallbackIcon?: string;
+  artworkUri?: string | null;
   title: string;
   subtitle?: string;
   onSubtitlePress?: () => void;
@@ -19,58 +19,29 @@ interface BaseDetailHeaderProps {
   showDivider?: boolean;
 }
 
-interface UriArtworkProps extends BaseDetailHeaderProps {
-  artworkUri: string | null | undefined;
-  sourceId?: never;
-  artworkSourceItemId?: never;
-}
-
-interface SourceArtworkProps extends BaseDetailHeaderProps {
-  artworkUri?: never;
-  sourceId: string;
-  artworkSourceItemId: string | null | undefined;
-}
-
-type DetailHeaderProps = UriArtworkProps | SourceArtworkProps;
-
 export const DetailHeader = memo(function DetailHeader({
   artworkAspect = "square",
   fallbackIcon = "disc",
+  artworkUri,
   title,
   subtitle,
   onSubtitlePress,
   meta,
   actions,
   showDivider = true,
-  ...artworkProps
 }: DetailHeaderProps) {
   const artworkSize = artworkAspect === "portrait" ? 192 : 256;
-
-  const artwork = 'sourceId' in artworkProps && artworkProps.sourceId
-    ? (
-      <SourceArtwork
-        sourceId={artworkProps.sourceId}
-        artworkSourceItemId={artworkProps.artworkSourceItemId}
-        aspect={artworkAspect}
-        width={artworkSize}
-        fallbackIcon={fallbackIcon}
-        heroTransition
-      />
-    )
-    : (
-      <Artwork
-        uri={'artworkUri' in artworkProps ? artworkProps.artworkUri : undefined}
-        aspect={artworkAspect}
-        width={artworkSize}
-        fallbackIcon={fallbackIcon}
-        heroTransition
-      />
-    );
 
   return (
     <View>
       <View className="items-center px-8 mb-6">
-        {artwork}
+        <Artwork
+          uri={artworkUri ?? undefined}
+          aspect={artworkAspect}
+          width={artworkSize}
+          fallbackIcon={fallbackIcon}
+          heroTransition
+        />
       </View>
 
       <View className="px-4 mb-2">

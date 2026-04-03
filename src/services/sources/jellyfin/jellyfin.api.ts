@@ -180,9 +180,13 @@ const fetchTracks = (baseUrl: string, accessToken: string, userId: string) =>
 // ── Stream & Artwork URLs ─────────────────────────────
 
 const getStreamUrl = (baseUrl: string, itemId: string, accessToken: string): string => {
-  const url = new URL(`/Audio/${itemId}/universal`, baseUrl);
-  url.searchParams.set("container", "opus,mp3,aac,flac,wav,ogg");
-  url.searchParams.set("maxStreamingBitrate", "999999999");
+  // Use /stream?static=true to serve the raw file without transcoding.
+  // The /universal endpoint does content negotiation that can return
+  // video/mp2t (MPEG transport stream) which browsers can't play,
+  // and adds unnecessary overhead on native where RNTP handles all
+  // common formats (FLAC, MP3, AAC, OGG, etc.) natively.
+  const url = new URL(`/Audio/${itemId}/stream`, baseUrl);
+  url.searchParams.set("static", "true");
   url.searchParams.set("api_key", accessToken);
   return url.toString();
 };

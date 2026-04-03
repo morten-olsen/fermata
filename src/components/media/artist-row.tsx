@@ -9,15 +9,13 @@ import { colors } from "@/src/shared/theme/theme";
 
 interface ArtistRowProps {
   name: string;
-  sourceId: string;
-  artworkSourceItemId: string | null;
+  artworkUri?: string | null;
   onPress: () => void;
 }
 
 export const ArtistRow = memo(function ArtistRow({
   name,
-  sourceId,
-  artworkSourceItemId,
+  artworkUri,
   onPress,
 }: ArtistRowProps) {
   return (
@@ -28,8 +26,7 @@ export const ArtistRow = memo(function ArtistRow({
       <View className="flex-row items-center py-3 px-1">
         <View className="w-12 h-12 rounded-full overflow-hidden">
           <SourceArtwork
-            sourceId={sourceId}
-            artworkSourceItemId={artworkSourceItemId}
+            artworkUri={artworkUri}
             size="sm"
             fallbackIcon="person"
           />

@@ -33,8 +33,7 @@ export function BookGrid({
         id={item.id}
         title={item.title}
         artistName={item.authorName}
-        sourceId={item.sourceId}
-        artworkSourceItemId={item.artworkSourceItemId}
+        artworkUri={item.artworkUri}
         progress={progressMap?.get(item.id)}
         onPress={() => onBookPress(item.id)}
       />

@@ -3,7 +3,7 @@ import { useCallback, useMemo, useRef, useState, memo } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import { View, FlatList } from "react-native";
 
-import { usePlaybackStore } from "@/src/features/playback/playback";
+import { useCurrentTrack } from "@/src/hooks/playback/playback";
 
 import type { TrackRow as TrackRowType } from "@/src/services/database/database.schemas";
 
@@ -120,7 +120,8 @@ const TrackListItem = memo(function TrackListItem({
   onTrackMorePress?: (track: TrackRowType) => void;
   onToggleFavourite?: (track: TrackRowType) => void;
 }) {
-  const isPlaying = usePlaybackStore((s) => s.currentTrack?.id === item.id);
+  const { data: currentTrack } = useCurrentTrack();
+  const isPlaying = currentTrack?.id === item.id;
 
   const handlePress = useCallback(() => onTrackPress(item.id), [onTrackPress, item.id]);
   const handleMore = useCallback(

@@ -3,10 +3,9 @@ import { View, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
-import { useShallow } from "zustand/react/shallow";
 
-import { EpisodeRow } from "@/src/features/library/library";
-import { usePlaybackStore } from "@/src/features/playback/playback";
+import { EpisodeRow } from "@/src/components/media/episode-row";
+import { usePlayTracks, useCurrentTrack } from "@/src/hooks/playback/playback";
 
 import { useShow, useShowEpisodes } from "@/src/hooks/shows/shows";
 import type { EpisodeRow as EpisodeRowType } from "@/src/services/database/database.schemas";
@@ -20,12 +19,8 @@ export default function PodcastShowScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { show } = useShow(id);
   const { episodes } = useShowEpisodes(id);
-  const { playTracks, currentTrack } = usePlaybackStore(
-    useShallow((s) => ({
-      playTracks: s.playTracks,
-      currentTrack: s.currentTrack,
-    })),
-  );
+  const { mutate: playTracks } = usePlayTracks();
+  const { data: currentTrack } = useCurrentTrack();
 
   const episodeIds = useMemo(() => episodes.map((e) => e.id), [episodes]);
 
@@ -33,7 +28,7 @@ export default function PodcastShowScreen() {
     (episodeId: string) => {
       const idx = episodeIds.indexOf(episodeId);
       if (idx >= 0) {
-        void playTracks(episodeIds, idx);
+        void playTracks({ trackIds: episodeIds, startIndex: idx });
       }
     },
     [episodeIds, playTracks],
@@ -41,7 +36,7 @@ export default function PodcastShowScreen() {
 
   const handlePlayLatest = useCallback(() => {
     if (episodes.length > 0) {
-      void playTracks(episodeIds, 0);
+      void playTracks({ trackIds: episodeIds, startIndex: 0 });
     }
   }, [episodes.length, playTracks, episodeIds]);
 
@@ -61,8 +56,7 @@ export default function PodcastShowScreen() {
           <View>
             <NavBar />
             <DetailHeader
-              sourceId={show.sourceId}
-              artworkSourceItemId={show.artworkSourceItemId}
+              artworkUri={show.artworkUri}
               fallbackIcon="mic"
               title={show.title}
               subtitle={show.authorName ?? "Unknown"}

@@ -38,6 +38,7 @@ type SourceAdapter = {
   getStreamUrl(sourceItemId: string, contentUrl?: string | null): string | Promise<string>;
   getStreamHeaders?(): Record<string, string>;
   getArtworkUrl(itemId: string, size?: ImageSize): string;
+  toggleFavourite?(sourceItemId: string, isFavourite: boolean): Promise<void>;
 };
 
 export type {

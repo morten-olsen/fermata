@@ -13,17 +13,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import {
-  useOutputsStore,
-  connectToHA,
-} from "@/src/features/outputs/outputs";
-import type { HAOutputConfig } from "@/src/features/outputs/outputs";
+import { useAddOutput } from "@/src/hooks/outputs/outputs";
+import { useService } from "@/src/hooks/service/service";
+import { OutputsService } from "@/src/services/outputs/outputs.service";
 
 import { colors } from "@/src/shared/theme/theme";
 import { isValidHttpUrl } from "@/src/shared/lib/validate";
 
 export default function AddOutputScreen() {
-  const addOutput = useOutputsStore((s) => s.addOutput);
+  const { mutate: addOutput } = useAddOutput();
+  const outputsService = useService(OutputsService);
 
   const [name, setName] = useState("");
   const [serverUrl, setServerUrl] = useState("");
@@ -43,22 +42,22 @@ export default function AddOutputScreen() {
 
     try {
       // Test the connection before saving
-      const connection = await connectToHA(
+      const connection = await outputsService.authenticateHA(
         serverUrl.trim(),
         accessToken.trim(),
       );
       connection.close();
 
-      const config: HAOutputConfig = {
+      const config = {
         url: serverUrl.trim(),
         accessToken: accessToken.trim(),
       };
 
-      await addOutput(
-        "home-assistant",
-        name.trim(),
-        config as unknown as Record<string, string>,
-      );
+      await addOutput({
+        type: "home-assistant",
+        name: name.trim(),
+        config,
+      });
       router.back();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Connection failed");

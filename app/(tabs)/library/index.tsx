@@ -11,26 +11,21 @@ import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import {
-  useLibraryStore,
-  AlbumGrid,
-  ArtistSectionList,
-  TrackList,
-  PlaylistRow,
-  useTrackActions,
-  toActionTarget,
-} from "@/src/features/library/library";
-import type {
-  TrackRowType,
-  PlaylistRowType,
-} from "@/src/features/library/library";
-import { useSourcesStore } from "@/src/features/sources/sources";
-import { usePlaybackStore } from "@/src/features/playback/playback";
+import { AlbumGrid } from "@/src/components/media/album-grid";
+import { ArtistSectionList } from "@/src/components/media/artist-section-list";
+import { TrackList } from "@/src/components/media/track-list";
+import { PlaylistRow } from "@/src/components/media/playlist-row";
+import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
+import type { TrackRow as TrackRowType } from "@/src/services/database/database.schemas";
+import type { PlaylistRow as PlaylistRowType } from "@/src/services/database/database.schemas";
+import { usePlaylists, useCreatePlaylist } from "@/src/hooks/playlists/playlists";
+import { useToggleTrackFavourite } from "@/src/hooks/tracks/tracks";
 import { useArtists } from "@/src/hooks/artists/artists";
 import { useAlbums } from "@/src/hooks/albums/albums";
 import { useTracks } from "@/src/hooks/tracks/tracks";
 import { useLibraryStats } from "@/src/hooks/library/library";
 import { useOfflineMode } from "@/src/hooks/downloads/downloads";
+import { usePlayTrack } from "@/src/hooks/playback/playback";
 
 import { colors } from "@/src/shared/theme/theme";
 import { SegmentedControl } from "@/src/shared/components/segmented-control";
@@ -46,23 +41,14 @@ export default function LibraryScreen() {
   const { albums } = useAlbums();
   const { artists } = useArtists();
   const { tracks } = useTracks();
-  const playlists = useLibraryStore((s) => s.playlists);
+  const { data: playlists = [] } = usePlaylists();
   const stats = useLibraryStats();
-  const refreshAll = useLibraryStore((s) => s.refreshAll);
-  const setMediaType = useLibraryStore((s) => s.setMediaType);
-  const createPlaylist = useLibraryStore((s) => s.createPlaylist);
-  const toggleFavourite = useLibraryStore((s) => s.toggleFavourite);
+  const { mutate: toggleFavourite } = useToggleTrackFavourite();
+  const { mutate: createPlaylist } = useCreatePlaylist();
 
-  const playTrack = usePlaybackStore((s) => s.playTrack);
-  const getAllAdapters = useSourcesStore((s) => s.getAllAdapters);
+  const { mutate: playTrack } = usePlayTrack();
   const { showTrackActions } = useTrackActions();
   const { offlineMode, setOfflineMode } = useOfflineMode();
-
-  useFocusEffect(
-    useCallback(() => {
-      setMediaType("music");
-    }, [setMediaType]),
-  );
 
   const handleAlbumPress = useCallback(
     (id: string) =>
@@ -89,14 +75,13 @@ export default function LibraryScreen() {
   );
 
   const handleCreatePlaylist = useCallback(async () => {
-    const adapter = getAllAdapters()[0];
     const name = `Playlist ${playlists.length + 1}`;
-    const id = await createPlaylist(name, adapter);
+    const id = await createPlaylist(name);
     router.push({
       pathname: "/(tabs)/library/mixtape/[id]",
       params: { id },
     });
-  }, [playlists.length, createPlaylist, getAllAdapters]);
+  }, [playlists.length, createPlaylist]);
 
   const handleTrackMorePress = useCallback(
     (item: TrackRowType) => showTrackActions(toActionTarget(item)),
@@ -106,8 +91,6 @@ export default function LibraryScreen() {
   const handleTrackToggleFavourite = useCallback(
     async (item: TrackRowType) => {
       await toggleFavourite(item.id);
-      // Reload tracks to reflect the new favourite state
-      useLibraryStore.getState().loadTracks();
     },
     [toggleFavourite]
   );

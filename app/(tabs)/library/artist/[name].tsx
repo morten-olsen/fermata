@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { AlbumGrid } from "@/src/features/library/library";
+import { AlbumGrid } from "@/src/components/media/album-grid";
 
 import { useAlbumsByArtist } from "@/src/hooks/albums/albums";
 

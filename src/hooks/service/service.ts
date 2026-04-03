@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { useServices } from '@/src/features/services/services';
+import { useServices } from '@/src/components/services-provider';
 
 import type { ServiceDependency } from '@/src/services/services/services';
 
