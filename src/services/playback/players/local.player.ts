@@ -1,6 +1,7 @@
+import { Platform } from "react-native";
+
 import { createAudioPlaylist, createAudioPlayer, setAudioModeAsync } from "expo-audio";
 import type { AudioPlaylist, AudioPlayer, AudioSource, AudioPlaylistStatus } from "expo-audio";
-import { Platform } from "react-native";
 
 import { log, warn } from "@/src/shared/lib/log";
 
@@ -74,10 +75,10 @@ class LocalPlaybackPlayer extends PlaybackPlayer {
       this.#playlist.add(source);
     }
 
+    this.#lastIndex = payload.currentIndex;
     if (payload.currentIndex > 0) {
       this.#playlist.skipTo(payload.currentIndex);
     }
-    this.#lastIndex = payload.currentIndex;
 
     this.#playlist.volume = payload.volume;
     this.#playlist.play();

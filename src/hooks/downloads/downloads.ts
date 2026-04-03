@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 
 import { DownloadService } from "@/src/services/downloads/downloads";
-
 import type { DownloadItemType, PinEntityType } from "@/src/services/downloads/downloads.types";
 
 import { useService } from "../service/service";

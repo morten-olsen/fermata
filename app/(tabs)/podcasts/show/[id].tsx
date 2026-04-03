@@ -6,7 +6,6 @@ import { useLocalSearchParams } from "expo-router";
 
 import { EpisodeRow } from "@/src/components/media/episode-row";
 import { usePlayTracks, useCurrentTrack } from "@/src/hooks/playback/playback";
-
 import { useShow, useShowEpisodes } from "@/src/hooks/shows/shows";
 import type { EpisodeRow as EpisodeRowType } from "@/src/services/database/database.schemas";
 

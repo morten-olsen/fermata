@@ -1,11 +1,13 @@
-import { log, warn } from "@/src/shared/lib/log";
 import { EventEmitter } from "@/src/utils/utils.event-emitter";
+
+import { log, warn } from "@/src/shared/lib/log";
 
 import { DatabaseService } from "../database/database.service";
 import { DownloadService } from "../downloads/downloads";
 import { FileSystemService } from "../filesystem/filesystem";
 import { SourcesService } from "../sources/sources";
 import type { Services } from "../services/services";
+import type { TrackRow, EpisodeRow, AudiobookRow } from "../database/database.schemas";
 
 import type { PlaybackPlayer } from "./playback.player";
 import { trackRowToQueueItem, episodeRowToQueueItem, audiobookRowToQueueItem } from "./playback.schemas";
@@ -18,7 +20,6 @@ import type {
   TrackMetadata,
 } from "./playback.types";
 
-import type { TrackRow, EpisodeRow, AudiobookRow } from "../database/database.schemas";
 
 /** Threshold: consider a track completed when within 30s of the end */
 const COMPLETION_THRESHOLD_MS = 30_000;

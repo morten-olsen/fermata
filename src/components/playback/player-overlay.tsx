@@ -10,7 +10,6 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useImageColors } from "@/src/hooks/use-image-colors";
-
 import {
   usePlaybackState,
   useTogglePlayPause,
@@ -19,10 +18,10 @@ import {
   useSeekTo,
   useSetVolume,
 } from "@/src/hooks/playback/playback";
+import { OutputPicker } from "@/src/components/outputs/output-picker";
 
 import { colors } from "@/src/shared/theme/theme";
 
-import { OutputPicker } from "@/src/components/outputs/output-picker";
 import { NowPlayingFull, NowPlayingMini } from "./now-playing-ui";
 import { QueueSheet } from "./queue-sheet";
 

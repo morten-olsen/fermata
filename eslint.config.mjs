@@ -33,6 +33,9 @@ export default tseslint.config(
       "build/",
       "drizzle/",
       "patches/",
+      "public/",
+      "storybook-static/",
+      ".storybook/",
       "*.config.js",
       "*.config.mjs",
       "babel.config.js",
@@ -174,7 +177,7 @@ export default tseslint.config(
   // and in app.config.ts
   // ---------------------------------------------------------------------------
   {
-    files: ["app/**/*.{ts,tsx}", "app.config.ts"],
+    files: ["app/**/*.{ts,tsx}", "app.config.ts", "**/*.stories.{ts,tsx}"],
     rules: {
       "import/no-default-export": "off",
     },

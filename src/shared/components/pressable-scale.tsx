@@ -1,7 +1,6 @@
 import type { PropsWithChildren } from "react";
-import { Platform } from "react-native";
+import { Platform , Pressable } from "react-native";
 import type { PressableProps } from "react-native";
-import { Pressable } from "react-native";
 
 import Animated, {
   useSharedValue,

@@ -2,11 +2,12 @@ import { View, Text, FlatList, Pressable } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
+import { usePlaybackQueue, useSkipToIndex } from "@/src/hooks/playback/playback";
+
 import { BottomSheet } from "@/src/shared/components/bottom-sheet";
 import { formatDuration } from "@/src/shared/lib/format";
 import { colors } from "@/src/shared/theme/theme";
 
-import { usePlaybackQueue, useSkipToIndex } from "@/src/hooks/playback/playback";
 
 interface QueueSheetProps {
   visible: boolean;

@@ -6,7 +6,6 @@ import { router } from "expo-router";
 
 import { AlbumGrid } from "@/src/components/media/album-grid";
 import { ShowCard } from "@/src/components/media/show-card";
-
 import { useShows } from "@/src/hooks/shows/shows";
 import { useLibraryStats } from "@/src/hooks/library/library";
 import type { ShowRow } from "@/src/services/database/database.schemas";

@@ -1,5 +1,6 @@
-import { log, warn } from "@/src/shared/lib/log";
 import { EventEmitter } from "@/src/utils/utils.event-emitter";
+
+import { log, warn } from "@/src/shared/lib/log";
 
 import { DatabaseService } from "../database/database.service";
 import { SourcesService } from "../sources/sources";

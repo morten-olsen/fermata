@@ -4,8 +4,6 @@ import { View, Text, Pressable, Modal, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-import { colors } from "@/src/shared/theme/theme";
-
 import {
   useOutputSpeakers,
   useActiveTarget,
@@ -13,6 +11,9 @@ import {
   useSetActiveSpeaker,
   useSetLocalActive,
 } from "@/src/hooks/outputs/outputs";
+
+import { colors } from "@/src/shared/theme/theme";
+
 
 interface OutputPickerProps {
   visible: boolean;

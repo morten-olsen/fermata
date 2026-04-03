@@ -6,7 +6,6 @@ import { useLocalSearchParams } from "expo-router";
 
 import { ChapterRow } from "@/src/components/media/chapter-row";
 import { useSeekTo } from "@/src/hooks/playback/playback";
-
 import { useAudiobook } from "@/src/hooks/audiobooks/audiobooks";
 
 import { NavBar } from "@/src/shared/components/nav-bar";

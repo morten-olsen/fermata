@@ -4,7 +4,6 @@ import type { StyleProp, ViewStyle } from "react-native";
 import { View, FlatList } from "react-native";
 
 import { useCurrentTrack } from "@/src/hooks/playback/playback";
-
 import type { TrackRow as TrackRowType } from "@/src/services/database/database.schemas";
 
 import { AlphabetScrubber } from "@/src/shared/components/alphabet-scrubber";

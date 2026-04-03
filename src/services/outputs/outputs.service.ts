@@ -1,9 +1,10 @@
 import { AppState } from "react-native";
 import type { AppStateStatus } from "react-native";
 
-import { log, warn } from "@/src/shared/lib/log";
 import { generateRandomId } from "@/src/utils/utils.id";
 import { EventEmitter } from "@/src/utils/utils.event-emitter";
+
+import { log, warn } from "@/src/shared/lib/log";
 
 import { DatabaseService } from "../database/database.service";
 import { PlaybackService } from "../playback/playback.service";
@@ -18,7 +19,6 @@ import {
 } from "./home-assistant/home-assistant.api";
 import type { Connection } from "./home-assistant/home-assistant.api";
 import type { HAMediaPlayerState } from "./home-assistant/home-assistant.types";
-
 import type {
   ActiveTarget,
   OutputConfig,

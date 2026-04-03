@@ -3,12 +3,12 @@ import { View, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
+
 import { TrackRow } from "@/src/components/media/track-row";
 import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
 import type { TrackRow as TrackRowType } from "@/src/services/database/database.schemas";
 import { useToggleTrackFavourite } from "@/src/hooks/tracks/tracks";
-import { useToggleAlbumFavourite } from "@/src/hooks/albums/albums";
-import { useAlbum, useAlbumTracks } from "@/src/hooks/albums/albums";
+import { useToggleAlbumFavourite , useAlbum, useAlbumTracks } from "@/src/hooks/albums/albums";
 import { useIsPinned, usePinForOffline, useUnpinOffline } from "@/src/hooks/downloads/downloads";
 import { usePlayAlbum, useShuffleAlbum, useCurrentTrack } from "@/src/hooks/playback/playback";
 import { useService } from "@/src/hooks/service/service";
