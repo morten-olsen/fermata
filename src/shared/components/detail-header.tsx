@@ -3,28 +3,37 @@ import type { ReactNode } from "react";
 import { View, Text, Pressable } from "react-native";
 
 import { Artwork, type ArtworkAspect } from "@/src/shared/components/artwork";
+import { SourceArtwork } from "@/src/shared/components/source-artwork";
 
-interface DetailHeaderProps {
-  artworkUri: string | null | undefined;
+interface BaseDetailHeaderProps {
   /** @default "square" */
   artworkAspect?: ArtworkAspect;
   /** Fallback icon when no artwork. @default "disc" */
   fallbackIcon?: string;
   title: string;
-  /** Subtitle text (e.g. artist name). */
   subtitle?: string;
-  /** When provided, subtitle becomes tappable with accent color. */
   onSubtitlePress?: () => void;
-  /** Metadata line below subtitle (e.g. "1997 · 12 tracks · Downloaded"). */
   meta?: string;
-  /** Action buttons rendered below metadata (e.g. Play / Shuffle). */
   actions?: ReactNode;
-  /** Whether to show the bottom divider. @default true */
+  /** @default true */
   showDivider?: boolean;
 }
 
+interface UriArtworkProps extends BaseDetailHeaderProps {
+  artworkUri: string | null | undefined;
+  sourceId?: never;
+  artworkSourceItemId?: never;
+}
+
+interface SourceArtworkProps extends BaseDetailHeaderProps {
+  artworkUri?: never;
+  sourceId: string;
+  artworkSourceItemId: string | null | undefined;
+}
+
+type DetailHeaderProps = UriArtworkProps | SourceArtworkProps;
+
 export const DetailHeader = memo(function DetailHeader({
-  artworkUri,
   artworkAspect = "square",
   fallbackIcon = "disc",
   title,
@@ -33,19 +42,35 @@ export const DetailHeader = memo(function DetailHeader({
   meta,
   actions,
   showDivider = true,
+  ...artworkProps
 }: DetailHeaderProps) {
   const artworkSize = artworkAspect === "portrait" ? 192 : 256;
+
+  const artwork = 'sourceId' in artworkProps && artworkProps.sourceId
+    ? (
+      <SourceArtwork
+        sourceId={artworkProps.sourceId}
+        artworkSourceItemId={artworkProps.artworkSourceItemId}
+        aspect={artworkAspect}
+        width={artworkSize}
+        fallbackIcon={fallbackIcon}
+        heroTransition
+      />
+    )
+    : (
+      <Artwork
+        uri={'artworkUri' in artworkProps ? artworkProps.artworkUri : undefined}
+        aspect={artworkAspect}
+        width={artworkSize}
+        fallbackIcon={fallbackIcon}
+        heroTransition
+      />
+    );
 
   return (
     <View>
       <View className="items-center px-8 mb-6">
-        <Artwork
-          uri={artworkUri}
-          aspect={artworkAspect}
-          width={artworkSize}
-          fallbackIcon={fallbackIcon}
-          heroTransition
-        />
+        {artwork}
       </View>
 
       <View className="px-4 mb-2">

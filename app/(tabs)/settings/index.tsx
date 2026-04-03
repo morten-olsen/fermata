@@ -6,11 +6,12 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useShallow } from "zustand/react/shallow";
 
-import { useDownloadStore } from "@/src/features/downloads/downloads";
 import { useOutputsStore } from "@/src/features/outputs/outputs";
 
 import { useSources, useRemoveSource } from "@/src/hooks/sources/sources";
 import { useSyncAll, useSyncProgress } from "@/src/hooks/sync/sync";
+import { useLibraryStats } from "@/src/hooks/library/library";
+import { useDownloadStats, useRetryFailedDownloads, useRemoveAllDownloads } from "@/src/hooks/downloads/downloads";
 
 import { SettingsRow } from "@/src/shared/components/settings-row";
 import { StatRow } from "@/src/shared/components/stat-row";
@@ -22,19 +23,10 @@ export default function SettingsScreen() {
   const { mutate: removeSource } = useRemoveSource();
   const { mutate: syncAll } = useSyncAll();
   const { isSyncing, progress } = useSyncProgress();
-  const {
-    stats: dlStats,
-    removeAll: removeAllDownloads,
-    retryFailed,
-    refreshStats: refreshDlStats,
-  } = useDownloadStore(
-    useShallow((s) => ({
-      stats: s.stats,
-      removeAll: s.removeAll,
-      retryFailed: s.retryFailed,
-      refreshStats: s.refreshStats,
-    })),
-  );
+  const stats = useLibraryStats();
+  const { data: dlStats } = useDownloadStats();
+  const { mutate: retryFailed } = useRetryFailedDownloads();
+  const { mutate: removeAllDownloads } = useRemoveAllDownloads();
 
   const handleSync = () => {
     void syncAll(sources);
@@ -111,35 +103,59 @@ export default function SettingsScreen() {
           )}
         </Pressable>
 
+        {(stats.artists > 0 || stats.albums > 0 || stats.tracks > 0) && (
+          <StatRow
+            items={[
+              { label: "Artists", value: stats.artists },
+              { label: "Albums", value: stats.albums },
+              { label: "Tracks", value: stats.tracks },
+            ]}
+          />
+        )}
+
+        {(stats.shows > 0 || stats.episodes > 0) && (
+          <StatRow
+            items={[
+              { label: "Shows", value: stats.shows },
+              { label: "Episodes", value: stats.episodes },
+            ]}
+          />
+        )}
+
+        {stats.audiobooks > 0 && (
+          <StatRow
+            items={[
+              { label: "Audiobooks", value: stats.audiobooks },
+            ]}
+          />
+        )}
+
         <Text className="text-sm font-medium text-fermata-text-secondary uppercase tracking-wider mb-2 ml-1 mt-6">
           Downloads
         </Text>
 
         <StatRow
           items={[
-            { label: "Downloaded", value: dlStats.completedTracks },
-            { label: "Pending", value: dlStats.pendingTracks },
-            { label: "Failed", value: dlStats.errorTracks },
-            { label: "Storage", value: 0, formatted: formatBytes(dlStats.totalBytes) },
+            { label: "Downloaded", value: dlStats?.completedItems ?? 0 },
+            { label: "Pending", value: dlStats?.pendingItems ?? 0 },
+            { label: "Failed", value: dlStats?.errorItems ?? 0 },
+            { label: "Storage", value: 0, formatted: formatBytes(dlStats?.totalBytes ?? 0) },
           ]}
         />
 
-        {dlStats.errorTracks > 0 && (
+        {(dlStats?.errorItems ?? 0) > 0 && (
           <SettingsRow
             icon="refresh-outline"
             label="Retry Failed Downloads"
-            onPress={async () => {
-              await retryFailed();
-              void refreshDlStats();
-            }}
+            onPress={() => void retryFailed(undefined)}
           />
         )}
 
-        {dlStats.completedTracks > 0 && (
+        {(dlStats?.completedItems ?? 0) > 0 && (
           <SettingsRow
             icon="trash-outline"
             label="Remove All Downloads"
-            onPress={removeAllDownloads}
+            onPress={() => void removeAllDownloads(undefined)}
             destructive
           />
         )}

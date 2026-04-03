@@ -32,22 +32,22 @@ export {
 export { TrackActionsProvider, useTrackActions } from "./components/library.context";
 
 // Components — Music
-export { AlbumCard } from "./components/album-card";
-export { AlbumGrid } from "./components/album-grid";
-export { ArtistRow } from "./components/artist-row";
-export { ArtistSectionList } from "./components/artist-section-list";
-export { TrackRow } from "./components/track-row";
-export { TrackList } from "./components/track-list";
-export { PlaylistRow } from "./components/playlist-row";
+export { AlbumCard } from "@/src/components/media/album-card";
+export { AlbumGrid } from "@/src/components/media/album-grid";
+export { ArtistRow } from "@/src/components/media/artist-row";
+export { ArtistSectionList } from "@/src/components/media/artist-section-list";
+export { TrackRow } from "@/src/components/media/track-row";
+export { TrackList } from "@/src/components/media/track-list";
+export { PlaylistRow } from "@/src/components/media/playlist-row";
 
 // Components — Podcasts
-export { ShowCard } from "./components/show-card";
-export { EpisodeRow } from "./components/episode-row";
+export { ShowCard } from "@/src/components/media/show-card";
+export { EpisodeRow } from "@/src/components/media/episode-row";
 
 // Components — Audiobooks
-export { BookCard } from "./components/book-card";
-export { ChapterRow } from "./components/chapter-row";
-export { BookGrid } from "./components/book-grid";
+export { BookCard } from "@/src/components/media/book-card";
+export { ChapterRow } from "@/src/components/media/chapter-row";
+export { BookGrid } from "@/src/components/media/book-grid";
 
 // Types
 export type { TrackActionTarget } from "./track-actions";

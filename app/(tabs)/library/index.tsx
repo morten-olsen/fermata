@@ -26,7 +26,11 @@ import type {
 } from "@/src/features/library/library";
 import { useSourcesStore } from "@/src/features/sources/sources";
 import { usePlaybackStore } from "@/src/features/playback/playback";
-import { useDownloadStore } from "@/src/features/downloads/downloads";
+import { useArtists } from "@/src/hooks/artists/artists";
+import { useAlbums } from "@/src/hooks/albums/albums";
+import { useTracks } from "@/src/hooks/tracks/tracks";
+import { useLibraryStats } from "@/src/hooks/library/library";
+import { useOfflineMode } from "@/src/hooks/downloads/downloads";
 
 import { colors } from "@/src/shared/theme/theme";
 import { SegmentedControl } from "@/src/shared/components/segmented-control";
@@ -39,11 +43,11 @@ export default function LibraryScreen() {
 
   // Each segment subscribes only to its own data slice — switching segments
   // doesn't cause unrelated data to trigger re-renders.
-  const albums = useLibraryStore((s) => s.albums);
-  const artists = useLibraryStore((s) => s.artists);
-  const tracks = useLibraryStore((s) => s.tracks);
+  const { albums } = useAlbums();
+  const { artists } = useArtists();
+  const { tracks } = useTracks();
   const playlists = useLibraryStore((s) => s.playlists);
-  const stats = useLibraryStore((s) => s.stats);
+  const stats = useLibraryStats();
   const refreshAll = useLibraryStore((s) => s.refreshAll);
   const setMediaType = useLibraryStore((s) => s.setMediaType);
   const createPlaylist = useLibraryStore((s) => s.createPlaylist);
@@ -52,8 +56,7 @@ export default function LibraryScreen() {
   const playTrack = usePlaybackStore((s) => s.playTrack);
   const getAllAdapters = useSourcesStore((s) => s.getAllAdapters);
   const { showTrackActions } = useTrackActions();
-  const offlineMode = useDownloadStore((s) => s.offlineMode);
-  const setOfflineMode = useDownloadStore((s) => s.setOfflineMode);
+  const { offlineMode, setOfflineMode } = useOfflineMode();
 
   useFocusEffect(
     useCallback(() => {

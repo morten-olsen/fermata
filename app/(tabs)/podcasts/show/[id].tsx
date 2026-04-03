@@ -1,71 +1,31 @@
-import { useEffect, useState, useCallback, useMemo, memo, useRef } from "react";
+import { useCallback, useMemo, memo } from "react";
 import { View, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { useShallow } from "zustand/react/shallow";
 
-import {
-  useLibraryStore,
-  EpisodeRow,
-} from "@/src/features/library/library";
-import type { AlbumRow, TrackRowType } from "@/src/features/library/library";
+import { EpisodeRow } from "@/src/features/library/library";
 import { usePlaybackStore } from "@/src/features/playback/playback";
-import { useDownloadStore, isTrackDownloaded } from "@/src/features/downloads/downloads";
-import { getProgressBatch } from "@/src/features/progress/progress";
-import type { ProgressEntry } from "@/src/features/progress/progress";
-import { resolveArtworkUrl } from "@/src/features/artwork/artwork";
 
-import { NavBar, NavBarAction } from "@/src/shared/components/nav-bar";
+import { useShow, useShowEpisodes } from "@/src/hooks/shows/shows";
+import type { EpisodeRow as EpisodeRowType } from "@/src/services/database/database.schemas";
+
+import { NavBar } from "@/src/shared/components/nav-bar";
 import { DetailHeader } from "@/src/shared/components/detail-header";
 import { ActionButton } from "@/src/shared/components/action-button";
 import { colors } from "@/src/shared/theme/theme";
-import { formatDownloadMeta } from "@/src/shared/lib/format";
 
 export default function PodcastShowScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getAlbum, getTracksByAlbum } = useLibraryStore(
-    useShallow((s) => ({
-      getAlbum: s.getAlbum,
-      getTracksByAlbum: s.getTracksByAlbum,
-    })),
-  );
+  const { show } = useShow(id);
+  const { episodes } = useShowEpisodes(id);
   const { playTracks, currentTrack } = usePlaybackStore(
     useShallow((s) => ({
       playTracks: s.playTracks,
       currentTrack: s.currentTrack,
     })),
   );
-  const { pinForOffline, unpinOffline, isPinned } = useDownloadStore(
-    useShallow((s) => ({
-      pinForOffline: s.pinForOffline,
-      unpinOffline: s.unpinOffline,
-      isPinned: s.isPinned,
-    })),
-  );
-
-  const listRef = useRef<FlatList<TrackRowType>>(null);
-  const [show, setShow] = useState<AlbumRow>();
-  const [episodes, setEpisodes] = useState<TrackRowType[]>([]);
-  const [progressMap, setProgressMap] = useState(() => new Map<string, ProgressEntry>());
-  const [isOfflinePinned, setIsOfflinePinned] = useState(false);
-
-  useEffect(() => {
-    if (!id) return;
-    void getAlbum(id).then(setShow);
-    void isPinned("album", id).then(setIsOfflinePinned);
-    void getTracksByAlbum(id).then((tracks) => {
-      const sorted = [...tracks].sort((a, b) => {
-        if (a.publishedAt && b.publishedAt) {
-          return b.publishedAt.localeCompare(a.publishedAt);
-        }
-        return (b.episodeNumber ?? 0) - (a.episodeNumber ?? 0);
-      });
-      setEpisodes(sorted);
-      const ids = sorted.map((t) => t.id);
-      void getProgressBatch(ids).then(setProgressMap);
-    });
-  }, [id, getAlbum, getTracksByAlbum, isPinned]);
 
   const episodeIds = useMemo(() => episodes.map((e) => e.id), [episodes]);
 
@@ -79,70 +39,19 @@ export default function PodcastShowScreen() {
     [episodeIds, playTracks],
   );
 
-  const dlCount = useMemo(
-    () => episodes.filter((t) => isTrackDownloaded(t.id)).length,
-    [episodes],
-  );
-
-  const resumeEpisode = useMemo(() => {
-    for (const ep of episodes) {
-      const p = progressMap.get(ep.id);
-      if (p && p.positionMs > 0 && !p.isCompleted) return ep;
-    }
-    return null;
-  }, [episodes, progressMap]);
-
   const handlePlayLatest = useCallback(() => {
     if (episodes.length > 0) {
       void playTracks(episodeIds, 0);
     }
   }, [episodes.length, playTracks, episodeIds]);
 
-  const handleResume = useCallback(() => {
-    if (resumeEpisode) {
-      handleEpisodePress(resumeEpisode.id);
-    }
-  }, [resumeEpisode, handleEpisodePress]);
-
-  const currentTrackId = currentTrack?.id;
-  useEffect(() => {
-    if (!currentTrackId || episodes.length === 0) return;
-    const idx = episodes.findIndex((e) => e.id === currentTrackId);
-    if (idx <= 0) return;
-    const timer = setTimeout(() => {
-      listRef.current?.scrollToIndex({ index: idx, animated: true, viewOffset: 100 });
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [currentTrackId, episodes]);
-
   if (!show) return null;
 
-  const artworkUrl = resolveArtworkUrl(
-    show.sourceId,
-    show.artworkSourceItemId,
-    "large",
-  );
-  const dlMeta = formatDownloadMeta(isOfflinePinned, dlCount, episodes.length);
-  const meta = `${episodes.length} ${episodes.length === 1 ? "episode" : "episodes"}${dlMeta}`;
-
-  let headerActions;
-  if (resumeEpisode) {
-    headerActions = (
-      <>
-        <ActionButton label="Resume" icon="play" variant="primary" onPress={handleResume} />
-        <ActionButton label="Latest" icon="play-skip-forward" variant="secondary" onPress={handlePlayLatest} />
-      </>
-    );
-  } else if (episodes.length > 0) {
-    headerActions = (
-      <ActionButton label="Play Latest" icon="play" variant="primary" onPress={handlePlayLatest} />
-    );
-  }
+  const meta = `${episodes.length} ${episodes.length === 1 ? "episode" : "episodes"}`;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
       <FlatList
-        ref={listRef}
         style={{ flex: 1 }}
         data={episodes}
         keyExtractor={(item) => item.id}
@@ -150,28 +59,19 @@ export default function PodcastShowScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
           <View>
-            <NavBar>
-              <NavBarAction
-                icon={isOfflinePinned ? "cloud-done" : "cloud-download-outline"}
-                color={isOfflinePinned ? colors.accent : colors.muted}
-                onPress={async () => {
-                  if (isOfflinePinned) {
-                    await unpinOffline("album", id);
-                    setIsOfflinePinned(false);
-                  } else {
-                    await pinForOffline("album", id, show.sourceId);
-                    setIsOfflinePinned(true);
-                  }
-                }}
-              />
-            </NavBar>
+            <NavBar />
             <DetailHeader
-              artworkUri={artworkUrl}
+              sourceId={show.sourceId}
+              artworkSourceItemId={show.artworkSourceItemId}
               fallbackIcon="mic"
               title={show.title}
-              subtitle={show.artistName}
+              subtitle={show.authorName ?? "Unknown"}
               meta={meta}
-              actions={headerActions}
+              actions={
+                episodes.length > 0 ? (
+                  <ActionButton label="Play Latest" icon="play" variant="primary" onPress={handlePlayLatest} />
+                ) : undefined
+              }
             />
           </View>
         }
@@ -179,7 +79,6 @@ export default function PodcastShowScreen() {
           <ShowEpisodeItem
             item={item}
             currentTrackId={currentTrack?.id}
-            progress={progressMap.get(item.id)}
             onPress={handleEpisodePress}
           />
         )}
@@ -191,20 +90,13 @@ export default function PodcastShowScreen() {
 const ShowEpisodeItem = memo(function ShowEpisodeItem({
   item,
   currentTrackId,
-  progress,
   onPress,
 }: {
-  item: TrackRowType;
+  item: EpisodeRowType;
   currentTrackId: string | undefined;
-  progress: ProgressEntry | undefined;
   onPress: (id: string) => void;
 }) {
   const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
-
-  const progressFraction =
-    progress && progress.durationMs > 0
-      ? progress.positionMs / progress.durationMs
-      : undefined;
 
   const dateLabel = item.publishedAt
     ? new Date(item.publishedAt).toLocaleDateString(undefined, {
@@ -212,7 +104,7 @@ const ShowEpisodeItem = memo(function ShowEpisodeItem({
         day: "numeric",
         year: "numeric",
       })
-    : item.artistName;
+    : undefined;
 
   return (
     <View className="px-4">
@@ -220,11 +112,9 @@ const ShowEpisodeItem = memo(function ShowEpisodeItem({
         title={item.title}
         dateLabel={dateLabel}
         duration={item.duration}
-        episodeNumber={item.episodeNumber ?? item.trackNumber}
+        episodeNumber={item.episodeNumber}
         isPlaying={currentTrackId === item.id}
-        isDownloaded={isTrackDownloaded(item.id)}
-        progress={progressFraction}
-        isCompleted={progress?.isCompleted}
+        isDownloaded={false}
         onPress={handlePress}
       />
     </View>

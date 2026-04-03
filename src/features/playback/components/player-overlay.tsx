@@ -10,11 +10,11 @@ import Animated, {
 } from "react-native-reanimated";
 import { useShallow } from "zustand/react/shallow";
 
-import {
-  resolveArtworkUrl,
-  useImageColors,
-} from "@/src/features/artwork/artwork";
+import { useImageColors } from "@/src/hooks/use-image-colors";
 import { OutputPicker } from "@/src/features/outputs/outputs";
+
+import { ArtworkService } from "@/src/services/artwork/artwork";
+import { useService } from "@/src/hooks/service/service";
 
 import { colors } from "@/src/shared/theme/theme";
 
@@ -28,6 +28,7 @@ const SPRING_CONFIG = { damping: 28, stiffness: 340, mass: 0.8 };
 
 export function PlayerOverlay() {
   const { height: screenHeight } = useWindowDimensions();
+  const artworkService = useService(ArtworkService);
 
   const {
     currentTrack,
@@ -121,10 +122,10 @@ export function PlayerOverlay() {
 
   const artworkItemId = currentTrack?.artworkSourceItemId ?? currentTrack?.sourceItemId;
   const artworkUrl = currentTrack && artworkItemId
-    ? resolveArtworkUrl(currentTrack.sourceId, artworkItemId, "large")
+    ? artworkService.resolve(currentTrack.sourceId, artworkItemId, "large")
     : undefined;
   const miniArtworkUrl = currentTrack && artworkItemId
-    ? resolveArtworkUrl(currentTrack.sourceId, artworkItemId, "small")
+    ? artworkService.resolve(currentTrack.sourceId, artworkItemId, "small")
     : undefined;
   const albumColors = useImageColors(artworkUrl);
 

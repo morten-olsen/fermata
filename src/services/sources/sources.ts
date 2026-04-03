@@ -21,16 +21,13 @@ type RawSourceRow = {
   type: string;
   name: string | null;
   config: string;
-  last_synced_at: string | null;
+  lastSyncedAt: string | null;
 };
 
 const parseRow = (row: RawSourceRow): SourceRow =>
   sourceRowSchema.parse({
-    id: row.id,
-    type: row.type,
-    name: row.name,
+    ...row,
     config: JSON.parse(row.config) as unknown,
-    lastSyncedAt: row.last_synced_at,
   });
 
 class SourcesService extends EventEmitter<SourcesServiceEvents> {
@@ -63,7 +60,7 @@ class SourcesService extends EventEmitter<SourcesServiceEvents> {
     const db = await this.#db();
 
     await db.sql`
-      INSERT INTO sources (id, type, name, config, last_synced_at)
+      INSERT INTO sources (id, type, name, config, lastSyncedAt)
       VALUES (${id}, ${item.type}, ${item.name ?? null}, ${JSON.stringify(item.config)}, ${item.lastSyncedAt ?? null})
     `;
 
@@ -89,7 +86,7 @@ class SourcesService extends EventEmitter<SourcesServiceEvents> {
       UPDATE sources
       SET name = ${merged.name ?? null},
           config = ${JSON.stringify(merged.config)},
-          last_synced_at = ${merged.lastSyncedAt ?? null}
+          lastSyncedAt = ${merged.lastSyncedAt ?? null}
       WHERE id = ${id}
     `;
 

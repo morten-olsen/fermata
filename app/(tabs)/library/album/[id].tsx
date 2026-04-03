@@ -11,10 +11,13 @@ import {
   useTrackActions,
   toActionTarget,
 } from "@/src/features/library/library";
-import type { AlbumRow, TrackRowType } from "@/src/features/library/library";
+import type { TrackRowType } from "@/src/features/library/library";
 import { usePlaybackStore } from "@/src/features/playback/playback";
-import { useDownloadStore, isTrackDownloaded, isTrackQueued } from "@/src/features/downloads/downloads";
-import { resolveArtworkUrl } from "@/src/features/artwork/artwork";
+
+import { useAlbum, useAlbumTracks } from "@/src/hooks/albums/albums";
+import { useIsPinned, usePinForOffline, useUnpinOffline } from "@/src/hooks/downloads/downloads";
+import { useService } from "@/src/hooks/service/service";
+import { DownloadService } from "@/src/services/downloads/downloads";
 
 import { NavBar, NavBarAction } from "@/src/shared/components/nav-bar";
 import { DetailHeader } from "@/src/shared/components/detail-header";
@@ -24,10 +27,10 @@ import { formatDurationLong, formatDownloadMeta } from "@/src/shared/lib/format"
 
 export default function AlbumDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getAlbum, getTracksByAlbum, toggleFavourite, toggleAlbumFavourite } = useLibraryStore(
+  const { album } = useAlbum(id);
+  const { tracks } = useAlbumTracks(id);
+  const { toggleFavourite, toggleAlbumFavourite } = useLibraryStore(
     useShallow((s) => ({
-      getAlbum: s.getAlbum,
-      getTracksByAlbum: s.getTracksByAlbum,
       toggleFavourite: s.toggleFavourite,
       toggleAlbumFavourite: s.toggleAlbumFavourite,
     })),
@@ -40,29 +43,16 @@ export default function AlbumDetailScreen() {
     })),
   );
   const { showTrackActions } = useTrackActions();
-  const { pinForOffline, unpinOffline, isPinned } = useDownloadStore(
-    useShallow((s) => ({
-      pinForOffline: s.pinForOffline,
-      unpinOffline: s.unpinOffline,
-      isPinned: s.isPinned,
-    })),
-  );
+  const { mutate: pinForOffline } = usePinForOffline();
+  const { mutate: unpinOffline } = useUnpinOffline();
+  const { data: isOfflinePinned = false } = useIsPinned("album", id);
   const listRef = useRef<FlatList<TrackRowType>>(null);
-  const [isOfflinePinned, setIsOfflinePinned] = useState(false);
   const [isFavourite, setIsFavourite] = useState(false);
-
-  const [album, setAlbum] = useState<AlbumRow>();
-  const [tracks, setTracks] = useState<TrackRowType[]>([]);
 
   useEffect(() => {
     if (!id) return;
-    void getAlbum(id).then((a) => {
-      setAlbum(a);
-      setIsFavourite(!!a?.isFavourite);
-    });
-    void getTracksByAlbum(id).then(setTracks);
-    void isPinned("album", id).then(setIsOfflinePinned);
-  }, [id, getAlbum, getTracksByAlbum, isPinned]);
+    setIsFavourite(!!album?.isFavourite);
+  }, [id, album]);
 
   const handleToggleFavourite = useCallback(
     async (item: TrackRowType) => {
@@ -82,9 +72,10 @@ export default function AlbumDetailScreen() {
     [album]
   );
 
+  const downloadService = useService(DownloadService);
   const dlCount = useMemo(
-    () => tracks.filter((t) => isTrackDownloaded(t.id)).length,
-    [tracks],
+    () => tracks.filter((t) => downloadService.isDownloaded(t.id, 'track')).length,
+    [tracks, downloadService],
   );
 
   const totalDurationSec = useMemo(
@@ -105,11 +96,6 @@ export default function AlbumDetailScreen() {
 
   if (!album) return null;
 
-  const artworkUrl = resolveArtworkUrl(
-    album.sourceId,
-    album.artworkSourceItemId,
-    "large"
-  );
   const dlMeta = formatDownloadMeta(isOfflinePinned, dlCount, tracks.length);
   const durationMeta = totalDurationSec > 0 ? ` · ${formatDurationLong(totalDurationSec)}` : "";
   const meta = `${album.year ? `${album.year} · ` : ""}${tracks.length} ${tracks.length === 1 ? "track" : "tracks"}${durationMeta}${dlMeta}`;
@@ -140,17 +126,16 @@ export default function AlbumDetailScreen() {
                 color={isOfflinePinned ? colors.accent : colors.muted}
                 onPress={async () => {
                   if (isOfflinePinned) {
-                    await unpinOffline("album", id);
-                    setIsOfflinePinned(false);
+                    await unpinOffline({ entityType: "album", entityId: id });
                   } else {
-                    await pinForOffline("album", id, album.sourceId);
-                    setIsOfflinePinned(true);
+                    await pinForOffline({ entityType: "album", entityId: id, sourceId: album.sourceId });
                   }
                 }}
               />
             </NavBar>
             <DetailHeader
-              artworkUri={artworkUrl}
+              sourceId={album.sourceId}
+              artworkSourceItemId={album.artworkSourceItemId}
               title={album.title}
               subtitle={album.artistName}
               onSubtitlePress={() =>
@@ -215,6 +200,7 @@ const AlbumTrackItem = memo(function AlbumTrackItem({
   trackToAction: (item: TrackRowType) => ReturnType<typeof toActionTarget>;
   handleToggleFavourite: (item: TrackRowType) => void;
 }) {
+  const downloadService = useService(DownloadService);
   const handlePress = useCallback(() => playAlbum(albumId, index), [playAlbum, albumId, index]);
   const handleMore = useCallback(() => showTrackActions(trackToAction(item)), [showTrackActions, trackToAction, item]);
   const handleFav = useCallback(() => handleToggleFavourite(item), [handleToggleFavourite, item]);
@@ -228,8 +214,8 @@ const AlbumTrackItem = memo(function AlbumTrackItem({
         trackNumber={item.trackNumber}
         isPlaying={currentTrackId === item.id}
         isFavourite={!!item.isFavourite}
-        isDownloaded={isTrackDownloaded(item.id)}
-        isQueued={isTrackQueued(item.id)}
+        isDownloaded={downloadService.isDownloaded(item.id, 'track')}
+        isQueued={downloadService.isQueued(item.id, 'track')}
         onPress={handlePress}
         onMorePress={handleMore}
         onToggleFavourite={handleFav}

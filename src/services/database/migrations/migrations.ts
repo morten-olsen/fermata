@@ -1,8 +1,9 @@
 import type { DatabaseInstance } from "../database.create";
 
 import { init } from "./migrations.001-init";
+import { downloads } from "./migrations.002-downloads";
 
-const migrations = [init];
+const migrations = [init, downloads];
 
 const applyMigrations = async (db: DatabaseInstance) => {
   await db.sql`

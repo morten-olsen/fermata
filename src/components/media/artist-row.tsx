@@ -1,0 +1,44 @@
+import { memo } from "react";
+import { View, Text } from "react-native";
+
+import { Ionicons } from "@expo/vector-icons";
+
+import { SourceArtwork } from "@/src/shared/components/source-artwork";
+import { PressableScale } from "@/src/shared/components/pressable-scale";
+import { colors } from "@/src/shared/theme/theme";
+
+interface ArtistRowProps {
+  name: string;
+  sourceId: string;
+  artworkSourceItemId: string | null;
+  onPress: () => void;
+}
+
+export const ArtistRow = memo(function ArtistRow({
+  name,
+  sourceId,
+  artworkSourceItemId,
+  onPress,
+}: ArtistRowProps) {
+  return (
+    <PressableScale
+      onPress={onPress}
+      scaleValue={0.98}
+    >
+      <View className="flex-row items-center py-3 px-1">
+        <View className="w-12 h-12 rounded-full overflow-hidden">
+          <SourceArtwork
+            sourceId={sourceId}
+            artworkSourceItemId={artworkSourceItemId}
+            size="sm"
+            fallbackIcon="person"
+          />
+        </View>
+        <Text className="text-fermata-text text-base font-medium ml-4 flex-1" numberOfLines={1}>
+          {name}
+        </Text>
+        <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+      </View>
+    </PressableScale>
+  );
+});

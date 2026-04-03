@@ -106,24 +106,24 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   },
 
   loadAlbums: async () => {
-    const { useDownloadStore } = await import("@/src/features/downloads/downloads");
-    const offline = useDownloadStore.getState().offlineMode;
+    const { getOfflineMode } = await import("@/src/features/downloads/downloads");
+    const offline = getOfflineMode();
     const mt = get().activeMediaType ?? undefined;
     const albums = await getAllAlbums(offline, mt);
     set({ albums });
   },
 
   loadArtists: async () => {
-    const { useDownloadStore } = await import("@/src/features/downloads/downloads");
-    const offline = useDownloadStore.getState().offlineMode;
+    const { getOfflineMode } = await import("@/src/features/downloads/downloads");
+    const offline = getOfflineMode();
     const mt = get().activeMediaType ?? undefined;
     const artists = await getAllArtists(offline, mt);
     set({ artists });
   },
 
   loadTracks: async () => {
-    const { useDownloadStore } = await import("@/src/features/downloads/downloads");
-    const offline = useDownloadStore.getState().offlineMode;
+    const { getOfflineMode } = await import("@/src/features/downloads/downloads");
+    const offline = getOfflineMode();
     const mt = get().activeMediaType ?? undefined;
     const tracks = await getTracks(undefined, undefined, offline, mt);
     set({ tracks });
@@ -142,8 +142,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   refreshAll: async () => {
     set({ isLoading: true });
     try {
-      const { useDownloadStore } = await import("@/src/features/downloads/downloads");
-      const offline = useDownloadStore.getState().offlineMode;
+      const { getOfflineMode } = await import("@/src/features/downloads/downloads");
+      const offline = getOfflineMode();
       const mt = get().activeMediaType ?? undefined;
       const [albums, artists, tracks, playlists, stats] = await Promise.all([
         getAllAlbums(offline, mt),

@@ -187,6 +187,7 @@ npm run lint:fix         # Auto-fix ESLint issues
 - `docs/OUTPUT-ADAPTERS.md` — output adapter design (Spotify Connect-like speaker routing)
 - `docs/AUDIOBOOKSHELF.md` — Audiobookshelf adapter: API, data mapping, compound IDs, progress sync
 - `docs/PROGRESS-TRACKING.md` — playback progress: schema, local tracking, bidirectional sync protocol
+- `docs/MIGRATION.md` — migration guide: features → services architecture, status tracker
 
 ## License
 

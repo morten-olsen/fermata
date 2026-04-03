@@ -2,261 +2,213 @@
 
 ## Overview
 
-Fermata follows a three-layer architecture: **Sources** bring music in, the **Library** unifies and stores it, and **Outputs** play it.
+Fermata follows a three-layer architecture: **Sources** bring media in, the **Library** stores it locally, and **Outputs** play it.
 
 ```
-Sources ──sync──▶ Library (Drizzle + SQLite) ──stream──▶ Outputs
+Sources ──sync──▶ Library (SQLite) ──stream──▶ Outputs
 ```
 
 Playback streams audio directly from the source — the library layer only stores metadata.
 
-## Source Adapters
+## Layers
 
-Each source implements a common interface for syncing metadata and streaming audio. New adapters are registered in the **adapter registry** (`src/adapters/sources/registry.ts`) — stores and the sync engine never import concrete adapter classes directly.
+### Services (`src/services/`)
+
+Platform-agnostic business logic. Services own database access, external API calls, and domain operations. They are plain classes that receive a `Services` container for dependency resolution and extend `EventEmitter` to notify consumers of state changes.
+
+```
+src/services/
+├── services/services.ts           # DI container
+├── database/
+│   ├── database.create.ts         # Native SQLite (expo-sqlite)
+│   ├── database.create.web.ts     # Web SQLite (sql.js + IndexedDB)
+│   ├── database.service.ts        # Lazy DB initialization + migrations
+│   ├── database.schemas.ts        # Zod schemas for all tables
+│   └── migrations/                # Versioned SQL migrations
+├── sources/
+│   ├── sources.ts                 # SourcesService — CRUD, authentication
+│   ├── sources.adapter.ts         # SourceAdapter interface
+│   ├── sources.registry.ts        # Adapter factory + auth dispatch
+│   ├── jellyfin/                  # Jellyfin API client + adapter
+│   └── audiobookshelf/            # Audiobookshelf API client + adapter
+└── sync/
+    └── sync.ts                    # SyncService — pull data from sources → DB
+```
+
+### Hooks (`src/hooks/`)
+
+React bindings for services. Hooks subscribe to service events and expose reactive state. No SQL or business logic lives here.
+
+```
+src/hooks/
+├── service/
+│   ├── service.ts                 # useService() — resolve from DI container
+│   ├── service.query.ts           # useServiceQuery() — reactive data fetching
+│   └── service.mutation.ts        # useServiceMutation() — async actions with loading/error
+├── sources/sources.ts             # useSources(), useAddSource(), useRemoveSource()
+├── sync/sync.ts                   # useSyncAll(), useSyncProgress()
+└── library/library.ts             # useLibraryStats()
+```
+
+### Features (`src/features/`)
+
+Legacy layer — being migrated to services + hooks. Each feature is self-contained with a barrel file. See [MIGRATION.md](./MIGRATION.md) for the transition plan.
+
+### Screens (`app/`)
+
+Thin Expo Router screens that wire hooks to UI. No business logic.
+
+## Services Container
+
+Services are instantiated lazily via a DI container. The container is provided to the React tree via `ServicesProvider`.
 
 ```typescript
-interface SourceAdapter {
-  id: string;
-  type: string;
-  name: string;
+// Creating a service
+class SyncService extends EventEmitter<SyncServiceEvents> {
+  #services: Services;
 
-  // Connection lifecycle
-  connect(config: SourceConfig): Promise<void>;
-  restore(state: SourcePersistedState): void;
-  disconnect(): Promise<void>;
-  testConnection(): Promise<boolean>;
-  getPersistedState(): SourcePersistedState;
+  constructor(services: Services) {
+    super();
+    this.#services = services;
+  }
 
-  // Library sync
-  getArtists(since?: Date): Promise<Artist[]>;
-  getAlbums(since?: Date): Promise<Album[]>;
-  getTracks(since?: Date): Promise<Track[]>;
-
-  // Streaming & artwork (synchronous — URLs are constructable from local state)
-  getStreamUrl(trackId: string): string;
-  getArtworkUrl(itemId: string, size?: ImageSize): string;
+  #db = async () => {
+    const databaseService = this.#services.get(DatabaseService);
+    return databaseService.getInstance();
+  };
 }
+
+// Consuming from a hook
+const syncService = useService(SyncService);
+```
+
+Services access other services through the container, never by direct import. This keeps the dependency graph explicit and testable.
+
+## Source Adapters
+
+Each source type implements the `SourceAdapter` interface for fetching library data and resolving stream/artwork URLs. Adapters are stateless — they receive config from the `SourceRow` at construction, with no connect/restore lifecycle.
+
+```typescript
+type SourceAdapter = {
+  getArtists(): Promise<Artist[]>;
+  getAlbums(): Promise<Album[]>;
+  getTracks(): Promise<Track[]>;
+  getShows(): Promise<Show[]>;
+  getEpisodes(): Promise<Episode[]>;
+  getAudiobooks(): Promise<Audiobook[]>;
+  getStreamUrl(sourceItemId: string, contentUrl?: string | null): string | Promise<string>;
+  getArtworkUrl(itemId: string, size?: ImageSize): string;
+};
 ```
 
 ### Adapter Registry
 
+Adapters are created via a factory that dispatches on source type:
+
 ```typescript
-import { createAdapter } from "./registry";
-const adapter = createAdapter("jellyfin", id, name);
+const adapter = createAdapter(sourceRow); // SourceRow → SourceAdapter
 ```
 
-To add a new source type: implement `SourceAdapter`, then call `registerAdapter("type", MyAdapter)` in `registry.ts`.
+Authentication is also dispatched through the registry — exchanging username/password for a token happens once at source-add time, and the resulting config is persisted.
 
-### Jellyfin Adapter
+### Jellyfin
 
-The first adapter. Supports multiple simultaneous instances — a user can connect to several Jellyfin servers. Each server is a separate adapter instance with its own credentials and base URL.
+Music source. Returns artists, albums, tracks. Authentication via `/Users/AuthenticateByName` → long-lived API key.
 
-- **`api.ts`** — raw HTTP client: authentication (`/Users/AuthenticateByName`), paginated library fetching (`/Items`), stream URLs (`/Audio/{id}/universal`), artwork URLs (`/Items/{id}/Images/Primary`)
-- **`adapter.ts`** — implements `SourceAdapter`, maps Jellyfin items to domain types
+### Audiobookshelf
 
-**Key details:**
-- Authentication via username/password → access token
-- Incremental sync using `minDateLastSaved` parameter
-- `restore()` rehydrates from persisted `baseUrl`, `userId`, `accessToken` without re-authenticating
-- Stream URLs include the access token as a query parameter
+Podcast and audiobook source. Returns shows, episodes, audiobooks. Authentication via `/login` → JWT. Separate domain entities (no `mediaType` overloading).
 
-### Audiobookshelf Adapter
+## Database
 
-Syncs podcast and audiobook libraries from Audiobookshelf servers. Maps podcasts and audiobooks into Fermata's Artist/Album/Track model with `mediaType` discrimination.
+### Schema (`database.schemas.ts`)
 
-- **`api.ts`** — HTTP client with Bearer token auth, library and item fetching, progress sync
-- **`adapter.ts`** — implements `SourceAdapter` plus optional `reportProgress()` and `getProgress()`
-- **`types.ts`** — ABS API response types
+Zod schemas define the application-level shape of each entity. The database uses snake_case columns; schemas use camelCase. Parsing happens at the service boundary.
 
-**Key details:**
-- Podcasts: Podcast → Album, Episode → Track (`mediaType: 'podcast'`)
-- Audiobooks: Book → Album, Chapter → Track (`mediaType: 'audiobook'`)
-- Compound `sourceItemId` format: `{libraryItemId}:{episodeId}` for nested entities
-- No delta sync (ABS doesn't support `since` parameter)
-- Bidirectional playback progress tracking via `/api/me/progress/`
+Separate tables per content type:
+- **`sources`** — connection config stored as JSON text
+- **`artists`** — music artists + synthesized ABS authors
+- **`albums`** / **`tracks`** — music only
+- **`shows`** / **`episodes`** — podcasts
+- **`audiobooks`** — with JSON chapters array
+- **`playlists`** / **`playlist_tracks`** — mix tapes
+- **`queue`** — discriminated by type (track/episode/audiobook)
+- **`playback_progress`** — keyed by (item_id, item_type)
 
-See `docs/AUDIOBOOKSHELF.md` for full details.
+### Migrations
 
-## Library Layer
+Hand-written SQL migrations in `src/services/database/migrations/`. A `migrations` table tracks which have been applied. No Drizzle ORM — raw SQL via expo-sqlite's tagged template API.
 
-A local SQLite database managed via **Drizzle ORM** that stores the unified catalog from all connected sources.
+### Web Support
 
-### Schema (Drizzle — `src/db/schema.ts`)
+The database layer has platform-specific implementations:
+- **Native**: `database.create.ts` — expo-sqlite with `db.sql` tagged template
+- **Web**: `database.create.web.ts` — sql.js with IndexedDB persistence and a `WebTaggedQuery` class that matches the expo-sqlite API
 
-Every item tracks its **source origin** so it can be traced back and streamed:
-
-```
-sources
-  ├── id
-  ├── type, name, base_url
-  ├── user_id, access_token       (TODO: migrate to expo-secure-store)
-  └── last_synced_at
-
-artists
-  ├── id                          (deterministic: stableId(sourceId, sourceItemId))
-  ├── source_id, source_item_id   (unique together)
-  ├── name
-  ├── artwork_source_item_id      (resolve to URL at read time via adapter)
-  └── synced_at
-
-albums
-  ├── id                          (deterministic)
-  ├── source_id, source_item_id   (unique together)
-  ├── title, artist_name, year
-  ├── artwork_source_item_id      (resolve to URL at read time via adapter)
-  ├── track_count
-  └── synced_at
-
-tracks
-  ├── id                          (deterministic)
-  ├── source_id, source_item_id   (unique together)
-  ├── title, artist_name, album_title, album_id
-  ├── duration, track_number, disc_number
-  ├── media_type                  ('music' | 'podcast' | 'audiobook', default 'music')
-  ├── description, published_at, episode_number  (podcast/audiobook metadata)
-  └── synced_at
-
-playback_progress
-  ├── track_id                    (PK, FK → tracks)
-  ├── position_ms, duration_ms
-  ├── is_completed
-  ├── updated_at
-  └── needs_sync                  (1 = local change not yet pushed to source)
-
-mix_tapes
-  ├── id                          (random: generateId())
-  ├── name
-  ├── created_at, updated_at
-
-mix_tape_tracks
-  ├── mix_tape_id, track_id       (unique together)
-  ├── position
-  └── added_at
-```
+Both expose the same `{ sql, save }` interface. `save()` is a no-op on native (SQLite persists automatically) and writes to IndexedDB on web.
 
 ### ID Strategy
 
-- **Synced entities** (artists, albums, tracks): `stableId(sourceId, sourceItemId)` — deterministic hash, survives re-syncs, preserves foreign key references
-- **Local entities** (mix tapes): `generateId()` — random time-based
+| Entity type | Function | Behavior |
+|---|---|---|
+| Synced from source | `stableId(sourceId, sourceItemId)` | Deterministic hash — stable across re-syncs |
+| Local-only | `generateId()` | Random time-based |
 
-### Artwork
+## Reactive Hooks
 
-DB stores `artwork_source_item_id`, **not** resolved URLs. Full artwork URLs are constructed at read time via `adapter.getArtworkUrl(itemId, size)` or the helper `resolveArtworkUrl()`. This keeps DB rows independent of server URLs or auth tokens.
+### `useServiceQuery`
 
-### Mix Tapes
-
-Fermata's take on playlists — locally stored, user-curated track lists. Can contain tracks from any source. Unique constraint on `(mix_tape_id, track_id)` prevents duplicates. Positions are renumbered on removal to prevent gaps.
-
-### Unified View
-
-The UI queries SQLite via Drizzle, never remote APIs directly. This provides:
-- **Fast browsing** — no network latency for catalog navigation
-- **Offline catalog** — browse your library without connectivity
-- **Merged results** — albums/artists from multiple sources appear together
-
-**Deduplication** is deferred. Same album on two servers will appear twice for now.
-
-## Output Adapters
-
-Each output implements a common interface for playback control.
+Subscribes to service events and re-runs a query when relevant events fire. No manual state patching — the query always returns fresh data.
 
 ```typescript
-interface OutputAdapter {
-  id: string;
-  type: string;
-  name: string;
-
-  initialize(): Promise<void>;
-  dispose(): Promise<void>;
-
-  play(streamUrl: string, trackId: string): Promise<void>;
-  pause(): Promise<void>;
-  resume(): Promise<void>;
-  stop(): Promise<void>;
-  seek(positionMs: number): Promise<void>;
-
-  getState(): PlaybackState;
-  onStateChange(callback: (state: PlaybackState) => void): Unsubscribe;
-}
+const { data, loading, error } = useServiceQuery({
+  emitter: sourcesService,           // any EventEmitter
+  query: () => sourcesService.findAll(),
+  events: ['sourceAdded', 'sourceRemoved', 'sourceUpdated'],  // type-checked
+});
 ```
 
-### Local Output (current)
+Events are type-checked against the emitter's event map via a `Listenable<TEventMap>` structural type — no `any`.
 
-Wraps React Native Track Player. The **playback store** (`src/stores/playback.ts`) manages the queue and transport, calling Track Player APIs. Track Player is lazy-loaded to allow the app to run in Expo Go without audio.
+### `useServiceMutation`
 
-### Music Assistant Output (future)
+Wraps an async service method with loading/error state. Infers input/output types from the function.
 
-Routes playback commands to a Music Assistant instance via its API.
-
-## Playback Flow
-
-```
-1. User taps track / album / mix tape
-2. Playback store loads track(s) from SQLite
-3. For each track: resolve stream URL via adapter.getStreamUrl(sourceItemId)
-4. Add to React Native Track Player queue
-5. Track Player streams audio from the source server
-6. Lock screen / notification controls handled via PlaybackService
+```typescript
+const { mutate, loading, error } = useServiceMutation(sourcesService.add);
 ```
 
 ## Sync Flow
 
 ```
-1. User taps "Sync Library" or adds a new source
-2. For each connected source adapter:
-   a. Fetch artists (incremental if synced before)  → upsert in transaction
-   b. Fetch albums  (incremental)                   → upsert in transaction
-   c. Fetch tracks  (incremental)                   → upsert in transaction
-   d. Link tracks to albums via deterministic IDs
-   e. Update source.last_synced_at
-3. Library store refreshes from SQLite
+1. User taps "Sync Library"
+2. SyncService.syncAll(sources) called
+3. For each source:
+   a. Create adapter from SourceRow config
+   b. Fetch artists, albums, tracks, shows, episodes, audiobooks
+   c. INSERT OR REPLACE each entity with deterministic stableId
+   d. Emit syncProgress events per phase
+   e. Update source.lastSyncedAt
+   f. Persist database (web)
+4. Emit syncCompleted — hooks re-query stats
 ```
 
-Sync runs in the background — the UI remains responsive. Progress is observable via the sync store.
-
-## Project Structure
+## Playback Flow
 
 ```
-app/                          # Expo Router screens (file-based routing)
-├── (tabs)/
-│   ├── library/
-│   │   ├── index.tsx         # Library home (mix tapes row, albums/artists/tracks tabs)
-│   │   ├── album/[id].tsx    # Album detail (artwork, track list, play/shuffle)
-│   │   ├── artist/[name].tsx # Artist detail (albums grid)
-│   │   └── mixtape/[id].tsx  # Mix tape detail
-│   ├── search/index.tsx      # Debounced search with grouped results
-│   └── settings/
-│       ├── index.tsx         # Sources, sync, stats, output config
-│       └── add-source.tsx    # Add Jellyfin server (modal)
-└── player.tsx                # Now Playing (modal, full-screen)
-
-src/
-├── adapters/
-│   ├── sources/
-│   │   ├── types.ts          # SourceAdapter + SourcePersistedState interfaces
-│   │   ├── registry.ts       # Adapter factory (type → constructor)
-│   │   └── jellyfin/         # api.ts (HTTP client) + adapter.ts (interface impl)
-│   └── outputs/types.ts      # OutputAdapter interface
-├── db/
-│   ├── schema.ts             # Drizzle table definitions (source of truth)
-│   ├── client.ts             # Drizzle client (expo-sqlite driver)
-│   ├── queries.ts            # All DB operations (CRUD, upsert, search, stats)
-│   └── sync.ts               # Sync engine (adapter → SQLite)
-├── stores/
-│   ├── sources.ts            # Connected sources, adapter lifecycle
-│   ├── sync.ts               # Sync progress/status
-│   ├── library.ts            # Library data for UI
-│   └── playback.ts           # Queue, current track, transport controls
-├── services/
-│   └── playback-service.ts   # RNTP background service (lock screen controls)
-├── lib/
-│   └── artwork.ts            # Resolve artworkSourceItemId → URL
-├── theme/                    # Colors, React Navigation theme
-└── components/
-    ├── player/MiniPlayer.tsx  # Slim bar above tab bar
-    ├── library/               # AlbumCard, ArtistRow, TrackRow, MixTapeCard
-    └── common/                # EmptyState, SegmentedControl
-
-drizzle/                      # Generated SQL migrations
-patches/                      # patch-package patches (RNTP RN 0.83 fix)
+1. User taps track / album / episode
+2. Playback store loads track(s) from SQLite
+3. Resolve stream URL via adapter.getStreamUrl(sourceItemId)
+4. Add to React Native Track Player queue
+5. Track Player streams audio from source server
+6. Lock screen / notification controls via PlaybackService
 ```
+
+## Output Adapters
+
+Each output implements `OutputAdapter` for playback control. The playback store delegates transport to the active output.
+
+- **Local** — wraps React Native Track Player
+- **Home Assistant** — routes commands via HA WebSocket API
+
+See [OUTPUT-ADAPTERS.md](./OUTPUT-ADAPTERS.md) for details.

@@ -14,8 +14,10 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useShallow } from "zustand/react/shallow";
 
-import { resolveArtworkUrl } from "@/src/features/artwork/artwork";
 import { useSourcesStore } from "@/src/features/sources/sources";
+
+import { ArtworkService } from "@/src/services/artwork/artwork";
+import { useService } from "@/src/hooks/service/service";
 
 import { BottomSheet } from "@/src/shared/components/bottom-sheet";
 import { colors } from "@/src/shared/theme/theme";
@@ -65,6 +67,7 @@ function TrackActionSheetContent({
   track: TrackActionTarget;
   onDismiss: () => void;
 }) {
+  const artworkService = useService(ArtworkService);
   const { toggleFavourite, playlists, loadPlaylists, addTrackToPlaylist, createPlaylist } =
     useLibraryStore(
       useShallow((s) => ({
@@ -133,7 +136,7 @@ function TrackActionSheetContent({
     });
   };
 
-  const artworkUrl = resolveArtworkUrl(
+  const artworkUrl = artworkService.resolve(
     track.sourceId,
     track.artworkSourceItemId ?? track.sourceItemId,
     "small"

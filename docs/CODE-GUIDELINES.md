@@ -451,61 +451,95 @@ export function useImageColors(uri: string | null) {
 
 | Mechanism | When to use | Examples |
 |-----------|------------|---------|
-| **Zustand store** | App-wide state that persists across screens, state + async actions, domain logic | Playback queue, library data, connected sources, sync status |
-| **React Context** | Imperative UI control that needs to be triggered from deep in the tree | Action sheet show/hide, toast notifications |
-| **`useState`** | Local UI state within a single component or screen | Form inputs, modal visibility, selected tab index, loading spinners |
-| **`useRef`** | Mutable values that shouldn't trigger re-renders | Interval IDs, layout measurements, previous values |
+| **Service** | Domain logic, data access, external APIs, operations that emit events | Sources CRUD, sync engine, playback transport |
+| **`useServiceQuery`** | Reactive data from a service that updates on events | Source list, library stats |
+| **`useServiceMutation`** | Async action with loading/error lifecycle | Add source, trigger sync |
+| **Zustand store** | Legacy — being migrated to services. Still used for unmigrated features. | Playback queue, downloads |
+| **React Context** | Imperative UI control triggered from deep in the tree | Action sheet show/hide, toast notifications |
+| **`useState`** | Local UI state within a single component or screen | Form inputs, modal visibility, selected tab index |
+| **`useRef`** | Mutable values that shouldn't trigger re-renders | Interval IDs, layout measurements |
 
-### When NOT to use each
+### Services
 
-- **Don't use Zustand** for local UI state (form inputs, "is this dropdown open")
-- **Don't use Context** for data that changes frequently (it re-renders all consumers)
-- **Don't use `useState`** for state shared across screens (use a store)
-- **Don't use `useRef`** for values that should trigger re-renders
+Services are the primary home for business logic. They are plain classes that extend `EventEmitter`, receive a `Services` container for dependency resolution, and own all database access.
 
-### Zustand store rules
+```typescript
+class MyService extends EventEmitter<MyServiceEvents> {
+  #services: Services;
 
-1. **One store per feature.** Lives in `{feature}.store.ts`. Not one mega-store, not multiple stores per feature.
+  constructor(services: Services) {
+    super();
+    this.#services = services;
+  }
 
-2. **Stores are decoupled.** A store never imports another store directly. If a store action needs data from another store, accept it as a function argument.
+  #db = async () => {
+    const databaseService = this.#services.get(DatabaseService);
+    return databaseService.getInstance();
+  };
 
-   ```typescript
-   // Good — caller passes adapters
-   syncAll: async (adapters: SourceAdapter[]) => { ... }
+  public findAll = async (): Promise<MyRow[]> => {
+    const db = await this.#db();
+    const rows = await db.sql<RawRow>`SELECT * FROM my_table`;
+    return rows.map(parseRow);
+  };
 
-   // Bad — store reaches into another store
-   syncAll: async () => {
-     const adapters = useSourcesStore.getState().getAllAdapters();
-   }
-   ```
+  public add = async (item: Omit<MyRow, 'id'>): Promise<MyRow> => {
+    const db = await this.#db();
+    // ... INSERT
+    await db.save();
+    this.emit('itemAdded', result);
+    return result;
+  };
+}
+```
 
-3. **Stores call query functions from their own feature.** Stores import from their co-located `{feature}.queries.ts`, never from `shared/db/db.client.ts` or `shared/db/db.schema.ts` directly.
+Rules:
+1. **Services live in `src/services/`.** One directory per domain.
+2. **Services access other services via the container**, never by direct import of another service's internals.
+3. **All SQL lives in services.** Hooks and screens never write SQL.
+4. **Call `db.save()` after writes.** No-op on native, persists to IndexedDB on web.
+5. **Emit events after mutations** so hooks can react.
+6. **Use Zod schemas** to parse raw DB rows at the service boundary.
 
-4. **Selective subscriptions.** Always slice state in components to prevent unnecessary re-renders:
+### Hooks
 
-   ```typescript
-   // Good — only re-renders when albums change
-   const albums = useLibraryStore((s) => s.albums);
+Hooks in `src/hooks/` are the React binding layer for services. They do not contain business logic or SQL.
 
-   // Bad — re-renders on ANY store change
-   const { albums } = useLibraryStore();
-   ```
+```typescript
+// Query hook — re-fetches when events fire
+const useMyItems = () => {
+  const service = useService(MyService);
+  const query = useCallback(() => service.findAll(), [service]);
+  return useServiceQuery({
+    emitter: service,
+    query,
+    events: ['itemAdded', 'itemRemoved'],
+  });
+};
 
-5. **Guard against double initialization.** Stores with `initialize()` methods must check `isInitialized` first.
+// Mutation hook — wraps async service method
+const useAddItem = () => {
+  const service = useService(MyService);
+  return useServiceMutation(service.add);
+};
+```
+
+Rules:
+1. **`useServiceQuery`** for data that should stay in sync with service state. Events are type-checked against the emitter.
+2. **`useServiceMutation`** for actions. Provides `{ mutate, loading, error }`. Input/output types are inferred.
+3. **`useService(ServiceClass)`** to resolve a service from the DI container.
+4. **No SQL in hooks.** If a hook needs data, the service provides a method for it.
 
 ### Context rules
 
 Context is only for imperative UI control. Lives in `{feature}.context.ts`. The pattern:
 
 ```typescript
-// Define context with a no-op default
 const TrackActionsContext = createContext<TrackActionsContextValue>({
   showTrackActions: () => {},
 });
 
-// Provider component manages the UI (action sheet, modal, etc.)
 export function TrackActionsProvider({ children }: { children: React.ReactNode }) {
-  // ... state, handlers
   return (
     <TrackActionsContext.Provider value={{ showTrackActions }}>
       {children}
@@ -513,7 +547,6 @@ export function TrackActionsProvider({ children }: { children: React.ReactNode }
   );
 }
 
-// Consumer hook
 export function useTrackActions() {
   return useContext(TrackActionsContext);
 }
@@ -619,46 +652,75 @@ Screens use `export default function` (Expo Router requirement). Every other fil
 
 ## Database
 
-### Schema is the source of truth
+### Two systems (during migration)
 
-Table definitions live in `shared/db/db.schema.ts`. After any schema change:
-1. Edit `db.schema.ts`
-2. Run `npx drizzle-kit generate`
-3. Rebuild the app
+The codebase has two database layers that coexist during migration:
 
-Never write raw SQL. Use Drizzle's query builder.
+| Aspect | Legacy (`shared/db/`) | Production (`services/database/`) |
+|--------|----------------------|----------------------------------|
+| ORM | Drizzle | Raw SQL (tagged template) |
+| Database file | `fermata.db` | `data.db` (native) / `library` (web) |
+| Schema source | `db.schema.ts` (Drizzle tables) | `database.schemas.ts` (Zod) + migration SQL |
+| Migrations | `drizzle-kit generate` | Hand-written in `migrations/` |
 
-### All DB access through feature query functions
+New code should use the production layer exclusively.
 
-No file outside `shared/db/` should import the Drizzle client or reference schema tables directly — **except** `{feature}.queries.ts` files. Query files are the only place that touches the DB client and schema, and they live inside their owning feature.
+### Schema
+
+Zod schemas in `database.schemas.ts` define the application-level shape of each entity. The database uses snake_case columns; schemas use camelCase. Parsing happens at the service boundary:
 
 ```typescript
-// Good — store calls its own feature's query function
-import { getAllAlbums } from "./library.queries";
-const albums = await getAllAlbums();
+const parseRow = (row: RawSourceRow): SourceRow =>
+  sourceRowSchema.parse({
+    id: row.id,
+    type: row.type,
+    config: JSON.parse(row.config) as unknown,
+    lastSyncedAt: row.last_synced_at,
+  });
+```
 
-// Bad — store imports db client directly
-import { db } from "@/src/shared/db/db";
-import { albums } from "@/src/shared/db/db.schema";
-const result = await db.select().from(albums);
+### All DB access through services
+
+Only services write SQL. Hooks and screens never import `DatabaseService` directly for queries.
+
+```typescript
+// Good — hook calls service method
+const query = useCallback(() => syncService.getStats(), [syncService]);
+
+// Bad — hook writes SQL
+const db = await dbService.getInstance();
+db.sql`SELECT COUNT(*) FROM artists`;
+```
+
+### Migrations
+
+Hand-written SQL in `src/services/database/migrations/`. A `migrations` table tracks applied migrations by name. Each migration runs once.
+
+```typescript
+const init: Migration = {
+  name: '001-init',
+  up: async (db) => {
+    await db.sql`CREATE TABLE sources (...)`;
+  },
+};
 ```
 
 ### ID strategy
 
-| Entity type | Function | When |
+| Entity type | Function | Behavior |
 |---|---|---|
-| Synced from source (artists, albums, tracks) | `stableId(sourceId, sourceItemId)` | Deterministic — survives re-syncs |
-| Local-only (mix tapes, pins) | `generateId()` | Random time-based |
+| Synced from source | `stableId(sourceId, sourceItemId)` | Deterministic hash — stable across re-syncs |
+| Local-only (playlists, pins) | `generateId()` | Random time-based |
 
 Both live in `shared/lib/ids.ts`.
 
-### Transactions for batch writes
+### Web persistence
 
-All bulk operations must run inside `db.transaction()`. No exceptions.
+Call `db.save()` after writes. This is a no-op on native (SQLite persists automatically) and writes to IndexedDB on web.
 
 ### Artwork is a source item ID
 
-Store `artworkSourceItemId` in the database. Resolve to a URL at read time via the artwork feature. Never store resolved URLs.
+Store `artworkSourceItemId` in the database. Resolve to a URL at read time via the adapter. Never store resolved URLs.
 
 ---
 
@@ -778,28 +840,29 @@ See `DESIGN-SYSTEM.md` for the full icon reference.
 Where does this code go?
 
 Is it a screen?
-  → app/ (export default, thin, delegates to feature stores)
+  → app/ (export default, thin, uses hooks)
 
-Does it belong to a specific domain (playback, library, sync, sources, downloads, artwork)?
-  → src/features/{feature}/
-    → Store?       {feature}.store.ts
-    → Queries?     {feature}.queries.ts
-    → Service?     {feature}.service.ts
-    → Hook?        {feature}.use-{name}.ts
-    → Context?     {feature}.context.ts
-    → Types?       {feature}.types.ts
-    → Component?   {name}.tsx (kebab-case)
-    → Barrel?      {feature}.ts (always required)
+Is it business logic, data access, or an external API?
+  → src/services/{domain}/
+    → Service class with EventEmitter
+    → SQL lives here
+    → Zod parsing lives here
 
-Is it a UI primitive with no business context (EmptyState, SegmentedControl)?
+Is it a React binding for a service?
+  → src/hooks/{domain}/
+    → useServiceQuery for data
+    → useServiceMutation for actions
+    → No SQL, no business logic
+
+Is it a UI primitive with no business context?
   → src/shared/components/
 
 Is it a pure function with no feature imports?
   → src/shared/lib/
 
-Is it the DB schema or client?
-  → src/shared/db/
-
 Is it local UI state (form input, dropdown, tab index)?
   → useState in the component/screen
+
+Is it part of an unmigrated feature (playback, downloads, outputs)?
+  → src/features/{feature}/ (legacy — see MIGRATION.md)
 ```

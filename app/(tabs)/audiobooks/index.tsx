@@ -1,67 +1,21 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback } from "react";
 import { View, Text } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 
-import {
-  useLibraryStore,
-  BookCard,
-  BookGrid,
-} from "@/src/features/library/library";
-import type { AlbumRow } from "@/src/features/library/library";
-import { getAlbumProgressByMediaType, classifyAlbumProgress } from "@/src/features/progress/progress";
+import { BookCard, BookGrid } from "@/src/features/library/library";
 
-import { SectionHeader } from "@/src/shared/components/section-header";
-import { HorizontalList } from "@/src/shared/components/horizontal-list";
-import { SegmentedControl } from "@/src/shared/components/segmented-control";
+import { useAudiobooks } from "@/src/hooks/audiobooks/audiobooks";
+import { useLibraryStats } from "@/src/hooks/library/library";
+import type { AudiobookRow } from "@/src/services/database/database.schemas";
+
 import { EmptyState } from "@/src/shared/components/empty-state";
 import { colors } from "@/src/shared/theme/theme";
 
-const FILTERS = ["All", "In Progress", "Unstarted", "Finished"];
-
 export default function AudiobooksScreen() {
-  const albums = useLibraryStore((s) => s.albums);
-  const stats = useLibraryStore((s) => s.stats);
-  const setMediaType = useLibraryStore((s) => s.setMediaType);
-  const getFavouriteAlbums = useLibraryStore((s) => s.getFavouriteAlbums);
-  const getInProgressAlbums = useLibraryStore((s) => s.getInProgressAlbums);
-
-  const [selectedFilter, setSelectedFilter] = useState(0);
-  const [favourites, setFavourites] = useState<AlbumRow[]>([]);
-  const [inProgress, setInProgress] = useState<AlbumRow[]>([]);
-  const [progressMap, setProgressMap] = useState(() => new Map<string, number>());
-  const [progressState, setProgressState] = useState(() => new Map<string, "none" | "in_progress" | "finished">());
-
-  useFocusEffect(
-    useCallback(() => {
-      setMediaType("audiobook");
-      void getFavouriteAlbums("audiobook").then(setFavourites);
-      void getInProgressAlbums("audiobook").then(setInProgress);
-      void getAlbumProgressByMediaType("audiobook").then((summaries) => {
-        const pMap = new Map<string, number>();
-        const ids: string[] = [];
-        for (const [id, s] of summaries) {
-          pMap.set(id, s.fraction);
-          ids.push(id);
-        }
-        setProgressMap(pMap);
-        setProgressState(classifyAlbumProgress(ids, summaries));
-      });
-    }, [setMediaType, getFavouriteAlbums, getInProgressAlbums]),
-  );
-
-  const filteredAlbums = useMemo(() => {
-    if (selectedFilter === 0) return albums;
-    if (selectedFilter === 1) {
-      return albums.filter((a) => progressState.get(a.id) === "in_progress");
-    }
-    if (selectedFilter === 2) {
-      return albums.filter((a) => progressState.get(a.id) === "none");
-    }
-    return albums.filter((a) => progressState.get(a.id) === "finished");
-  }, [albums, selectedFilter, progressState]);
+  const { audiobooks } = useAudiobooks();
+  const stats = useLibraryStats();
 
   const handleBookPress = useCallback(
     (id: string) =>
@@ -69,69 +23,32 @@ export default function AudiobooksScreen() {
     [],
   );
 
-  const renderHorizontalCard = useCallback(
-    (item: AlbumRow) => (
+  const renderBookCard = useCallback(
+    (item: AudiobookRow) => (
       <BookCard
         id={item.id}
         title={item.title}
-        artistName={item.artistName}
+        artistName={item.authorName}
         sourceId={item.sourceId}
         artworkSourceItemId={item.artworkSourceItemId}
-        progress={progressMap.get(item.id)}
         onPress={() => handleBookPress(item.id)}
       />
     ),
-    [handleBookPress, progressMap],
+    [handleBookPress],
   );
 
-  const listHeader = useMemo(() => (
-    <View>
-      <View className="px-4">
-        <Text className="text-3xl font-bold text-fermata-text mt-4 mb-4">
-          Audiobooks
-        </Text>
-      </View>
-
-      {inProgress.length > 0 && (
-        <View className="mb-6">
-          <SectionHeader title="Currently Listening" />
-          <HorizontalList
-            data={inProgress}
-            keyExtractor={(item) => item.id}
-            renderItem={renderHorizontalCard}
-          />
-        </View>
-      )}
-
-      {favourites.length > 0 && (
-        <View className="mb-6">
-          <SectionHeader title="Favourites" />
-          <HorizontalList
-            data={favourites}
-            keyExtractor={(item) => item.id}
-            renderItem={renderHorizontalCard}
-          />
-        </View>
-      )}
-
-      <View className="px-4 mb-4">
-        <SegmentedControl
-          segments={FILTERS}
-          selectedIndex={selectedFilter}
-          onSelect={setSelectedFilter}
-        />
-      </View>
+  const listHeader = (
+    <View className="px-4">
+      <Text className="text-3xl font-bold text-fermata-text mt-4 mb-4">
+        Audiobooks
+      </Text>
     </View>
-  ), [inProgress, favourites, renderHorizontalCard, selectedFilter]);
+  );
 
   if (stats.audiobooks === 0) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
-        <View className="px-4">
-          <Text className="text-3xl font-bold text-fermata-text mt-4 mb-4">
-            Audiobooks
-          </Text>
-        </View>
+        {listHeader}
         <EmptyState
           icon="book-outline"
           title="No audiobooks yet"
@@ -145,9 +62,9 @@ export default function AudiobooksScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
       <BookGrid
         style={{ flex: 1 }}
-        books={filteredAlbums}
+        books={audiobooks}
         onBookPress={handleBookPress}
-        progressMap={progressMap}
+        renderCard={renderBookCard}
         ListHeaderComponent={listHeader}
       />
     </SafeAreaView>
