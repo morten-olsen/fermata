@@ -27,14 +27,23 @@ class AudiobooksService extends EventEmitter<AudiobooksServiceEvents> {
     return databaseService.getInstance();
   };
 
+  static #parseChapters(row: AudiobookRow): AudiobookRow {
+    if (typeof row.chapters === 'string') {
+      row.chapters = JSON.parse(row.chapters) as AudiobookRow['chapters'];
+    }
+    return row;
+  }
+
   public findAll = async (): Promise<AudiobookRow[]> => {
     const db = await this.#db();
-    return db.sql<AudiobookRow>`SELECT * FROM audiobooks ORDER BY title ASC`;
+    const rows = await db.sql<AudiobookRow>`SELECT * FROM audiobooks ORDER BY title ASC`;
+    return rows.map(AudiobooksService.#parseChapters);
   };
 
   public findById = async (id: string): Promise<AudiobookRow | null> => {
     const db = await this.#db();
-    return db.sql<AudiobookRow>`SELECT * FROM audiobooks WHERE id = ${id}`.first();
+    const row = await db.sql<AudiobookRow>`SELECT * FROM audiobooks WHERE id = ${id}`.first();
+    return row ? AudiobooksService.#parseChapters(row) : null;
   };
 }
 

@@ -131,7 +131,7 @@ type AbsMediaProgress = {
 const isBookMedia = (
   item: AbsLibraryItem,
 ): item is AbsLibraryItem & { media: AbsBookMedia } =>
-  item.mediaType === "book";
+  item.mediaType === "book" && (item.media as AbsBookMedia).audioFiles.length > 0;
 
 const isPodcastMedia = (
   item: AbsLibraryItem,

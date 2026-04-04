@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 
 import { ChapterRow } from "@/src/components/media/chapter-row";
-import { useSeekTo } from "@/src/hooks/playback/playback";
+import { usePlayTracks, useSeekTo } from "@/src/hooks/playback/playback";
 import { useAudiobook } from "@/src/hooks/audiobooks/audiobooks";
 
 import { NavBar } from "@/src/shared/components/nav-bar";
@@ -19,18 +19,24 @@ type Chapter = { title: string; startMs: number; endMs: number };
 export default function BookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { audiobook } = useAudiobook(id);
+  const { mutate: playTracks } = usePlayTracks();
   const { mutate: seekTo } = useSeekTo();
 
   const chapters = useMemo(() => audiobook?.chapters ?? [], [audiobook]);
 
+  const handlePlay = useCallback(() => {
+    if (!audiobook) return;
+    void playTracks({ trackIds: [audiobook.id] });
+  }, [audiobook, playTracks]);
+
   const handleChapterPress = useCallback(
-    (chapterIndex: number) => {
+    async (chapterIndex: number) => {
       if (!audiobook || chapterIndex >= chapters.length) return;
       const chapter = chapters[chapterIndex];
-      // TODO: play audiobook and seek to chapter start
-      void seekTo(chapter.startMs);
+      await playTracks({ trackIds: [audiobook.id] });
+      await seekTo(chapter.startMs);
     },
-    [audiobook, chapters, seekTo],
+    [audiobook, chapters, playTracks, seekTo],
   );
 
   const totalDurationSec = useMemo(
@@ -66,9 +72,7 @@ export default function BookDetailScreen() {
                   label="Play"
                   icon="play"
                   variant="primary"
-                  onPress={() => {
-                    // TODO: wire up audiobook playback
-                  }}
+                  onPress={handlePlay}
                 />
               }
             />

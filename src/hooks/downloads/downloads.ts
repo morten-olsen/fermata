@@ -78,10 +78,15 @@ const useRemoveAllDownloads = () => {
 
 const useOfflineMode = () => {
   const service = useService(DownloadService);
-  return {
-    offlineMode: service.offlineMode,
-    setOfflineMode: service.setOfflineMode,
-  };
+  const query = useCallback(() => Promise.resolve(service.offlineMode), [service]);
+
+  const { data: offlineMode = false } = useServiceQuery({
+    emitter: service,
+    query,
+    events: [...statsEvents],
+  });
+
+  return { offlineMode, setOfflineMode: service.setOfflineMode };
 };
 
 export {

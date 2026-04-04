@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!--
+      Single gradient spanning the full symbol height (arc apex → dot bottom).
+      Treats arc + dot as one continuous form catching light from above.
+      gradientUnits="userSpaceOnUse" so the dot naturally receives
+      the darker end — it sits lower, slightly in shadow.
+    -->
+    <linearGradient id="mark" x1="512" y1="330" x2="512" y2="615" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E0BAFF"/>
+      <stop offset="100%" stop-color="#B57ED8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background: pure near-black. The dark theatre before the music starts. -->
+  <rect width="1024" height="1024" rx="224" fill="#0A0A0B"/>
+
+  <!--
+    Fermata arc — filled crescent.
+
+    Constructed from two mirrored cubic béziers (outer dome + inner dome)
+    sharing endpoints at the tips. Thick at the apex (~110px), tapering
+    smoothly to nothing at the tips — like a single confident brushstroke.
+
+    Outer edge: wide dome peaking at y=330.
+    Inner edge: shallower dome peaking at y=440.
+    Tips converge at (232, 620) and (792, 620).
+
+    Width: 560px (≈55% of canvas) — fills the space without crowding.
+  -->
+  <path
+    d="M 232 620
+       C 232 415, 375 330, 512 330
+       C 649 330, 792 415, 792 620
+       C 792 490, 644 440, 512 440
+       C 380 440, 232 490, 232 620
+       Z"
+    fill="url(#mark)"
+  />
+
+  <!--
+    Fermata dot.
+
+    Radius 46px — proportional to the arc's 110px apex thickness.
+    Centered at y=568: the 128px gap between inner arc (440) and dot top
+    (522) is the held breath, the pause the fermata represents.
+    This negative space IS the meaning of the icon.
+  -->
+  <circle cx="512" cy="568" r="46" fill="url(#mark)"/>
+</svg>

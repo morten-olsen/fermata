@@ -21,7 +21,6 @@ import { colors } from "@/src/shared/theme/theme";
 export default function PlaylistDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { mutate: playTracks } = usePlayTracks();
-  const { data: currentTrack } = useCurrentTrack();
   const { mutate: toggleFavourite } = useToggleTrackFavourite();
   const { mutate: deletePlaylist } = useDeletePlaylist();
   const { showTrackActions } = useTrackActions();
@@ -148,7 +147,6 @@ export default function PlaylistDetailScreen() {
         renderItem={({ item }) => (
           <MixtapeTrackItem
             item={item}
-            currentTrackId={currentTrack?.id}
             trackIds={trackIds}
             playTracks={playTracks}
             showTrackActions={showTrackActions}
@@ -162,19 +160,18 @@ export default function PlaylistDetailScreen() {
 
 const MixtapeTrackItem = memo(function MixtapeTrackItem({
   item,
-  currentTrackId,
   trackIds,
   playTracks,
   showTrackActions,
   toggleFavourite,
 }: {
   item: PlaylistTrackRow;
-  currentTrackId: string | undefined;
   trackIds: string[];
   playTracks: (params: { trackIds: string[]; startIndex?: number }) => Promise<void>;
   showTrackActions: (target: ReturnType<typeof toActionTarget>) => void;
   toggleFavourite: (id: string) => Promise<boolean>;
 }) {
+  const { data: currentTrack } = useCurrentTrack();
   const handlePress = useCallback(
     () => playTracks({ trackIds, startIndex: item.position }),
     [playTracks, trackIds, item.position],
@@ -195,7 +192,7 @@ const MixtapeTrackItem = memo(function MixtapeTrackItem({
         artistName={item.artistName}
         duration={item.duration}
         trackNumber={item.position + 1}
-        isPlaying={currentTrackId === item.id}
+        isPlaying={currentTrack?.id === item.id}
         isFavourite={!!item.isFavourite}
         onPress={handlePress}
         onMorePress={handleMore}

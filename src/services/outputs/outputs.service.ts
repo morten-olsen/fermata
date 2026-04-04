@@ -195,19 +195,6 @@ class OutputsService extends EventEmitter<OutputsServiceEvents> {
     this.#activeTarget = { outputId, entityId };
     this.#connectionState = 'connected';
 
-    // Update lock screen metadata via local player
-    const currentTrack = playbackService.getCurrentTrack();
-    if (currentTrack) {
-      this.#localPlayer.updateLockScreen({
-        trackId: currentTrack.id,
-        title: currentTrack.title,
-        artistName: currentTrack.artistName,
-        albumTitle: currentTrack.albumTitle,
-        artworkUrl: currentTrack.artworkUri ?? undefined,
-        durationMs: currentTrack.duration * 1000,
-      });
-    }
-
     playbackService.setPlayer(haPlayer);
 
     this.emit('activeTargetChanged');

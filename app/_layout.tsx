@@ -12,6 +12,7 @@ import { TrackActionsProvider } from "@/src/components/library/track-actions";
 import { ServicesProvider } from "@/src/components/services-provider";
 import { useService } from "@/src/hooks/service/service";
 import { DownloadService } from "@/src/services/downloads/downloads";
+import { NowPlayingService } from "@/src/services/now-playing/now-playing.service";
 import { OutputsService } from "@/src/services/outputs/outputs.service";
 import { PlayerOverlay } from "@/src/components/playback/player-overlay";
 import { registerOpfsServiceWorker } from "@/src/services/filesystem/filesystem.register-sw";
@@ -51,9 +52,11 @@ export default function RootLayout() {
 
 function ServiceInitializer() {
   const downloadService = useService(DownloadService);
+  const nowPlayingService = useService(NowPlayingService);
   const outputsService = useService(OutputsService);
 
   useEffect(() => {
+    nowPlayingService.initialize();
     void Promise.all([
       registerOpfsServiceWorker(),
       downloadService.initialize(),

@@ -155,7 +155,6 @@ export default function AlbumDetailScreen() {
             item={item}
             index={index}
             albumId={id}
-            currentTrackId={currentTrack?.id}
             playAlbum={playAlbum}
             showTrackActions={showTrackActions}
             trackToAction={trackToAction}
@@ -171,7 +170,6 @@ const AlbumTrackItem = memo(function AlbumTrackItem({
   item,
   index,
   albumId,
-  currentTrackId,
   playAlbum,
   showTrackActions,
   trackToAction,
@@ -180,12 +178,12 @@ const AlbumTrackItem = memo(function AlbumTrackItem({
   item: TrackRowType;
   index: number;
   albumId: string;
-  currentTrackId: string | undefined;
   playAlbum: (params: { albumId: string; startIndex?: number }) => Promise<void>;
   showTrackActions: (target: ReturnType<typeof toActionTarget>) => void;
   trackToAction: (item: TrackRowType) => ReturnType<typeof toActionTarget>;
   handleToggleFavourite: (item: TrackRowType) => void;
 }) {
+  const { data: currentTrack } = useCurrentTrack();
   const downloadService = useService(DownloadService);
   const handlePress = useCallback(() => playAlbum({ albumId, startIndex: index }), [playAlbum, albumId, index]);
   const handleMore = useCallback(() => showTrackActions(trackToAction(item)), [showTrackActions, trackToAction, item]);
@@ -198,7 +196,7 @@ const AlbumTrackItem = memo(function AlbumTrackItem({
         artistName={item.artistName}
         duration={item.duration}
         trackNumber={item.trackNumber}
-        isPlaying={currentTrackId === item.id}
+        isPlaying={currentTrack?.id === item.id}
         isFavourite={!!item.isFavourite}
         isDownloaded={downloadService.isDownloaded(item.id, 'track')}
         isQueued={downloadService.isQueued(item.id, 'track')}

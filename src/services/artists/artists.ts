@@ -3,6 +3,7 @@ import { EventEmitter } from "@/src/utils/utils.event-emitter";
 import type { ArtistRow } from "../database/database.schemas";
 import { DatabaseService } from "../database/database.service";
 import type { Services } from "../services/services";
+import { DownloadService } from "../downloads/downloads";
 import { SyncService } from "../sync/sync";
 
 type ArtistsServiceEvents = {
@@ -18,6 +19,11 @@ class ArtistsService extends EventEmitter<ArtistsServiceEvents> {
 
     const syncService = this.#services.get(SyncService);
     syncService.on('syncCompleted', () => {
+      this.emit('changed');
+    });
+
+    const downloadService = this.#services.get(DownloadService);
+    downloadService.on('statusChanged', () => {
       this.emit('changed');
     });
   }

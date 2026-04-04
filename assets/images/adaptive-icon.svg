@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!--
+      Android adaptive icon: visible area is inner ~66%.
+      Mark scaled down to fit within the 170px–854px safe zone.
+      Same proportions as icon.svg.
+    -->
+    <linearGradient id="mark" x1="512" y1="350" x2="512" y2="615" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E0BAFF"/>
+      <stop offset="100%" stop-color="#B57ED8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Proportionally identical to icon.svg, inset for safe zone -->
+  <path
+    d="M 290 610
+       C 290 440, 395 350, 512 350
+       C 629 350, 734 440, 734 610
+       C 734 505, 626 465, 512 465
+       C 398 465, 290 505, 290 610
+       Z"
+    fill="url(#mark)"
+  />
+
+  <circle cx="512" cy="560" r="36" fill="url(#mark)"/>
+</svg>

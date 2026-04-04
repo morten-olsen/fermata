@@ -19,7 +19,6 @@ export default function PodcastShowScreen() {
   const { show } = useShow(id);
   const { episodes } = useShowEpisodes(id);
   const { mutate: playTracks } = usePlayTracks();
-  const { data: currentTrack } = useCurrentTrack();
 
   const episodeIds = useMemo(() => episodes.map((e) => e.id), [episodes]);
 
@@ -71,7 +70,6 @@ export default function PodcastShowScreen() {
         renderItem={({ item }) => (
           <ShowEpisodeItem
             item={item}
-            currentTrackId={currentTrack?.id}
             onPress={handleEpisodePress}
           />
         )}
@@ -82,13 +80,12 @@ export default function PodcastShowScreen() {
 
 const ShowEpisodeItem = memo(function ShowEpisodeItem({
   item,
-  currentTrackId,
   onPress,
 }: {
   item: EpisodeRowType;
-  currentTrackId: string | undefined;
   onPress: (id: string) => void;
 }) {
+  const { data: currentTrack } = useCurrentTrack();
   const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
 
   const dateLabel = item.publishedAt
@@ -106,7 +103,7 @@ const ShowEpisodeItem = memo(function ShowEpisodeItem({
         dateLabel={dateLabel}
         duration={item.duration}
         episodeNumber={item.episodeNumber}
-        isPlaying={currentTrackId === item.id}
+        isPlaying={currentTrack?.id === item.id}
         isDownloaded={false}
         onPress={handlePress}
       />

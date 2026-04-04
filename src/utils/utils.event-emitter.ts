@@ -21,7 +21,7 @@ class EventEmitter<T extends Record<string, (...args: any[]) => void | Promise<v
     abortSignal?.addEventListener('abort', () => { abortController.abort(); });
     listeners.add(callbackClone);
     abortController.signal.addEventListener('abort', () => {
-      this.#listeners.set(event, listeners?.difference(new Set([callbackClone])));
+      listeners.delete(callbackClone);
     });
     return () => { abortController.abort(); };
   };
@@ -57,7 +57,7 @@ class EventEmitter<T extends Record<string, (...args: any[]) => void | Promise<v
     if (!listeners) {
       return;
     }
-    await Promise.all(listeners.values().map((listener) => listener(...args)));
+    await Promise.all([...listeners].map((listener) => listener(...args)));
   };
 }
 

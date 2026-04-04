@@ -152,7 +152,7 @@ const startPlaySession = async (
     },
     body: JSON.stringify({
       deviceInfo: { clientName: "Fermata" },
-      forceTranscode: true,
+      forceDirectPlay: true,
     }),
   });
 

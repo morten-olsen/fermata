@@ -123,8 +123,6 @@ export default function LibraryScreen() {
         <Pressable
           onPress={() => {
             setOfflineMode(!offlineMode);
-            // Refresh library with new filter
-            refreshAll();
           }}
           style={{ padding: 8 }}
         >

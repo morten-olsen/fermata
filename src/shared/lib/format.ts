@@ -1,8 +1,12 @@
-/** Format seconds as m:ss (e.g. 215 → "3:35") */
+/** Format seconds as m:ss or h:mm:ss (e.g. 215 → "3:35", 3661 → "1:01:01") */
 export function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 /** Format seconds as a human-readable long form (e.g. 15720 → "4h 22m", 300 → "5 min"). */
