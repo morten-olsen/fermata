@@ -7,13 +7,12 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import { EpisodeRow } from "@/src/components/media/episode-row";
-import { usePlayTracks, useCurrentTrack } from "@/src/hooks/playback/playback";
-import { useProgress } from "@/src/hooks/progress/progress";
+import { usePlayTracks } from "@/src/hooks/playback/playback";
 import { useShow, useShowEpisodes, useToggleShowFavourite } from "@/src/hooks/shows/shows";
+import type { EnrichedEpisode } from "@/src/hooks/shows/shows";
 import { useIsPinned, usePinForOffline, useUnpinOffline, useIsDownloaded } from "@/src/hooks/downloads/downloads";
 import { DownloadService } from "@/src/services/downloads/downloads";
 import { useService } from "@/src/hooks/service/service";
-import type { EpisodeRow as EpisodeRowType } from "@/src/services/database/database.schemas";
 
 import { BottomSheet } from "@/src/shared/components/bottom-sheet";
 import { NavBar } from "@/src/shared/components/nav-bar";
@@ -32,7 +31,7 @@ export default function PodcastShowScreen() {
   const { mutate: pin } = usePinForOffline();
   const { mutate: unpin } = useUnpinOffline();
   const [isFav, setIsFav] = useState<boolean | null>(null);
-  const [actionEpisode, setActionEpisode] = useState<EpisodeRowType | null>(null);
+  const [actionEpisode, setActionEpisode] = useState<EnrichedEpisode | null>(null);
 
   const episodeIds = useMemo(() => episodes.map((e) => e.id), [episodes]);
 
@@ -47,10 +46,10 @@ export default function PodcastShowScreen() {
   );
 
   const handlePlayLatest = useCallback(() => {
-    if (episodes.length > 0) {
-      void playTracks({ trackIds: episodeIds, startIndex: 0 });
+    if (episodeIds.length > 0) {
+      void playTracks({ trackIds: [episodeIds[0]] });
     }
-  }, [episodes.length, playTracks, episodeIds]);
+  }, [playTracks, episodeIds]);
 
   const handleToggleFavourite = useCallback(() => {
     const newVal = !showIsFav;
@@ -72,7 +71,7 @@ export default function PodcastShowScreen() {
   }, [show, isPinned, pin, unpin, id]);
 
   const handleEpisodeMore = useCallback(
-    (episode: EpisodeRowType) => setActionEpisode(episode),
+    (episode: EnrichedEpisode) => setActionEpisode(episode),
     [],
   );
 
@@ -156,12 +155,10 @@ const ShowEpisodeItem = memo(function ShowEpisodeItem({
   onPress,
   onMorePress,
 }: {
-  item: EpisodeRowType;
+  item: EnrichedEpisode;
   onPress: (id: string) => void;
-  onMorePress: (episode: EpisodeRowType) => void;
+  onMorePress: (episode: EnrichedEpisode) => void;
 }) {
-  const { data: currentTrack } = useCurrentTrack();
-  const { data: progressEntry } = useProgress(item.id);
   const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
   const handleMore = useCallback(() => onMorePress(item), [onMorePress, item]);
 
@@ -173,11 +170,6 @@ const ShowEpisodeItem = memo(function ShowEpisodeItem({
       })
     : "";
 
-  const durationMs = item.duration * 1000;
-  const progress = progressEntry && durationMs > 0
-    ? progressEntry.positionMs / durationMs
-    : undefined;
-
   return (
     <View className="px-4">
       <EpisodeRow
@@ -185,10 +177,10 @@ const ShowEpisodeItem = memo(function ShowEpisodeItem({
         dateLabel={dateLabel}
         duration={item.duration}
         episodeNumber={item.episodeNumber}
-        isPlaying={currentTrack?.id === item.id}
-        isDownloaded={false}
-        progress={progress}
-        isCompleted={progressEntry?.isCompleted}
+        isPlaying={item.isPlaying}
+        isDownloaded={item.isDownloaded}
+        progress={item.progress ?? undefined}
+        isCompleted={item.isCompleted}
         onPress={handlePress}
         onMorePress={handleMore}
       />
@@ -203,7 +195,7 @@ function EpisodeActionSheet({
   sourceId,
   onDismiss,
 }: {
-  episode: EpisodeRowType;
+  episode: EnrichedEpisode;
   sourceId: string;
   onDismiss: () => void;
 }) {

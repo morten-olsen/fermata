@@ -208,6 +208,7 @@ class DownloadService extends EventEmitter<DownloadServiceEvents> {
 
     this.#fileCache.delete(key);
     this.#queuedSet.delete(key);
+    this.emit('itemDownloadChanged', { itemId, itemType, isDownloaded: false });
   };
 
   public removeAllDownloads = async () => {
@@ -370,6 +371,7 @@ class DownloadService extends EventEmitter<DownloadServiceEvents> {
       this.#queuedSet.delete(key);
       log('Downloaded:', streamInfo.title, `(${(size / 1024 / 1024).toFixed(1)} MB)`);
       this.emit('downloadCompleted', itemId, itemType);
+      this.emit('itemDownloadChanged', { itemId, itemType, isDownloaded: true });
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Download failed';
       warn('Download failed:', streamInfo.title, msg);

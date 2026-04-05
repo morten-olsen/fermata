@@ -1,5 +1,6 @@
 import { EventEmitter } from "@/src/utils/utils.event-emitter";
 
+import { AuthExpiredError } from "@/src/shared/lib/errors";
 import { stableId } from "@/src/shared/lib/ids";
 
 import type { SourceRow } from "../database/database.schemas";
@@ -67,6 +68,10 @@ class SyncService extends EventEmitter<SyncServiceEvents> {
       return result;
     } catch (e) {
       const error = e instanceof Error ? e : new Error(String(e));
+      if (e instanceof AuthExpiredError) {
+        const sourcesService = this.#services.get(SourcesService);
+        sourcesService.markAuthExpired(source.id);
+      }
       this.emit('syncFailed', source.id, error);
       throw error;
     } finally {
@@ -77,8 +82,13 @@ class SyncService extends EventEmitter<SyncServiceEvents> {
   public syncAll = async (sources: SourceRow[]): Promise<SyncResult[]> => {
     const results: SyncResult[] = [];
     for (const source of sources) {
-      const result = await this.syncSource(source);
-      results.push(result);
+      try {
+        const result = await this.syncSource(source);
+        results.push(result);
+      } catch {
+        // Individual source failures (including auth) are already emitted
+        // via syncFailed — continue with remaining sources
+      }
     }
     return results;
   };

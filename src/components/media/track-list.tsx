@@ -3,7 +3,6 @@ import { useCallback, useMemo, useRef, useState, memo } from "react";
 import type { StyleProp, ViewStyle } from "react-native";
 import { View, FlatList } from "react-native";
 
-import { useCurrentTrack } from "@/src/hooks/playback/playback";
 import type { TrackRow as TrackRowType } from "@/src/services/database/database.schemas";
 
 import { AlphabetScrubber } from "@/src/shared/components/alphabet-scrubber";
@@ -15,11 +14,16 @@ import { TrackRow } from "./track-row";
 const TRACK_ROW_HEIGHT = 56;
 const SCRUBBER_WIDTH = 36;
 
+type TrackListItem = TrackRowType & {
+  isPlaying?: boolean;
+  isDownloaded?: boolean;
+};
+
 interface TrackListProps {
-  tracks: TrackRowType[];
+  tracks: TrackListItem[];
   onTrackPress: (trackId: string) => void;
-  onTrackMorePress?: (track: TrackRowType) => void;
-  onToggleFavourite?: (track: TrackRowType) => void;
+  onTrackMorePress?: (track: TrackListItem) => void;
+  onToggleFavourite?: (track: TrackListItem) => void;
   ListHeaderComponent?: ReactElement;
   style?: StyleProp<ViewStyle>;
 }
@@ -57,8 +61,8 @@ export function TrackList({
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: TrackRowType }) => (
-      <TrackListItem
+    ({ item }: { item: TrackListItem }) => (
+      <MemoTrackListItem
         item={item}
         onTrackPress={onTrackPress}
         onTrackMorePress={onTrackMorePress}
@@ -104,24 +108,17 @@ const getTrackItemLayout = (_data: unknown, index: number) => ({
   index,
 });
 
-/**
- * Each item subscribes to currentTrack.id directly from the playback store.
- * Only the row that starts/stops playing re-renders — not the entire list.
- */
-const TrackListItem = memo(function TrackListItem({
+const MemoTrackListItem = memo(function MemoTrackListItem({
   item,
   onTrackPress,
   onTrackMorePress,
   onToggleFavourite,
 }: {
-  item: TrackRowType;
+  item: TrackListItem;
   onTrackPress: (trackId: string) => void;
-  onTrackMorePress?: (track: TrackRowType) => void;
-  onToggleFavourite?: (track: TrackRowType) => void;
+  onTrackMorePress?: (track: TrackListItem) => void;
+  onToggleFavourite?: (track: TrackListItem) => void;
 }) {
-  const { data: currentTrack } = useCurrentTrack();
-  const isPlaying = currentTrack?.id === item.id;
-
   const handlePress = useCallback(() => onTrackPress(item.id), [onTrackPress, item.id]);
   const handleMore = useCallback(
     () => onTrackMorePress?.(item),
@@ -138,8 +135,9 @@ const TrackListItem = memo(function TrackListItem({
       artistName={item.artistName}
       duration={item.duration}
       trackNumber={item.trackNumber}
-      isPlaying={isPlaying}
+      isPlaying={item.isPlaying}
       isFavourite={!!item.isFavourite}
+      isDownloaded={item.isDownloaded}
       onPress={handlePress}
       onMorePress={onTrackMorePress ? handleMore : undefined}
       onToggleFavourite={onToggleFavourite ? handleFav : undefined}

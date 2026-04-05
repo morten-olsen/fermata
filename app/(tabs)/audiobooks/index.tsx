@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { View, Text } from "react-native";
+import { View, Text, useWindowDimensions } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -7,8 +7,8 @@ import { router } from "expo-router";
 import { BookCard } from "@/src/components/media/book-card";
 import { BookGrid } from "@/src/components/media/book-grid";
 import { useAudiobooks } from "@/src/hooks/audiobooks/audiobooks";
+import type { EnrichedAudiobook } from "@/src/hooks/audiobooks/audiobooks";
 import { useLibraryStats } from "@/src/hooks/library/library";
-import type { AudiobookRow } from "@/src/services/database/database.schemas";
 
 import { EmptyState } from "@/src/shared/components/empty-state";
 import { HorizontalList } from "@/src/shared/components/horizontal-list";
@@ -17,6 +17,8 @@ import { colors } from "@/src/shared/theme/theme";
 export default function AudiobooksScreen() {
   const { audiobooks } = useAudiobooks();
   const stats = useLibraryStats();
+  const { width: screenWidth } = useWindowDimensions();
+  const gridCardWidth = Math.floor((screenWidth - 16 - 36 - 12 * 2) / 3);
 
   const favourites = useMemo(
     () => audiobooks.filter((b) => !!b.isFavourite),
@@ -30,12 +32,14 @@ export default function AudiobooksScreen() {
   );
 
   const renderBookCard = useCallback(
-    (item: AudiobookRow) => (
+    (item: EnrichedAudiobook) => (
       <BookCard
         id={item.id}
         title={item.title}
         artistName={item.authorName}
         artworkUri={item.artworkUri}
+        progress={item.progress ?? undefined}
+        isDownloaded={item.isDownloaded}
         onPress={() => handleBookPress(item.id)}
       />
     ),
@@ -43,12 +47,14 @@ export default function AudiobooksScreen() {
   );
 
   const renderFavouriteCard = useCallback(
-    (item: AudiobookRow) => (
+    (item: EnrichedAudiobook) => (
       <BookCard
         id={item.id}
         title={item.title}
         artistName={item.authorName}
         artworkUri={item.artworkUri}
+        progress={item.progress ?? undefined}
+        isDownloaded={item.isDownloaded}
         onPress={() => handleBookPress(item.id)}
       />
     ),
@@ -72,10 +78,12 @@ export default function AudiobooksScreen() {
             data={favourites}
             keyExtractor={(item) => item.id}
             renderItem={renderFavouriteCard}
-            itemWidth={110}
+            itemWidth={gridCardWidth}
           />
         </View>
       )}
+
+      <View className="h-px bg-fermata-border mx-4 mt-2 mb-8" />
     </View>
   );
 

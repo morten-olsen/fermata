@@ -59,15 +59,23 @@ type DownloadStats = {
 
 // ── Events ────────────────────────────────────────────
 
+type DownloadItemChange = {
+  itemId: string;
+  itemType: DownloadItemType;
+  isDownloaded: boolean;
+};
+
 type DownloadServiceEvents = {
   downloadCompleted: (itemId: string, itemType: DownloadItemType) => void;
   downloadFailed: (itemId: string, itemType: DownloadItemType) => void;
+  itemDownloadChanged: (change: DownloadItemChange) => void;
   statusChanged: () => void;
   pinChanged: () => void;
 };
 
 export type {
   DownloadItemType,
+  DownloadItemChange,
   DownloadableItem,
   PinEntityType,
   DownloadStatus,

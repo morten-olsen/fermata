@@ -11,4 +11,5 @@ const useService = <T>(service: ServiceDependency<T>) => {
 
 export { useServiceQuery } from './service.query';
 export { useServiceMutation } from './service.mutation';
+export { useReactiveList } from './service.reactive-list';
 export { useService };

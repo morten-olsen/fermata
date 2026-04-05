@@ -14,6 +14,7 @@ type SourcesServiceEvents = {
   sourceAdded: (item: SourceRow) => void;
   sourceRemoved: (item: SourceRow) => void;
   sourceUpdated: (item: SourceRow) => void;
+  sourceAuthExpired: (sourceId: string) => void;
 }
 
 type RawSourceRow = {
@@ -32,6 +33,7 @@ const parseRow = (row: RawSourceRow): SourceRow =>
 
 class SourcesService extends EventEmitter<SourcesServiceEvents> {
   #services: Services;
+  #expiredSources = new Set<string>();
 
   constructor(services: Services) {
     super();
@@ -108,6 +110,29 @@ class SourcesService extends EventEmitter<SourcesServiceEvents> {
   };
 
   public getAdapter = (source: SourceRow): SourceAdapter => createAdapter(source);
+
+  // ── Auth state ──────────────────────────────────────
+
+  public markAuthExpired = (sourceId: string) => {
+    if (this.#expiredSources.has(sourceId)) return;
+    this.#expiredSources.add(sourceId);
+    this.emit('sourceAuthExpired', sourceId);
+  };
+
+  public clearAuthExpired = (sourceId: string) => {
+    this.#expiredSources.delete(sourceId);
+  };
+
+  public isAuthExpired = (sourceId: string): boolean =>
+    this.#expiredSources.has(sourceId);
+
+  public reAuthenticate = async (sourceId: string, credentials: SourceCredentials): Promise<void> => {
+    const source = await this.findById(sourceId);
+    if (!source) throw new Error('Source not found');
+    const config = await authenticateSource(source.type, credentials);
+    await this.update(sourceId, { config });
+    this.clearAuthExpired(sourceId);
+  };
 
   public remove = async (id: string): Promise<boolean> => {
     const existing = await this.findById(id);

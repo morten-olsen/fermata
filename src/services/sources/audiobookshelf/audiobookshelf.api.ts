@@ -1,3 +1,4 @@
+import { AuthExpiredError } from "@/src/shared/lib/errors";
 import { log } from "@/src/shared/lib/log";
 import { fetchWithTimeout } from "@/src/shared/lib/fetch";
 
@@ -33,6 +34,10 @@ async function apiFetch<T>(
   const response = await fetchWithTimeout(url.toString(), {
     headers: authHeaders(token),
   });
+
+  if (response.status === 401) {
+    throw new AuthExpiredError('Audiobookshelf');
+  }
 
   if (!response.ok) {
     throw new Error(

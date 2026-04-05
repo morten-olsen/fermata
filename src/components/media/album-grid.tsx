@@ -93,7 +93,9 @@ export function AlbumGrid({
   );
 
   const wrappedHeader = ListHeaderComponent ? (
-    <View>{ListHeaderComponent}</View>
+    <View style={{ marginLeft: -PADDING, marginRight: -SCRUBBER_WIDTH }}>
+      {ListHeaderComponent}
+    </View>
   ) : undefined;
 
   return (

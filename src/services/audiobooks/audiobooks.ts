@@ -3,7 +3,6 @@ import { EventEmitter } from "@/src/utils/utils.event-emitter";
 import type { AudiobookRow } from "../database/database.schemas";
 import { DatabaseService } from "../database/database.service";
 import type { Services } from "../services/services";
-import { SyncService } from "../sync/sync";
 
 type AudiobooksServiceEvents = {
   changed: () => void;
@@ -15,11 +14,6 @@ class AudiobooksService extends EventEmitter<AudiobooksServiceEvents> {
   constructor(services: Services) {
     super();
     this.#services = services;
-
-    const syncService = this.#services.get(SyncService);
-    syncService.on('syncCompleted', () => {
-      this.emit('changed');
-    });
   }
 
   #db = async () => {

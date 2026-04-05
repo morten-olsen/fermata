@@ -1,3 +1,4 @@
+import { AuthExpiredError } from "@/src/shared/lib/errors";
 import { fetchWithTimeout } from "@/src/shared/lib/fetch";
 
 const CLIENT_NAME = "Fermata";
@@ -75,6 +76,10 @@ async function apiFetch<T>(
   const response = await fetchWithTimeout(url.toString(), {
     headers: { Authorization: buildAuthHeader(accessToken) },
   });
+
+  if (response.status === 401) {
+    throw new AuthExpiredError('Jellyfin');
+  }
 
   if (!response.ok) {
     throw new Error(

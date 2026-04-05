@@ -48,6 +48,11 @@ export function formatRemainingDuration(
   return `${prefix}${formatDuration(displaySeconds)}`;
 }
 
+/** Returns a 0–1 fraction from positionMs/durationMs, or null if duration is unknown. */
+export function progressFraction(positionMs: number, durationMs: number): number | null {
+  return durationMs > 0 ? positionMs / durationMs : null;
+}
+
 /** Format a byte count as a human-readable string (e.g. 1048576 → "1.0 MB"). */
 export function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";

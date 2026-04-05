@@ -3,8 +3,6 @@ import { EventEmitter } from "@/src/utils/utils.event-emitter";
 import type { AlbumRow, TrackRow } from "../database/database.schemas";
 import { DatabaseService } from "../database/database.service";
 import type { Services } from "../services/services";
-import { DownloadService } from "../downloads/downloads";
-import { SyncService } from "../sync/sync";
 
 type AlbumsServiceEvents = {
   changed: () => void;
@@ -16,16 +14,6 @@ class AlbumsService extends EventEmitter<AlbumsServiceEvents> {
   constructor(services: Services) {
     super();
     this.#services = services;
-
-    const syncService = this.#services.get(SyncService);
-    syncService.on('syncCompleted', () => {
-      this.emit('changed');
-    });
-
-    const downloadService = this.#services.get(DownloadService);
-    downloadService.on('statusChanged', () => {
-      this.emit('changed');
-    });
   }
 
   #db = async () => {

@@ -1,5 +1,6 @@
 import { EventEmitter } from "@/src/utils/utils.event-emitter";
 
+import { AuthExpiredError } from "@/src/shared/lib/errors";
 import { log, warn } from "@/src/shared/lib/log";
 
 import { DatabaseService } from "../database/database.service";
@@ -363,6 +364,10 @@ class PlaybackService extends EventEmitter<PlaybackServiceEvents> {
       const streamUrl = await adapter.getStreamUrl(item.sourceItemId, item.contentUrl);
       return { streamUrl, metadata };
     } catch (e) {
+      if (e instanceof AuthExpiredError) {
+        const sourcesService = this.#services.get(SourcesService);
+        sourcesService.markAuthExpired(item.sourceId);
+      }
       warn("resolveStreamUrl: failed for", item.title, e);
       return null;
     }
@@ -379,6 +384,15 @@ class PlaybackService extends EventEmitter<PlaybackServiceEvents> {
       this.#positionMs = Math.max(0, positionMs - offsetMs);
       this.#durationMs = current ? current.duration * 1000 : durationMs;
       this.emit('stateChanged');
+
+      if (current?.tracksProgress) {
+        this.#services.get(ProgressService).emitItemChanged({
+          itemId: current.id,
+          positionMs: this.#positionMs,
+          durationMs: this.#durationMs,
+          isCompleted: false,
+        });
+      }
     }));
 
     unsubs.push(player.on('stateChanged', (isPlaying) => {
@@ -484,7 +498,7 @@ class PlaybackService extends EventEmitter<PlaybackServiceEvents> {
     log("Progress saved:", itemId, `${Math.round(positionMs / 1000)}s`, isCompleted ? "(completed)" : "");
 
     const progressService = this.#services.get(ProgressService);
-    progressService.notifyChanged(itemId);
+    progressService.notifyChanged({ itemId, positionMs, durationMs, isCompleted });
   };
 
   #getResumePosition = async (itemId: string): Promise<number> => {

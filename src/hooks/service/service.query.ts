@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import type { RefetchSource } from "./service.reactive-list";
+
 type Listenable<TEventMap extends Record<string, unknown>> = {
   on(
     event: keyof TEventMap & string,
@@ -15,6 +17,8 @@ type UseServiceQueryOptions<
   emitter: Listenable<TEventMap>;
   query: () => Promise<TData>;
   events: (keyof TEventMap & string)[];
+  /** Additional emitters whose events should trigger a refetch. */
+  invalidateOn?: RefetchSource[];
 };
 
 type UseServiceQueryResult<TData> = {
@@ -30,13 +34,15 @@ const useServiceQuery = <
 >(
   options: UseServiceQueryOptions<TEventMap, TData>,
 ): UseServiceQueryResult<TData> => {
-  const { emitter, query, events } = options;
+  const { emitter, query, events, invalidateOn } = options;
   const [data, setData] = useState<TData | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const mountedRef = useRef(true);
   const eventsRef = useRef(events);
   eventsRef.current = events;
+  const invalidateOnRef = useRef(invalidateOn);
+  invalidateOnRef.current = invalidateOn;
 
   const fetch = useCallback(() => {
     query()
@@ -60,10 +66,6 @@ const useServiceQuery = <
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
-
-  useEffect(() => {
     setLoading(true);
     fetch();
 
@@ -72,7 +74,16 @@ const useServiceQuery = <
       emitter.on(event, fetch, { abortSignal: controller.signal });
     }
 
-    return () => { controller.abort(); };
+    for (const source of invalidateOnRef.current ?? []) {
+      for (const event of source.events) {
+        source.emitter.on(event, fetch, { abortSignal: controller.signal });
+      }
+    }
+
+    return () => {
+      mountedRef.current = false;
+      controller.abort();
+    };
   }, [emitter, fetch]);
 
   return { data, loading, error, refetch: fetch };

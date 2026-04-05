@@ -3,7 +3,16 @@ import { EventEmitter } from "@/src/utils/utils.event-emitter";
 import type { ShowRow, EpisodeRow } from "../database/database.schemas";
 import { DatabaseService } from "../database/database.service";
 import type { Services } from "../services/services";
-import { SyncService } from "../sync/sync";
+
+type LatestEpisode = {
+  id: string;
+  title: string;
+  duration: number;
+  publishedAt: string | null;
+  showId: string;
+  showTitle: string;
+  showArtworkUri: string | null;
+};
 
 type ShowsServiceEvents = {
   changed: () => void;
@@ -15,11 +24,6 @@ class ShowsService extends EventEmitter<ShowsServiceEvents> {
   constructor(services: Services) {
     super();
     this.#services = services;
-
-    const syncService = this.#services.get(SyncService);
-    syncService.on('syncCompleted', () => {
-      this.emit('changed');
-    });
   }
 
   #db = async () => {
@@ -42,6 +46,21 @@ class ShowsService extends EventEmitter<ShowsServiceEvents> {
     return db.sql<EpisodeRow>`SELECT * FROM episodes WHERE showId = ${showId} ORDER BY publishedAt DESC, episodeNumber DESC`;
   };
 
+  public getLatestUnplayed = async (limit = 10): Promise<LatestEpisode[]> => {
+    const db = await this.#db();
+    return db.sql<LatestEpisode>`
+      SELECT
+        e.id, e.title, e.duration, e.publishedAt, e.showId,
+        s.title AS showTitle, s.artworkUri AS showArtworkUri
+      FROM episodes e
+      INNER JOIN shows s ON s.id = e.showId
+      LEFT JOIN playbackProgress pp ON pp.itemId = e.id AND pp.itemType = 'episode'
+      WHERE pp.itemId IS NULL OR (pp.isCompleted = 0 AND pp.positionMs = 0)
+      ORDER BY e.publishedAt DESC
+      LIMIT ${limit}
+    `;
+  };
+
   public toggleFavourite = async (id: string): Promise<boolean> => {
     const db = await this.#db();
     const show = await this.findById(id);
@@ -54,4 +73,5 @@ class ShowsService extends EventEmitter<ShowsServiceEvents> {
   };
 }
 
+export type { LatestEpisode };
 export { ShowsService };

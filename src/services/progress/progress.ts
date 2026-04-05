@@ -10,6 +10,7 @@ import type {
   AlbumProgressState,
   AlbumProgressSummary,
   ProgressEntry,
+  ProgressItemChange,
   ProgressServiceEvents,
 } from "./progress.types";
 
@@ -33,9 +34,15 @@ class ProgressService extends EventEmitter<ProgressServiceEvents> {
 
   // ── Notify ─────────────────────────────────────────
 
-  public notifyChanged = (itemId: string) => {
+  public notifyChanged = (change: ProgressItemChange) => {
     this.emit('changed');
-    this.emit(`changed:${itemId}`);
+    this.emit(`changed:${change.itemId}`);
+    this.emit('itemChanged', change);
+  };
+
+  /** Emit only itemChanged — for real-time list updates without triggering DB refetches. */
+  public emitItemChanged = (change: ProgressItemChange) => {
+    this.emit('itemChanged', change);
   };
 
   // ── Read ────────────────────────────────────────────
@@ -52,18 +59,11 @@ class ProgressService extends EventEmitter<ProgressServiceEvents> {
   public getProgressBatch = async (itemIds: string[]): Promise<Map<string, ProgressEntry>> => {
     if (itemIds.length === 0) return new Map();
 
-    const db = await this.#db();
-    type Row = { itemId: string; itemType: string; positionMs: number; durationMs: number; isCompleted: number; updatedAt: string; needsSync: number };
-
-    // SQLite doesn't support array binds in tagged templates — query all and filter
-    const rows = await db.sql<Row>`SELECT * FROM playbackProgress`;
-    const idSet = new Set(itemIds);
-
+    const entries = await Promise.all(itemIds.map((id) => this.getProgress(id)));
     const map = new Map<string, ProgressEntry>();
-    for (const row of rows) {
-      if (idSet.has(row.itemId)) {
-        map.set(row.itemId, { ...row, isCompleted: !!row.isCompleted, needsSync: !!row.needsSync });
-      }
+    for (let i = 0; i < itemIds.length; i++) {
+      const entry = entries[i];
+      if (entry) map.set(itemIds[i], entry);
     }
     return map;
   };
@@ -251,7 +251,12 @@ class ProgressService extends EventEmitter<ProgressServiceEvents> {
           updatedAt = ${remote.updatedAt},
           needsSync = 0
       `;
-      this.notifyChanged(resolved.id);
+      this.notifyChanged({
+        itemId: resolved.id,
+        positionMs: remote.positionMs,
+        durationMs: remote.durationMs,
+        isCompleted: remote.isCompleted,
+      });
       updated++;
     }
 

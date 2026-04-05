@@ -1,12 +1,15 @@
 import { useCallback, useMemo } from "react";
-import { View, Text } from "react-native";
+import { View, Text, useWindowDimensions } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { AlbumGrid } from "@/src/components/media/album-grid";
+import { EpisodeCard } from "@/src/components/media/episode-card";
 import { ShowCard } from "@/src/components/media/show-card";
-import { useShows } from "@/src/hooks/shows/shows";
+import { useShows, useLatestUnplayed } from "@/src/hooks/shows/shows";
+import type { EnrichedLatestEpisode } from "@/src/hooks/shows/shows";
+import { usePlayTracks } from "@/src/hooks/playback/playback";
 import { useLibraryStats } from "@/src/hooks/library/library";
 import type { ShowRow } from "@/src/services/database/database.schemas";
 
@@ -16,7 +19,11 @@ import { colors } from "@/src/shared/theme/theme";
 
 export default function PodcastsScreen() {
   const { shows } = useShows();
+  const { episodes: latestEpisodes } = useLatestUnplayed();
+  const { mutate: playTracks } = usePlayTracks();
   const stats = useLibraryStats();
+  const { width: screenWidth } = useWindowDimensions();
+  const gridCardWidth = Math.floor((screenWidth - 16 - 36 - 12 * 2) / 3);
 
   const favourites = useMemo(
     () => shows.filter((s) => !!s.isFavourite),
@@ -27,6 +34,13 @@ export default function PodcastsScreen() {
     (id: string) =>
       router.push({ pathname: "/(tabs)/podcasts/show/[id]", params: { id } }),
     [],
+  );
+
+  const handleEpisodePress = useCallback(
+    (episodeId: string) => {
+      void playTracks({ trackIds: [episodeId] });
+    },
+    [playTracks],
   );
 
   const renderShowCard = useCallback(
@@ -57,6 +71,18 @@ export default function PodcastsScreen() {
     [handleShowPress],
   );
 
+  const renderLatestCard = useCallback(
+    (item: EnrichedLatestEpisode) => (
+      <EpisodeCard
+        title={item.title}
+        showTitle={item.showTitle}
+        artworkUri={item.showArtworkUri}
+        onPress={() => handleEpisodePress(item.id)}
+      />
+    ),
+    [handleEpisodePress],
+  );
+
   const listHeader = (
     <View>
       <View className="px-4">
@@ -64,6 +90,20 @@ export default function PodcastsScreen() {
           Podcasts
         </Text>
       </View>
+
+      {latestEpisodes.length > 0 && (
+        <View className="mb-4">
+          <Text className="text-lg font-semibold text-fermata-text px-4 mb-2">
+            Latest
+          </Text>
+          <HorizontalList
+            data={latestEpisodes}
+            keyExtractor={(item) => item.id}
+            renderItem={renderLatestCard}
+            itemWidth={gridCardWidth}
+          />
+        </View>
+      )}
 
       {favourites.length > 0 && (
         <View className="mb-4">
@@ -74,10 +114,12 @@ export default function PodcastsScreen() {
             data={favourites}
             keyExtractor={(item) => item.id}
             renderItem={renderFavouriteCard}
-            itemWidth={130}
+            itemWidth={gridCardWidth}
           />
         </View>
       )}
+
+      <View className="h-px bg-fermata-border mx-4 mt-2 mb-8" />
     </View>
   );
 
@@ -101,6 +143,7 @@ export default function PodcastsScreen() {
         albums={shows}
         onAlbumPress={handleShowPress}
         renderCard={renderShowCard}
+        columns={3}
         ListHeaderComponent={listHeader}
       />
     </SafeAreaView>
