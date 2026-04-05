@@ -23,28 +23,25 @@ export function AlphabetScrubber({
   onScrubEnd,
 }: AlphabetScrubberProps) {
   const [bubble, setBubble] = useState<{ letter: string; index: number } | null>(null);
-  const stripPageYRef = useRef(0);
   const lastRef = useRef("");
   const currentRef = useRef<string | null>(null);
   const lettersRef = useRef(letters);
   lettersRef.current = letters;
 
-  function letterFromPageY(pageY: number) {
+  function letterFromLocationY(locationY: number) {
     const count = lettersRef.current.length;
     if (count === 0) return null;
-    const relY = pageY - stripPageYRef.current;
     const stripHeight = count * LETTER_HEIGHT;
-    if (relY < 0 || relY > stripHeight) {
-      // Clamp — allow scrubbing even if finger drifts vertically out of bounds
-      const idx = relY < 0 ? 0 : count - 1;
+    if (locationY < 0 || locationY > stripHeight) {
+      const idx = locationY < 0 ? 0 : count - 1;
       return { letter: lettersRef.current[idx], index: idx };
     }
-    const idx = Math.min(Math.floor(relY / LETTER_HEIGHT), count - 1);
+    const idx = Math.min(Math.floor(locationY / LETTER_HEIGHT), count - 1);
     return { letter: lettersRef.current[idx], index: idx };
   }
 
   function handleMove(e: GestureResponderEvent) {
-    const result = letterFromPageY(e.nativeEvent.pageY);
+    const result = letterFromLocationY(e.nativeEvent.locationY);
     if (!result || result.letter === lastRef.current) return;
     lastRef.current = result.letter;
     currentRef.current = result.letter;
@@ -52,13 +49,8 @@ export function AlphabetScrubber({
   }
 
   function handleGrant(e: GestureResponderEvent) {
-    // Measure strip position once per gesture
-    e.currentTarget.measureInWindow((_x, y) => {
-      stripPageYRef.current = y;
-    });
     onScrubStart?.();
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Use the stored position for first touch (may be slightly stale but close enough)
     handleMove(e);
   }
 

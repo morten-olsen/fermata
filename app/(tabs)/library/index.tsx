@@ -10,59 +10,73 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import type { AlbumRow, TrackRow as TrackRowType, PlaylistRow as PlaylistRowType } from "@/src/services/database/database.schemas";
+import type { AlbumRow, PlaylistRow as PlaylistRowType } from "@/src/services/database/database.schemas";
 import { usePlaylists, useCreatePlaylist } from "@/src/hooks/playlists/playlists";
-import { useToggleTrackFavourite, useTracks } from "@/src/hooks/tracks/tracks";
-import { useArtists } from "@/src/hooks/artists/artists";
 import { useAlbums, useFavouriteAlbums, useRecentlyAddedAlbums } from "@/src/hooks/albums/albums";
 import { useLibraryStats } from "@/src/hooks/library/library";
 import { useOfflineMode } from "@/src/hooks/downloads/downloads";
-import { usePlayTrack } from "@/src/hooks/playback/playback";
 
-import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
 import { MediaCard } from "@/src/components/data-display/data-display";
-import { TrackList } from "@/src/components/media/track-list";
-import { ArtistSectionList } from "@/src/components/media/artist-section-list";
 import { AlbumGrid } from "@/src/components/media/album-grid";
-import { SegmentedControl } from "@/src/components/controls/controls";
 import { EmptyState } from "@/src/components/feedback/feedback";
 import { SectionHeader, HorizontalList } from "@/src/components/layout/layout";
 
 import { colors } from "@/src/shared/theme/theme";
 
-const SEGMENTS = ["Albums", "Artists", "Tracks"];
+// ── Sort options ──────────────────────────────────────────
+
+type SortOption = "title" | "artist" | "year";
+
+const SORT_LABELS: Record<SortOption, string> = {
+  title: "Title",
+  artist: "Artist",
+  year: "Year",
+};
+
+const SORT_ORDER: SortOption[] = ["title", "artist", "year"];
+
+function sortAlbums(albums: AlbumRow[], sort: SortOption): AlbumRow[] {
+  switch (sort) {
+    case "title":
+      return albums;
+    case "artist":
+      return [...albums].sort((a, b) =>
+        a.artistName.localeCompare(b.artistName) || a.title.localeCompare(b.title)
+      );
+    case "year":
+      return [...albums].sort((a, b) =>
+        (b.year ?? 0) - (a.year ?? 0) || a.title.localeCompare(b.title)
+      );
+  }
+}
+
+// ── Screen ────────────────────────────────────────────────
 
 export default function LibraryScreen() {
-  const [selectedSegment, setSelectedSegment] = useState(0);
+  const [sort, setSort] = useState<SortOption>("title");
   const { width: screenWidth } = useWindowDimensions();
   const gridCardWidth = Math.floor((screenWidth - 16 - 36 - 12 * 2) / 3);
 
   const { albums } = useAlbums();
-  const { artists } = useArtists();
-  const { tracks } = useTracks();
   const { data: playlists = [] } = usePlaylists();
   const { albums: favouriteAlbums } = useFavouriteAlbums();
   const { albums: recentlyAdded } = useRecentlyAddedAlbums(20);
   const { stats } = useLibraryStats();
-  const { mutate: toggleFavourite } = useToggleTrackFavourite();
   const { mutate: createPlaylist } = useCreatePlaylist();
-
-  const { mutate: playTrack } = usePlayTrack();
-  const { showTrackActions } = useTrackActions();
   const { offlineMode, setOfflineMode } = useOfflineMode();
+
+  const sortedAlbums = useMemo(() => sortAlbums(albums, sort), [albums, sort]);
+
+  const cycleSort = useCallback(() => {
+    setSort((prev) => {
+      const idx = SORT_ORDER.indexOf(prev);
+      return SORT_ORDER[(idx + 1) % SORT_ORDER.length] ?? "title";
+    });
+  }, []);
 
   const handleAlbumPress = useCallback(
     (id: string) =>
       router.push({ pathname: "/(tabs)/library/album/[id]", params: { id } }),
-    []
-  );
-
-  const handleArtistPress = useCallback(
-    (name: string) =>
-      router.push({
-        pathname: "/(tabs)/library/artist/[name]",
-        params: { name },
-      }),
     []
   );
 
@@ -83,18 +97,6 @@ export default function LibraryScreen() {
       params: { id },
     });
   }, [playlists.length, createPlaylist]);
-
-  const handleTrackMorePress = useCallback(
-    (item: TrackRowType) => showTrackActions(toActionTarget(item)),
-    [showTrackActions]
-  );
-
-  const handleTrackToggleFavourite = useCallback(
-    async (item: TrackRowType) => {
-      await toggleFavourite(item.id);
-    },
-    [toggleFavourite]
-  );
 
   // ── Horizontal section renderers ────────────────────────
 
@@ -122,7 +124,7 @@ export default function LibraryScreen() {
     [handleAlbumPress]
   );
 
-  // ── Mix tape data with create card prepended ────────────
+  // ── Mix tape data with create card appended ─────────────
 
   const mixTapeCreateSentinel = useMemo(
     () => ({ id: "__create__", name: "", trackCount: 0 }) as PlaylistRowType,
@@ -212,12 +214,16 @@ export default function LibraryScreen() {
         </View>
       )}
 
-      <View className="px-4 mb-4">
-        <SegmentedControl
-          segments={SEGMENTS}
-          selectedIndex={selectedSegment}
-          onSelect={setSelectedSegment}
-        />
+      <View className="flex-row items-center px-4 mb-3">
+        <Text className="text-lg font-semibold text-fermata-text">
+          Albums
+        </Text>
+        <Pressable onPress={cycleSort} className="flex-row items-center ml-2 py-1 px-2">
+          <Ionicons name="swap-vertical" size={14} color={colors.textSecondary} />
+          <Text className="text-sm text-fermata-text-secondary ml-1">
+            {SORT_LABELS[sort]}
+          </Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -237,33 +243,13 @@ export default function LibraryScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-fermata-bg" edges={["top"]}>
-      {selectedSegment === 0 ? (
-        <AlbumGrid
-          key="albums"
-          style={{ flex: 1 }}
-          albums={albums}
-          onAlbumPress={handleAlbumPress}
-          ListHeaderComponent={listHeader}
-        />
-      ) : selectedSegment === 1 ? (
-        <ArtistSectionList
-          key="artists"
-          style={{ flex: 1 }}
-          artists={artists}
-          onArtistPress={handleArtistPress}
-          ListHeaderComponent={listHeader}
-        />
-      ) : (
-        <TrackList
-          key="tracks"
-          style={{ flex: 1 }}
-          tracks={tracks}
-          onTrackPress={playTrack}
-          onTrackMorePress={handleTrackMorePress}
-          onToggleFavourite={handleTrackToggleFavourite}
-          ListHeaderComponent={listHeader}
-        />
-      )}
+      <AlbumGrid
+        style={{ flex: 1 }}
+        albums={sortedAlbums}
+        onAlbumPress={handleAlbumPress}
+        columns={3}
+        ListHeaderComponent={listHeader}
+      />
     </SafeAreaView>
   );
 }
