@@ -50,18 +50,22 @@ const trackRowToQueueItem = (row: z.infer<typeof trackRowSchema>): QueueItem => 
   tracksProgress: false,
 });
 
-const episodeRowToQueueItem = (row: z.infer<typeof episodeRowSchema>): QueueItem => ({
+const episodeRowToQueueItem = (
+  row: z.infer<typeof episodeRowSchema>,
+  showTitle?: string | null,
+  showArtworkUri?: string | null,
+): QueueItem => ({
   id: row.id,
   type: 'episode',
   title: row.title,
-  artistName: '',
-  albumTitle: '',
+  artistName: showTitle ?? '',
+  albumTitle: showTitle ?? '',
   duration: row.duration,
   sourceId: row.sourceId,
   sourceItemId: row.sourceItemId,
   contentUrl: row.contentUrl,
   artworkSourceItemId: row.artworkSourceItemId,
-  artworkUri: row.artworkUri,
+  artworkUri: row.artworkUri ?? showArtworkUri ?? null,
   tracksProgress: true,
 });
 

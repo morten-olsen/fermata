@@ -41,12 +41,9 @@ export default function PodcastShowScreen() {
 
   const handleEpisodePress = useCallback(
     (episodeId: string) => {
-      const idx = episodeIds.indexOf(episodeId);
-      if (idx >= 0) {
-        void playTracks({ trackIds: episodeIds, startIndex: idx });
-      }
+      void playTracks({ trackIds: [episodeId] });
     },
-    [episodeIds, playTracks],
+    [playTracks],
   );
 
   const handlePlayLatest = useCallback(() => {

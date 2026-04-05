@@ -161,7 +161,11 @@ class PlaybackService extends EventEmitter<PlaybackServiceEvents> {
       if (track) { items.push(trackRowToQueueItem(track)); continue; }
 
       const episode = await db.sql<EpisodeRow>`SELECT * FROM episodes WHERE id = ${id}`.first();
-      if (episode) { items.push(episodeRowToQueueItem(episode)); continue; }
+      if (episode) {
+        const show = await db.sql<{ title: string; artworkUri: string | null }>`SELECT title, artworkUri FROM shows WHERE id = ${episode.showId}`.first();
+        items.push(episodeRowToQueueItem(episode, show?.title, show?.artworkUri));
+        continue;
+      }
 
       const audiobook = await db.sql<AudiobookRow>`SELECT * FROM audiobooks WHERE id = ${id}`.first();
       if (audiobook) { items.push(audiobookRowToQueueItem(audiobook)); continue; }
