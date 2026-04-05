@@ -6,7 +6,6 @@ import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import { EpisodeRow } from "@/src/components/media/episode-row";
 import { usePlayTracks } from "@/src/hooks/playback/playback";
 import { useShow, useShowEpisodes, useToggleShowFavourite } from "@/src/hooks/shows/shows";
 import type { EnrichedEpisode } from "@/src/hooks/shows/shows";
@@ -14,11 +13,12 @@ import { useIsPinned, usePinForOffline, useUnpinOffline, useIsDownloaded } from 
 import { DownloadService } from "@/src/services/downloads/downloads";
 import { useService } from "@/src/hooks/service/service";
 
-import { BottomSheet } from "@/src/shared/components/bottom-sheet";
-import { NavBar } from "@/src/shared/components/nav-bar";
-import { DetailHeader } from "@/src/shared/components/detail-header";
-import { ActionButton } from "@/src/shared/components/action-button";
-import { PressableScale } from "@/src/shared/components/pressable-scale";
+import { PressableScale } from "@/src/components/primitives/primitives";
+import { ActionButton } from "@/src/components/controls/controls";
+import { NavBar } from "@/src/components/navigation/navigation";
+import { BottomSheet } from "@/src/components/layout/layout";
+import { DetailHeader, MediaRow } from "@/src/components/data-display/data-display";
+
 import { colors } from "@/src/shared/theme/theme";
 
 export default function PodcastShowScreen() {
@@ -172,7 +172,7 @@ const ShowEpisodeItem = memo(function ShowEpisodeItem({
 
   return (
     <View className="px-4">
-      <EpisodeRow
+      <MediaRow.Episode
         title={item.title}
         dateLabel={dateLabel}
         duration={item.duration}

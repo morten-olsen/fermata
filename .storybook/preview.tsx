@@ -6,6 +6,23 @@ import { fermataTheme } from "./fermata-theme";
 
 const preview: Preview = {
   parameters: {
+    options: {
+      storySort: {
+        order: [
+          "Fermata",
+          "Getting Started",
+          "Design Tokens",
+          "primitives",
+          "controls",
+          "feedback",
+          "layout",
+          "navigation",
+          "data-display",
+          "playback",
+          "library",
+        ],
+      },
+    },
     controls: {
       matchers: {
         color: /(background|color)$/i,

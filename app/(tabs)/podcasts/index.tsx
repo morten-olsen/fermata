@@ -4,17 +4,18 @@ import { View, Text, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
-import { AlbumGrid } from "@/src/components/media/album-grid";
-import { EpisodeCard } from "@/src/components/media/episode-card";
-import { ShowCard } from "@/src/components/media/show-card";
 import { useShows, useLatestUnplayed } from "@/src/hooks/shows/shows";
 import type { EnrichedLatestEpisode } from "@/src/hooks/shows/shows";
 import { usePlayTracks } from "@/src/hooks/playback/playback";
 import { useLibraryStats } from "@/src/hooks/library/library";
 import type { ShowRow } from "@/src/services/database/database.schemas";
 
-import { EmptyState } from "@/src/shared/components/empty-state";
-import { HorizontalList } from "@/src/shared/components/horizontal-list";
+import { MediaCard } from "@/src/components/data-display/data-display";
+import { EpisodeCard } from "@/src/components/media/episode-card";
+import { AlbumGrid } from "@/src/components/media/album-grid";
+import { EmptyState } from "@/src/components/feedback/feedback";
+import { HorizontalList } from "@/src/components/layout/layout";
+
 import { colors } from "@/src/shared/theme/theme";
 
 export default function PodcastsScreen() {
@@ -45,7 +46,7 @@ export default function PodcastsScreen() {
 
   const renderShowCard = useCallback(
     (item: ShowRow) => (
-      <ShowCard
+      <MediaCard.Show
         id={item.id}
         title={item.title}
         artistName={item.authorName ?? "Unknown"}
@@ -59,7 +60,7 @@ export default function PodcastsScreen() {
 
   const renderFavouriteCard = useCallback(
     (item: ShowRow) => (
-      <ShowCard
+      <MediaCard.Show
         id={item.id}
         title={item.title}
         artistName={item.authorName ?? "Unknown"}

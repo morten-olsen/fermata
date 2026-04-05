@@ -101,24 +101,45 @@ src/
         home-assistant.api.ts     # HA WebSocket client
         home-assistant.types.ts
 
-  shared/                         # Cross-cutting infrastructure
-    db/
-      db.ts                       # Barrel
-      db.schema.ts                # Drizzle table definitions (source of truth)
-      db.client.ts                # Drizzle client
-    components/                   # UI primitives (EmptyState, SegmentedControl, etc.)
-    lib/
-      ids.ts                      # stableId(), generateId()
-      format.ts                   # formatDuration()
-      log.ts                      # Dev-only logging
-      alphabet.ts                 # Letter extraction for scrubbers
-    theme/
-      theme.ts                    # Barrel (colors + nav theme)
+  components/                       # Design system (composable, responsive)
+    components.ts                   # Top-level barrel
+    primitives/                     # PressableScale, Artwork, SourceArtwork
+      primitives.ts                 # Barrel
+    controls/                       # ActionButton, SegmentedControl, Slider
+      controls.ts
+    feedback/                       # ProgressBar, EmptyState
+      feedback.ts
+    navigation/                     # NavBar, AlphabetScrubber
+      navigation.ts
+    layout/                         # BottomSheet, HorizontalList, SectionHeader, responsive hooks
+      layout.ts
+      responsive.tsx                # useBreakpoint(), useColumns(), useResponsiveValue()
+    data-display/                   # DetailHeader, SettingsRow, StatRow, MediaRow, MediaCard
+      data-display.ts
+      media-row.tsx                 # Compound: MediaRow.Track, .Episode, .Chapter
+      media-card.tsx                # Compound: MediaCard.Album, .Show, .Book
+    media/                          # AlbumGrid, BookGrid, TrackList, ArtistRow, etc.
+    playback/                       # PlayerOverlay, NowPlaying, QueueSheet, EqualizerBars
+    library/                        # TrackActions
+    outputs/                        # OutputPicker
 
-app/                              # Expo Router screens (thin, delegate to features)
-drizzle/                          # Generated SQL migrations
-patches/                          # patch-package patches
-docs/                             # Architecture, design, standards, code guidelines
+  shared/                           # Cross-cutting infrastructure
+    db/
+      db.ts                         # Barrel
+      db.schema.ts                  # Drizzle table definitions (source of truth)
+      db.client.ts                  # Drizzle client
+    lib/
+      ids.ts                        # stableId(), generateId()
+      format.ts                     # formatDuration()
+      log.ts                        # Dev-only logging
+      alphabet.ts                   # Letter extraction for scrubbers
+    theme/
+      theme.ts                      # Barrel (colors + nav theme)
+
+app/                                # Expo Router screens (thin, delegate to features)
+drizzle/                            # Generated SQL migrations
+patches/                            # patch-package patches
+docs/                               # Architecture, design, standards, code guidelines
 ```
 
 ## Key Patterns
@@ -141,13 +162,17 @@ docs/                             # Architecture, design, standards, code guidel
 - **Mix tapes** — Fermata's term for playlists.
 - **Stores are decoupled** — Zustand stores don't import other stores directly; dependencies passed as arguments.
 - **Screens are thin** — business logic lives in feature stores and queries, not in `app/` files.
+- **Compound components** — complex UI uses Radix-like compound pattern: `MediaRow.Track`, `MediaCard.Album`, `BottomSheet.Item`, `DetailHeader.Root`. Presets for standard layouts, composable sub-components for custom ones.
+- **Responsive design** — breakpoints in `tailwind.config.js` (sm/md/lg/xl). Use NativeWind responsive prefixes (`sm:px-6 md:px-8`) or hooks (`useBreakpoint()`, `useColumns()`, `useResponsiveValue()`) for imperative logic.
+- **Design system in `src/components/`** — grouped by function (primitives, controls, feedback, navigation, layout, data-display). Each group has a barrel file. `src/shared/` is for non-UI infrastructure only.
 
 ## Import Conventions
 
 - **Within a feature**: relative imports (`./library.store`)
 - **Between features**: barrel import (`@/src/features/playback/playback`)
+- **From components**: barrel import (`@/src/components/primitives/primitives`, `@/src/components/layout/layout`)
 - **From shared**: direct path (`@/src/shared/theme/theme`, `@/src/shared/lib/log`)
-- **Import order**: React → third-party → features → shared → relative
+- **Import order**: React → third-party → features → components → shared → relative
 - **`import type`** for type-only imports
 
 ## Dependency Graph

@@ -1,34 +1,29 @@
 import type { ReactElement } from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { StyleProp, ViewStyle} from "react-native";
+import type { StyleProp, ViewStyle } from "react-native";
 import { View, useWindowDimensions } from "react-native";
 
 import { FlashList } from "@shopify/flash-list";
 
 import type { AlbumRow } from "@/src/services/database/database.schemas";
 
-import { AlphabetScrubber } from "@/src/shared/components/alphabet-scrubber";
+import { AlphabetScrubber } from "@/src/components/navigation/navigation";
+import { useColumns } from "@/src/components/layout/layout";
+import { MediaCard } from "@/src/components/data-display/data-display";
+
 import { extractLetters } from "@/src/shared/lib/alphabet";
 
 
-import { AlbumCard } from "./album-card";
-
-const DEFAULT_COLUMNS = 2;
 const GAP = 12;
 const PADDING = 16;
 const SCRUBBER_WIDTH = 36;
 
-function useCardWidth(columns: number): number {
-  const { width } = useWindowDimensions();
-  return (width - PADDING - SCRUBBER_WIDTH - GAP * (columns - 1)) / columns;
-}
-
 interface AlbumGridProps {
   albums: AlbumRow[];
   onAlbumPress: (id: string) => void;
-  /** Custom card renderer. Receives the album and card width. Defaults to AlbumCard. */
+  /** Custom card renderer. Receives the album and card width. Defaults to MediaCard.Album. */
   renderCard?: (item: AlbumRow, cardWidth: number) => ReactElement;
-  /** Number of columns. Defaults to 2. */
+  /** Override responsive column count. When omitted, columns are responsive. */
   columns?: number;
   /** Card artwork aspect ratio for row height estimation. Defaults to 1 (square). */
   aspectRatio?: number;
@@ -40,14 +35,19 @@ export function AlbumGrid({
   albums,
   onAlbumPress,
   renderCard,
-  columns = DEFAULT_COLUMNS,
+  columns: columnsProp,
   aspectRatio = 1,
   ListHeaderComponent,
   style,
 }: AlbumGridProps) {
   const listRef = useRef<FlashList<AlbumRow>>(null);
   const [scrollEnabled, setScrollEnabled] = useState(true);
-  const cardWidth = useCardWidth(columns);
+
+  const responsiveColumns = useColumns({ base: 2, sm: 3, md: 4, lg: 5, xl: 6 });
+  const columns = columnsProp ?? responsiveColumns;
+
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = (screenWidth - PADDING - SCRUBBER_WIDTH - GAP * (columns - 1)) / columns;
   const rowHeight = cardWidth * aspectRatio + 48;
 
   const { letters, indices } = useMemo(
@@ -63,7 +63,6 @@ export function AlbumGrid({
     (letter: string) => {
       const itemIndex = indices[letter] as number | undefined;
       if (itemIndex == null || !listRef.current) return;
-      // FlashList scrollToIndex uses flat item indices even with numColumns
       listRef.current.scrollToIndex({
         index: itemIndex,
         animated: true,
@@ -78,7 +77,7 @@ export function AlbumGrid({
         {renderCard ? (
           renderCard(item, cardWidth)
         ) : (
-          <AlbumCard
+          <MediaCard.Album
             id={item.id}
             title={item.title}
             artistName={item.artistName}

@@ -1,0 +1,145 @@
+import { Meta, Canvas } from "@storybook/addon-docs/blocks";
+import * as ResponsiveStories from "./responsive.stories";
+
+<Meta of={ResponsiveStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# Responsive
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  A hook-based responsive system that mirrors Tailwind/NativeWind breakpoints for imperative layout decisions in React Native.
+</p>
+
+<Canvas of={ResponsiveStories.All} />
+
+## Overview
+
+NativeWind handles responsive styling via classes (`sm:px-6 md:px-8`), but sometimes you need a responsive value in JavaScript — for example, setting a `numColumns` prop on `FlatList` or computing padding for `contentContainerStyle`. The responsive hooks provide exactly that.
+
+All hooks share the same breakpoint thresholds as Tailwind, so class-based and hook-based responsive logic stay in sync.
+
+## Breakpoints
+
+<div style={{ overflowX: 'auto', margin: '24px 0' }}>
+  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+    <thead>
+      <tr style={{ borderBottom: '1px solid #2A2A2E' }}>
+        <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontWeight: 500 }}>Name</th>
+        <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontWeight: 500 }}>Min width</th>
+        <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontWeight: 500 }}>Typical device</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style={{ borderBottom: '1px solid #1A1A1E' }}>
+        <td style={{ padding: '8px 12px', color: '#D4A0FF', fontWeight: 600 }}>base</td>
+        <td style={{ padding: '8px 12px', color: '#E8E8ED' }}>&lt; 640px</td>
+        <td style={{ padding: '8px 12px', color: '#9898A3' }}>Phone (portrait)</td>
+      </tr>
+      <tr style={{ borderBottom: '1px solid #1A1A1E' }}>
+        <td style={{ padding: '8px 12px', color: '#D4A0FF', fontWeight: 600 }}>sm</td>
+        <td style={{ padding: '8px 12px', color: '#E8E8ED' }}>640px</td>
+        <td style={{ padding: '8px 12px', color: '#9898A3' }}>Phone (landscape)</td>
+      </tr>
+      <tr style={{ borderBottom: '1px solid #1A1A1E' }}>
+        <td style={{ padding: '8px 12px', color: '#D4A0FF', fontWeight: 600 }}>md</td>
+        <td style={{ padding: '8px 12px', color: '#E8E8ED' }}>768px</td>
+        <td style={{ padding: '8px 12px', color: '#9898A3' }}>Tablet (portrait)</td>
+      </tr>
+      <tr style={{ borderBottom: '1px solid #1A1A1E' }}>
+        <td style={{ padding: '8px 12px', color: '#D4A0FF', fontWeight: 600 }}>lg</td>
+        <td style={{ padding: '8px 12px', color: '#E8E8ED' }}>1024px</td>
+        <td style={{ padding: '8px 12px', color: '#9898A3' }}>Tablet (landscape) / desktop</td>
+      </tr>
+      <tr>
+        <td style={{ padding: '8px 12px', color: '#D4A0FF', fontWeight: 600 }}>xl</td>
+        <td style={{ padding: '8px 12px', color: '#E8E8ED' }}>1280px</td>
+        <td style={{ padding: '8px 12px', color: '#9898A3' }}>Large desktop</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+## Hooks
+
+### `useBreakpoint()`
+
+Returns the active breakpoint name based on the current window width.
+
+<Canvas of={ResponsiveStories.Breakpoint} />
+
+```tsx
+import { useBreakpoint } from "@/src/components/layout/responsive";
+
+function MyComponent() {
+  const breakpoint = useBreakpoint();
+  // "base" | "sm" | "md" | "lg" | "xl"
+}
+```
+
+### `useColumns(config)`
+
+Convenience hook for responsive column counts. Pass a `BreakpointConfig<number>` and get back the resolved column count.
+
+<Canvas of={ResponsiveStories.Columns} />
+
+```tsx
+import { useColumns } from "@/src/components/layout/responsive";
+
+function AlbumGrid() {
+  const columns = useColumns({ base: 2, sm: 3, md: 4, lg: 5 });
+
+  return (
+    <FlatList
+      data={albums}
+      numColumns={columns}
+      key={columns} // re-mount when columns change
+      renderItem={renderAlbum}
+    />
+  );
+}
+```
+
+### `useResponsiveValue(config)`
+
+General-purpose hook that resolves a value from a breakpoint config map. Falls back to the nearest smaller breakpoint that has a defined value.
+
+<Canvas of={ResponsiveStories.ResponsiveValue} />
+
+```tsx
+import { useResponsiveValue } from "@/src/components/layout/responsive";
+
+function DetailScreen() {
+  const padding = useResponsiveValue({ base: 16, md: 24, lg: 32 });
+
+  return (
+    <FlatList
+      contentContainerStyle={{ padding }}
+      // ...
+    />
+  );
+}
+```
+
+<div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12, margin: '24px 0' }}>
+  <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Fallback behaviour</p>
+  <p style={{ fontSize: 13, color: '#9898A3', margin: 0 }}>
+    If the current breakpoint has no value defined, the hook walks down to the nearest smaller breakpoint. For example, <code style={{ color: '#D4A0FF' }}>{"{ base: 16, lg: 32 }"}</code> returns <code style={{ color: '#D4A0FF' }}>16</code> at <code style={{ color: '#D4A0FF' }}>sm</code> and <code style={{ color: '#D4A0FF' }}>md</code> because they fall back to <code style={{ color: '#D4A0FF' }}>base</code>.
+  </p>
+</div>
+
+## NativeWind class-based responsive
+
+For styling that lives in `className`, use NativeWind's built-in responsive prefixes directly. The breakpoints are identical.
+
+```tsx
+<View className="px-4 sm:px-6 md:px-8 lg:px-12">
+  <Text className="text-sm md:text-base lg:text-lg">
+    Responsive text
+  </Text>
+</View>
+```
+
+Use the hooks only when you need a responsive value in JavaScript (e.g., `numColumns`, `contentContainerStyle`, conditional rendering). Prefer NativeWind classes for everything else.
+
+</div>

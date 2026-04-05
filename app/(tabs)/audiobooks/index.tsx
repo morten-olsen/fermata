@@ -4,14 +4,15 @@ import { View, Text, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
-import { BookCard } from "@/src/components/media/book-card";
-import { BookGrid } from "@/src/components/media/book-grid";
 import { useAudiobooks } from "@/src/hooks/audiobooks/audiobooks";
 import type { EnrichedAudiobook } from "@/src/hooks/audiobooks/audiobooks";
 import { useLibraryStats } from "@/src/hooks/library/library";
 
-import { EmptyState } from "@/src/shared/components/empty-state";
-import { HorizontalList } from "@/src/shared/components/horizontal-list";
+import { BookGrid } from "@/src/components/media/book-grid";
+import { MediaCard } from "@/src/components/data-display/data-display";
+import { EmptyState } from "@/src/components/feedback/feedback";
+import { HorizontalList } from "@/src/components/layout/layout";
+
 import { colors } from "@/src/shared/theme/theme";
 
 export default function AudiobooksScreen() {
@@ -33,7 +34,7 @@ export default function AudiobooksScreen() {
 
   const renderBookCard = useCallback(
     (item: EnrichedAudiobook) => (
-      <BookCard
+      <MediaCard.Book
         id={item.id}
         title={item.title}
         artistName={item.authorName}
@@ -48,7 +49,7 @@ export default function AudiobooksScreen() {
 
   const renderFavouriteCard = useCallback(
     (item: EnrichedAudiobook) => (
-      <BookCard
+      <MediaCard.Book
         id={item.id}
         title={item.title}
         artistName={item.authorName}

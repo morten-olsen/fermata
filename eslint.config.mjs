@@ -157,6 +157,11 @@ export default tseslint.config(
               position: "before",
             },
             {
+              pattern: "@/src/components/**",
+              group: "internal",
+              position: "after",
+            },
+            {
               pattern: "@/src/shared/**",
               group: "internal",
               position: "after",
@@ -232,6 +237,10 @@ export default tseslint.config(
         {
           type: "feature-progress",
           pattern: ["src/features/progress/**"],
+        },
+        {
+          type: "components",
+          pattern: ["src/components/**"],
         },
         {
           type: "shared",
@@ -425,10 +434,18 @@ export default tseslint.config(
                 { to: { type: "feature-progress" } },
               ],
             },
-            // Shared: cannot import from any feature
+            // Components: cannot import from any feature
+            {
+              from: { type: "components" },
+              disallow: ALL_FEATURES.map((f) => ({ to: { type: f } })),
+            },
+            // Shared: cannot import from any feature or components
             {
               from: { type: "shared" },
-              disallow: ALL_FEATURES.map((f) => ({ to: { type: f } })),
+              disallow: [
+                ...ALL_FEATURES.map((f) => ({ to: { type: f } })),
+                { to: { type: "components" } },
+              ],
             },
           ],
         },

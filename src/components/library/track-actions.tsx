@@ -17,7 +17,8 @@ import { useService } from "@/src/hooks/service/service";
 import { useToggleTrackFavourite } from "@/src/hooks/tracks/tracks";
 import { usePlaylists, useCreatePlaylist, useAddTrackToPlaylist } from "@/src/hooks/playlists/playlists";
 
-import { BottomSheet } from "@/src/shared/components/bottom-sheet";
+import { BottomSheet } from "@/src/components/layout/layout";
+
 import { colors } from "@/src/shared/theme/theme";
 
 // ── Types ──

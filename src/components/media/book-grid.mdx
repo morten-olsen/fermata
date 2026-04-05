@@ -38,13 +38,42 @@ The BookGrid is the audiobooks tab's equivalent of AlbumGrid. The key difference
 
 ## AlbumGrid vs BookGrid
 
-| | AlbumGrid | BookGrid |
-|---|---|---|
-| **Columns** | 2 | 3 |
-| **Card shape** | Square (1:1) | Portrait (3:4) |
-| **Card component** | AlbumCard | BookCard |
-| **Progress** | None | Per-book progress map |
-| **Feel** | Record shelf | Bookshelf |
+<table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
+  <thead>
+    <tr style={{ borderBottom: '1px solid #2A2A2E' }}>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}></th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>AlbumGrid</th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>BookGrid</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600 }}>Columns</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>2</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>3</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600 }}>Card shape</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Square (1:1)</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Portrait (3:4)</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600 }}>Card component</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>AlbumCard</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>BookCard</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600 }}>Progress</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>None</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Per-book progress map</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600 }}>Feel</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Record shelf</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Bookshelf</td>
+    </tr>
+  </tbody>
+</table>
 
 Both grids use FlashList for performance, AlphabetScrubber for navigation, and consistent padding/scrubber width.
 

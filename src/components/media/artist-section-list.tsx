@@ -5,7 +5,7 @@ import { View, Text, FlatList } from "react-native";
 
 import type { ArtistRow as ArtistRowType } from "@/src/services/database/database.schemas";
 
-import { AlphabetScrubber } from "@/src/shared/components/alphabet-scrubber";
+import { AlphabetScrubber } from "@/src/components/navigation/navigation";
 
 
 import { ArtistRow } from "./artist-row";

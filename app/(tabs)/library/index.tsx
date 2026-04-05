@@ -10,11 +10,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { AlbumGrid } from "@/src/components/media/album-grid";
-import { ArtistSectionList } from "@/src/components/media/artist-section-list";
-import { TrackList } from "@/src/components/media/track-list";
-import { PlaylistRow } from "@/src/components/media/playlist-row";
-import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
 import type { TrackRow as TrackRowType , PlaylistRow as PlaylistRowType } from "@/src/services/database/database.schemas";
 import { usePlaylists, useCreatePlaylist } from "@/src/hooks/playlists/playlists";
 import { useToggleTrackFavourite , useTracks } from "@/src/hooks/tracks/tracks";
@@ -24,9 +19,15 @@ import { useLibraryStats } from "@/src/hooks/library/library";
 import { useOfflineMode } from "@/src/hooks/downloads/downloads";
 import { usePlayTrack } from "@/src/hooks/playback/playback";
 
+import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
+import { PlaylistRow } from "@/src/components/media/playlist-row";
+import { TrackList } from "@/src/components/media/track-list";
+import { ArtistSectionList } from "@/src/components/media/artist-section-list";
+import { AlbumGrid } from "@/src/components/media/album-grid";
+import { SegmentedControl } from "@/src/components/controls/controls";
+import { EmptyState } from "@/src/components/feedback/feedback";
+
 import { colors } from "@/src/shared/theme/theme";
-import { SegmentedControl } from "@/src/shared/components/segmented-control";
-import { EmptyState } from "@/src/shared/components/empty-state";
 
 const SEGMENTS = ["Albums", "Artists", "Playlists", "Tracks"];
 

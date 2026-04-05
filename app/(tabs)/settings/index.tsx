@@ -35,9 +35,9 @@ import { useService } from "@/src/hooks/service/service";
 import { SourcesService } from "@/src/services/sources/sources";
 import type { SourceRow } from "@/src/services/database/database.schemas";
 
-import { BottomSheet } from "@/src/shared/components/bottom-sheet";
-import { SettingsRow } from "@/src/shared/components/settings-row";
-import { StatRow } from "@/src/shared/components/stat-row";
+import { BottomSheet } from "@/src/components/layout/layout";
+import { SettingsRow, StatRow } from "@/src/components/data-display/data-display";
+
 import { colors } from "@/src/shared/theme/theme";
 import { formatBytes } from "@/src/shared/lib/format";
 

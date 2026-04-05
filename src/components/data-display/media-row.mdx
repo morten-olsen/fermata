@@ -1,0 +1,175 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as MediaRowStories from "./media-row.stories";
+
+<Meta of={MediaRowStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# MediaRow
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  A compound component for rendering media list items — tracks, podcast episodes, and audiobook chapters. Use the presets for standard layouts or compose your own from the sub-components.
+</p>
+
+<Canvas of={MediaRowStories.TrackDefault} />
+
+## Design rationale
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Composable by default</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>MediaRow is built from small, focused sub-components — Leading, Content, Trailing, Progress, Duration, and more. Compose them freely inside a <code style={{ color: '#D4A0FF' }}>MediaRow</code> root to create any row layout the app needs.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Presets for convenience</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Three presets — <code style={{ color: '#D4A0FF' }}>Track</code>, <code style={{ color: '#D4A0FF' }}>Episode</code>, and <code style={{ color: '#D4A0FF' }}>Chapter</code> — cover common media types with sensible defaults, smart leading indicators, and the right duration format.</p>
+  </div>
+</div>
+
+## Presets
+
+### Track
+
+The default for music. Shows track number, artist subtitle, duration, and optional favourite/download badges. The leading slot automatically switches between track number, equalizer bars (playing), and checkmark (completed).
+
+<Canvas of={MediaRowStories.TrackDefault} />
+
+### Track — playing
+
+When `isPlaying` is true, the track number is replaced by animated equalizer bars and the title turns accent.
+
+<Canvas of={MediaRowStories.TrackPlaying} />
+
+### Track — completed
+
+When `isCompleted` is true, the leading slot shows a checkmark and the title turns muted.
+
+<Canvas of={MediaRowStories.TrackCompleted} />
+
+### Track — with progress
+
+Podcast and audiobook tracks can display a progress bar beneath the title.
+
+<Canvas of={MediaRowStories.TrackWithProgress} />
+
+### Episode
+
+Podcast episodes show an episode number (or mic icon fallback), date subtitle, and remaining duration that accounts for progress.
+
+<Canvas of={MediaRowStories.EpisodeDefault} />
+
+### Episode — playing
+
+<Canvas of={MediaRowStories.EpisodePlaying} />
+
+### Chapter
+
+Audiobook chapters show a chapter number, optional author subtitle, and remaining duration.
+
+<Canvas of={MediaRowStories.ChapterDefault} />
+
+## Custom composition
+
+When presets don't fit, compose directly from sub-components. Wrap children in a `MediaRow` root and pick the pieces you need.
+
+<Canvas of={MediaRowStories.CustomComposition} />
+
+## Layout anatomy
+
+```
+┌──────────────────────────────────────────────────┐
+│  Leading  │        Content         │  Trailing   │
+│  (w-8)    │  Title                 │  badges     │
+│  number   │  Subtitle              │  duration   │
+│  equalizer│  [Progress]            │  more btn   │
+│  check    │                        │             │
+└──────────────────────────────────────────────────┘
+```
+
+- **Root** — Pressable row with context (isPlaying, isCompleted)
+- **Leading** — Fixed-width left slot (32px). SmartLeading auto-picks indicator.
+- **Content** — Flex-1 center: title, subtitle, optional progress bar.
+- **Trailing** — Right-aligned badges, duration, and action buttons.
+
+## Sub-components reference
+
+<table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
+  <thead>
+    <tr style={{ borderBottom: '1px solid #2A2A2E' }}>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>Sub-component</th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow</code> (Root)</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Pressable row wrapper, provides context</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.Leading</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Fixed-width leading slot</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.SmartLeading</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Auto-picks: equalizer / checkmark / number / fallback icon</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.TrackNumber</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Muted track number text</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.PlayingIndicator</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Animated equalizer bars</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.CompletedIcon</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Checkmark circle icon</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.Content</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Title, subtitle, and optional children (e.g. progress)</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.Progress</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Thin progress bar (hidden when 0 or completed)</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.Trailing</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Right-aligned trailing slot</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.Duration</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Formatted duration text (absolute or remaining)</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.DownloadBadge</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Cloud-done icon for downloaded items</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.QueuedBadge</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Cloud-download icon for queued items</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.FavouriteButton</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Heart icon toggle</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.MoreButton</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Ellipsis action button</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.Track</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Preset: music track row</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.Episode</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Preset: podcast episode row</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>MediaRow.Chapter</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Preset: audiobook chapter row</td>
+    </tr>
+  </tbody>
+</table>
+
+</div>

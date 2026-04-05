@@ -5,11 +5,12 @@ import { View, FlatList } from "react-native";
 
 import type { TrackRow as TrackRowType } from "@/src/services/database/database.schemas";
 
-import { AlphabetScrubber } from "@/src/shared/components/alphabet-scrubber";
+import { AlphabetScrubber } from "@/src/components/navigation/navigation";
+import { MediaRow } from "@/src/components/data-display/data-display";
+
 import { extractLetters } from "@/src/shared/lib/alphabet";
 
 
-import { TrackRow } from "./track-row";
 
 const TRACK_ROW_HEIGHT = 56;
 const SCRUBBER_WIDTH = 36;
@@ -130,7 +131,7 @@ const MemoTrackListItem = memo(function MemoTrackListItem({
   );
 
   return (
-    <TrackRow
+    <MediaRow.Track
       title={item.title}
       artistName={item.artistName}
       duration={item.duration}

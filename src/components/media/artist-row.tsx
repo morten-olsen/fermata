@@ -3,8 +3,8 @@ import { View, Text } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
-import { SourceArtwork } from "@/src/shared/components/source-artwork";
-import { PressableScale } from "@/src/shared/components/pressable-scale";
+import { SourceArtwork, PressableScale } from "@/src/components/primitives/primitives";
+
 import { colors } from "@/src/shared/theme/theme";
 
 interface ArtistRowProps {

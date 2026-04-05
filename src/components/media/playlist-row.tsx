@@ -3,7 +3,8 @@ import { View, Text } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
 
-import { PressableScale } from "@/src/shared/components/pressable-scale";
+import { PressableScale } from "@/src/components/primitives/primitives";
+
 import { colors } from "@/src/shared/theme/theme";
 
 interface PlaylistRowProps {

@@ -5,9 +5,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ArtistRow } from "@/src/components/media/artist-row";
-import { TrackRow } from "@/src/components/media/track-row";
-import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
 import type { AlbumRow, ArtistRow as ArtistRowType, TrackRow as TrackRowType } from "@/src/services/database/database.schemas";
 import { usePlayTrack } from "@/src/hooks/playback/playback";
 import { useToggleTrackFavourite } from "@/src/hooks/tracks/tracks";
@@ -16,7 +13,11 @@ import { TracksService } from "@/src/services/tracks/tracks";
 import { AlbumsService } from "@/src/services/albums/albums";
 import { ArtistsService } from "@/src/services/artists/artists";
 
-import { EmptyState } from "@/src/shared/components/empty-state";
+import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
+import { MediaRow } from "@/src/components/data-display/data-display";
+import { ArtistRow } from "@/src/components/media/artist-row";
+import { EmptyState } from "@/src/components/feedback/feedback";
+
 import { colors } from "@/src/shared/theme/theme";
 
 interface SearchResults {
@@ -177,7 +178,7 @@ export default function SearchScreen() {
                       Tracks
                     </Text>
                     {results.tracks.map((track) => (
-                      <TrackRow
+                      <MediaRow.Track
                         key={track.id}
                         title={track.title}
                         artistName={track.artistName}

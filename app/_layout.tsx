@@ -8,15 +8,16 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 
-import { TrackActionsProvider } from "@/src/components/library/track-actions";
-import { ServicesProvider } from "@/src/components/services-provider";
 import { useService } from "@/src/hooks/service/service";
 import { DownloadService } from "@/src/services/downloads/downloads";
 import { NowPlayingService } from "@/src/services/now-playing/now-playing.service";
 import { OutputsService } from "@/src/services/outputs/outputs.service";
 import { ProgressService } from "@/src/services/progress/progress";
-import { PlayerOverlay } from "@/src/components/playback/player-overlay";
 import { registerOpfsServiceWorker } from "@/src/services/filesystem/filesystem.register-sw";
+
+import { PlayerOverlay } from "@/src/components/playback/player-overlay";
+import { ServicesProvider } from "@/src/components/services-provider";
+import { TrackActionsProvider } from "@/src/components/library/track-actions";
 
 import { fermataTheme } from "@/src/shared/theme/theme";
 

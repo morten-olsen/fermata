@@ -6,17 +6,17 @@ import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
-import { ChapterRow } from "@/src/components/media/chapter-row";
 import { usePlayTracks, useSeekTo } from "@/src/hooks/playback/playback";
 import { useProgress } from "@/src/hooks/progress/progress";
 import { useAudiobook, useToggleAudiobookFavourite } from "@/src/hooks/audiobooks/audiobooks";
 import { useIsPinned, usePinForOffline, useUnpinOffline } from "@/src/hooks/downloads/downloads";
 import { ProgressService } from "@/src/services/progress/progress";
 
-import { NavBar } from "@/src/shared/components/nav-bar";
-import { DetailHeader } from "@/src/shared/components/detail-header";
-import { ActionButton } from "@/src/shared/components/action-button";
-import { PressableScale } from "@/src/shared/components/pressable-scale";
+import { PressableScale } from "@/src/components/primitives/primitives";
+import { ActionButton } from "@/src/components/controls/controls";
+import { NavBar } from "@/src/components/navigation/navigation";
+import { DetailHeader, MediaRow } from "@/src/components/data-display/data-display";
+
 import { colors } from "@/src/shared/theme/theme";
 import { formatDurationLong } from "@/src/shared/lib/format";
 
@@ -181,7 +181,7 @@ const BookChapterItem = memo(function BookChapterItem({
 
   return (
     <View className="px-4">
-      <ChapterRow
+      <MediaRow.Chapter
         title={item.title || `Chapter ${index + 1}`}
         duration={duration}
         chapterNumber={index + 1}

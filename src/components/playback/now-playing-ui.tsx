@@ -22,9 +22,10 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 
+import { Slider } from "@/src/components/controls/controls";
+import { PressableScale } from "@/src/components/primitives/primitives";
+
 import { formatDuration } from "@/src/shared/lib/format";
-import { Slider } from "@/src/shared/components/slider";
-import { PressableScale } from "@/src/shared/components/pressable-scale";
 import { colors } from "@/src/shared/theme/theme";
 
 import { WaveformBar } from "./waveform-bar";
@@ -397,7 +398,7 @@ export function NowPlayingFull({
               >
                 <Ionicons
                   name="musical-notes"
-                  size={64}
+                  size={Math.round(artworkSize * 0.45)}
                   color={colors.muted}
                 />
               </View>

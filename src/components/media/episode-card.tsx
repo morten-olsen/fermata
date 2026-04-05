@@ -1,8 +1,7 @@
 import { memo } from "react";
 import { Text } from "react-native";
 
-import { SourceArtwork } from "@/src/shared/components/source-artwork";
-import { PressableScale } from "@/src/shared/components/pressable-scale";
+import { SourceArtwork, PressableScale } from "@/src/components/primitives/primitives";
 
 interface EpisodeCardProps {
   title: string;

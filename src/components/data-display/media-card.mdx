@@ -1,0 +1,126 @@
+import { Meta, Canvas } from "@storybook/addon-docs/blocks";
+import * as MediaCardStories from "./media-card.stories";
+
+<Meta of={MediaCardStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# MediaCard
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  A compound card component for browsing media. Ships with Album, Show, and Book presets, plus composable sub-components for custom layouts.
+</p>
+
+<Canvas of={MediaCardStories.Album} />
+
+## Design rationale
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Album art is the interface</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Large artwork dominates the card. Title and subtitle are secondary, single-line, and truncated. The visual identity of the media should be recognizable at a glance in a grid.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Badges communicate state</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>A download badge confirms offline availability. A progress badge shows audiobook completion. A new-episode indicator draws attention. Badges overlay the artwork corner so they never compete with text.</p>
+  </div>
+</div>
+
+## Presets
+
+Presets are pre-composed configurations of the sub-components, tailored to each media type. Use them for standard library grids.
+
+### Album
+
+Square artwork, disc fallback icon, optional download badge. Subtitle shows artist and year.
+
+<Canvas of={MediaCardStories.Album} />
+<Canvas of={MediaCardStories.AlbumDownloaded} />
+
+### Show (podcast)
+
+Square artwork, mic fallback icon, episode count badge. New-episode indicator appears as an accent dot on the top-right corner of the artwork.
+
+<Canvas of={MediaCardStories.Show} />
+<Canvas of={MediaCardStories.ShowWithNew} />
+
+### Book (audiobook)
+
+Portrait artwork (3:4 ratio), book fallback icon. Progress badge takes priority over download badge when both could apply.
+
+<Canvas of={MediaCardStories.Book} />
+<Canvas of={MediaCardStories.BookWithProgress} />
+
+## Custom composition
+
+When presets don't fit, compose directly with the sub-components. The root `MediaCard` wraps children in a pressable container; nest `Artwork`, `Title`, `Subtitle`, and any badge as needed.
+
+<Canvas of={MediaCardStories.CustomComposition} />
+
+```tsx
+<MediaCard onPress={handlePress}>
+  <MediaCard.Artwork
+    uri={artworkUri}
+    fallbackIcon="musical-notes"
+    badge={<MediaCard.CountBadge icon="musical-notes" count={24} />}
+  />
+  <MediaCard.Title>Late Night Mix</MediaCard.Title>
+  <MediaCard.Subtitle>24 tracks</MediaCard.Subtitle>
+</MediaCard>
+```
+
+## Sub-components reference
+
+<table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+  <thead>
+    <tr style={{ borderBottom: '1px solid #2A2A2E' }}>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontWeight: 600 }}>Sub-component</th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontWeight: 600 }}>Props</th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontWeight: 600 }}>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style={{ borderBottom: '1px solid #1E1E22' }}>
+      <td style={{ padding: '8px 12px', color: '#D4A0FF' }}><code>MediaCard</code> (root)</td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}><code>onPress</code>, <code>children</code></td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}>Pressable wrapper with scale animation.</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1E1E22' }}>
+      <td style={{ padding: '8px 12px', color: '#D4A0FF' }}><code>MediaCard.Artwork</code></td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}><code>uri</code>, <code>aspect</code>, <code>fallbackIcon</code>, <code>badge</code>, <code>children</code></td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}>Artwork image with optional badge overlay and child overlays (e.g. new indicator).</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1E1E22' }}>
+      <td style={{ padding: '8px 12px', color: '#D4A0FF' }}><code>MediaCard.Title</code></td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}><code>children: string</code></td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}>Single-line truncated title text.</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1E1E22' }}>
+      <td style={{ padding: '8px 12px', color: '#D4A0FF' }}><code>MediaCard.Subtitle</code></td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}><code>children: string</code></td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}>Single-line truncated secondary text.</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1E1E22' }}>
+      <td style={{ padding: '8px 12px', color: '#D4A0FF' }}><code>MediaCard.DownloadBadge</code></td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}>(none)</td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}>Cloud-done icon badge for offline content.</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1E1E22' }}>
+      <td style={{ padding: '8px 12px', color: '#D4A0FF' }}><code>MediaCard.ProgressBadge</code></td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}><code>progress: number</code> (0-1)</td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}>Percentage badge for audiobook progress.</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1E1E22' }}>
+      <td style={{ padding: '8px 12px', color: '#D4A0FF' }}><code>MediaCard.CountBadge</code></td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}><code>icon</code>, <code>count</code></td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}>Icon + number badge (e.g. episode count).</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1E1E22' }}>
+      <td style={{ padding: '8px 12px', color: '#D4A0FF' }}><code>MediaCard.NewIndicator</code></td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}>(none)</td>
+      <td style={{ padding: '8px 12px', color: '#9898A3' }}>Accent dot overlay for new content. Positioned absolute on the artwork.</td>
+    </tr>
+  </tbody>
+</table>
+
+</div>

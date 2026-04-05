@@ -5,14 +5,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { TrackRow } from "@/src/components/media/track-row";
-import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
 import type { PlaylistTrackRow } from "@/src/services/playlists/playlists";
 import { usePlayTracks, useCurrentTrack } from "@/src/hooks/playback/playback";
 import { useToggleTrackFavourite } from "@/src/hooks/tracks/tracks";
 import { usePlaylist, usePlaylistTracks, useDeletePlaylist } from "@/src/hooks/playlists/playlists";
 
-import { PressableScale } from "@/src/shared/components/pressable-scale";
+import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
+import { MediaRow } from "@/src/components/data-display/data-display";
+import { PressableScale } from "@/src/components/primitives/primitives";
+
 import { colors } from "@/src/shared/theme/theme";
 
 export default function PlaylistDetailScreen() {
@@ -183,7 +184,7 @@ const MixtapeTrackItem = memo(function MixtapeTrackItem({
 
   return (
     <View className="px-4">
-      <TrackRow
+      <MediaRow.Track
         title={item.title}
         artistName={item.artistName}
         duration={item.duration}

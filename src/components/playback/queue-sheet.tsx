@@ -4,7 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { usePlaybackQueue, useSkipToIndex } from "@/src/hooks/playback/playback";
 
-import { BottomSheet } from "@/src/shared/components/bottom-sheet";
+import { BottomSheet } from "@/src/components/layout/layout";
+
 import { formatDuration } from "@/src/shared/lib/format";
 import { colors } from "@/src/shared/theme/theme";
 

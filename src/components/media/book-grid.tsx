@@ -4,10 +4,11 @@ import type { StyleProp, ViewStyle } from "react-native";
 
 import type { AudiobookRow } from "@/src/services/database/database.schemas";
 
-import { AlbumGrid } from "./album-grid";
-import { BookCard } from "./book-card";
+import { useColumns } from "@/src/components/layout/layout";
+import { MediaCard } from "@/src/components/data-display/data-display";
 
-const COLUMNS = 3;
+import { AlbumGrid } from "./album-grid";
+
 /** Portrait book covers: 4:3 aspect ratio. */
 const ASPECT_RATIO = 4 / 3;
 
@@ -27,9 +28,11 @@ export function BookGrid({
   ListHeaderComponent,
   style,
 }: BookGridProps) {
+  const columns = useColumns({ base: 3, sm: 4, md: 5, lg: 6, xl: 7 });
+
   const renderCard = useCallback(
     (item: AudiobookRow) => (
-      <BookCard
+      <MediaCard.Book
         id={item.id}
         title={item.title}
         artistName={item.authorName}
@@ -46,7 +49,7 @@ export function BookGrid({
       albums={books}
       onAlbumPress={onBookPress}
       renderCard={renderCard}
-      columns={COLUMNS}
+      columns={columns}
       aspectRatio={ASPECT_RATIO}
       ListHeaderComponent={ListHeaderComponent}
       style={style}

@@ -4,17 +4,17 @@ import { View, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 
-import { TrackRow } from "@/src/components/media/track-row";
-import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
 import { useToggleTrackFavourite } from "@/src/hooks/tracks/tracks";
 import { useToggleAlbumFavourite , useAlbum, useAlbumTracks } from "@/src/hooks/albums/albums";
 import type { EnrichedTrack } from "@/src/hooks/albums/albums";
 import { useIsPinned, usePinForOffline, useUnpinOffline } from "@/src/hooks/downloads/downloads";
 import { usePlayAlbum, useShuffleAlbum } from "@/src/hooks/playback/playback";
 
-import { NavBar, NavBarAction } from "@/src/shared/components/nav-bar";
-import { DetailHeader } from "@/src/shared/components/detail-header";
-import { ActionButton } from "@/src/shared/components/action-button";
+import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
+import { ActionButton } from "@/src/components/controls/controls";
+import { NavBar, NavBarAction } from "@/src/components/navigation/navigation";
+import { DetailHeader, MediaRow } from "@/src/components/data-display/data-display";
+
 import { colors } from "@/src/shared/theme/theme";
 import { formatDurationLong, formatDownloadMeta } from "@/src/shared/lib/format";
 
@@ -180,7 +180,7 @@ const AlbumTrackItem = memo(function AlbumTrackItem({
 
   return (
     <View className="px-4">
-      <TrackRow
+      <MediaRow.Track
         title={item.title}
         artistName={item.artistName}
         duration={item.duration}
