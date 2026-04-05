@@ -1,1 +1,0 @@
-ALTER TABLE `albums` ADD `chapters` text;

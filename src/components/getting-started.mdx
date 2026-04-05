@@ -1,0 +1,151 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Getting Started" />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 720 }}>
+
+# Fermata Design System
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 32 }}>
+  A composable component library for a calm, multi-source media player. Built with NativeWind (Tailwind for React Native), responsive from phone to desktop.
+</p>
+
+## Component taxonomy
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>primitives/</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Low-level building blocks: PressableScale, Artwork, SourceArtwork. These are the atoms.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>controls/</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Interactive elements: ActionButton, SegmentedControl, Slider.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>feedback/</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>User feedback: ProgressBar, EmptyState.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>navigation/</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Navigation chrome: NavBar, AlphabetScrubber.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>layout/</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Layout and containers: BottomSheet, HorizontalList, SectionHeader, responsive hooks.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>data-display/</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Data presentation: DetailHeader, MediaRow, MediaCard, SettingsRow, StatRow.</p>
+  </div>
+</div>
+
+## Import patterns
+
+Each category has a **barrel file** as its public API. Import from the barrel, not individual files:
+
+```tsx
+// Good — barrel import
+import { PressableScale } from "@/src/components/primitives/primitives";
+import { MediaRow, MediaCard } from "@/src/components/data-display/data-display";
+import { useBreakpoint } from "@/src/components/layout/layout";
+
+// Bad — direct file import
+import { PressableScale } from "@/src/components/primitives/pressable-scale";
+```
+
+## Compound components
+
+Complex components use the **compound pattern** (like Radix UI). The root component has sub-components attached as properties:
+
+```tsx
+// Composable — full control
+<MediaRow onPress={play} isPlaying>
+  <MediaRow.Leading>
+    <MediaRow.PlayingIndicator />
+  </MediaRow.Leading>
+  <MediaRow.Content title="Song" subtitle="Artist" />
+  <MediaRow.Duration seconds={213} />
+</MediaRow>
+
+// Preset — standard layout in one line
+<MediaRow.Track title="Song" artistName="Artist" duration={213} onPress={play} />
+```
+
+Both APIs are equivalent. Use presets for standard layouts, composable API for custom ones.
+
+## Responsive design
+
+The system supports 5 breakpoints via NativeWind + custom hooks:
+
+<table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
+  <thead>
+    <tr style={{ borderBottom: '1px solid #2A2A2E' }}>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>Breakpoint</th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>Min width</th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>Typical device</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>base</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>0px</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Phone portrait</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>sm</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>640px</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Phone landscape / small tablet</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>md</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>768px</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Tablet portrait</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>lg</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>1024px</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Tablet landscape / small desktop</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>xl</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>1280px</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Desktop</td>
+    </tr>
+  </tbody>
+</table>
+
+**In className** (NativeWind):
+```tsx
+<View className="px-4 md:px-6 lg:px-8" />
+```
+
+**In JavaScript** (hooks):
+```tsx
+const columns = useColumns({ base: 2, sm: 3, md: 4, lg: 5 });
+const padding = useResponsiveValue({ base: 16, md: 24, lg: 32 });
+```
+
+## Design tokens
+
+All colors use the `fermata-` prefix in Tailwind classes:
+
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, margin: '16px 0' }}>
+  <div style={{ padding: 8, borderRadius: 8, textAlign: 'center' }}>
+    <div style={{ width: '100%', height: 32, backgroundColor: '#0A0A0B', borderRadius: 6, border: '1px solid #2A2A2E' }} />
+    <p style={{ fontSize: 11, color: '#9898A3', marginTop: 4 }}>bg</p>
+  </div>
+  <div style={{ padding: 8, borderRadius: 8, textAlign: 'center' }}>
+    <div style={{ width: '100%', height: 32, backgroundColor: '#141416', borderRadius: 6 }} />
+    <p style={{ fontSize: 11, color: '#9898A3', marginTop: 4 }}>surface</p>
+  </div>
+  <div style={{ padding: 8, borderRadius: 8, textAlign: 'center' }}>
+    <div style={{ width: '100%', height: 32, backgroundColor: '#1C1C1F', borderRadius: 6 }} />
+    <p style={{ fontSize: 11, color: '#9898A3', marginTop: 4 }}>elevated</p>
+  </div>
+  <div style={{ padding: 8, borderRadius: 8, textAlign: 'center' }}>
+    <div style={{ width: '100%', height: 32, backgroundColor: '#D4A0FF', borderRadius: 6 }} />
+    <p style={{ fontSize: 11, color: '#9898A3', marginTop: 4 }}>accent</p>
+  </div>
+</div>
+
+</div>

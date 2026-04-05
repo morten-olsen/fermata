@@ -1,0 +1,217 @@
+import { Meta, Canvas, Controls } from "@storybook/addon-docs/blocks";
+import * as FullStories from "./now-playing-ui.stories";
+import * as MiniStories from "./now-playing-mini.stories";
+
+<Meta title="playback/Now Playing" />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# Now Playing
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  The heart of Fermata — a vinyl-inspired full-screen player and a compact mini player that lives above the tab bar. Both adapt their palette to the currently playing album art.
+</p>
+
+<Canvas of={FullStories.Playing} />
+
+## Design rationale
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Album color is the room</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>The full player extracts primary and secondary colors from the album art and paints a three-layer gradient wash across the entire screen. The music doesn't just play — it fills the space.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Vinyl disc, not a rectangle</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Artwork is clipped to a circle with a CD-style center hole, rotating continuously during playback. The rotation decelerates on pause — a physical, tactile metaphor for the music stopping.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Waveform progress</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>A seeded waveform visualization replaces a flat progress bar. The shape is deterministic per track — the same song always draws the same waveform. Interactive: drag to seek.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Breath animation</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>On play/pause, the artwork container gently scales — a subtle "inhale" on play, "exhale" on pause. Just enough to feel alive without distracting.</p>
+  </div>
+</div>
+
+## Full player
+
+The full-screen Now Playing view is a destination. It's designed to reward focused listening.
+
+### Playing state
+<Canvas of={FullStories.Playing} />
+Vinyl rotates, waveform fills with the album-derived tint, "Next up" pill shows the queued track.
+
+### Paused state
+<Canvas of={FullStories.Paused} />
+Vinyl decelerates to a stop. Play icon replaces pause. Everything else holds still.
+
+### Warm tones
+<Canvas of={FullStories.WarmTones} />
+Different album art produces an entirely different atmosphere — warm ambers and deep reds here vs cool blues above. Same component, album-driven personality.
+
+### No artwork
+<Canvas of={FullStories.NoArtwork} />
+Falls back to a neutral palette with a musical notes icon. Still functional, still dignified.
+
+## Mini player
+
+The mini player is a persistent strip above the tab bar — always visible when music is playing.
+
+<Canvas of={MiniStories.Playing} />
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Album-tinted backdrop</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>A subtle wash of the album's primary color at 20% opacity sits behind the mini player, connecting it visually to whatever is playing without dominating the tab bar.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>2px progress line</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>A thin progress line at the top — album-tinted — gives a glanceable sense of position without needing numbers or a full slider.</p>
+  </div>
+</div>
+
+### Mini player states
+
+<Canvas of={MiniStories.Paused} />
+<Canvas of={MiniStories.WarmTones} />
+<Canvas of={MiniStories.LongTitle} />
+
+Long titles truncate gracefully — the track info uses `numberOfLines={1}` so the layout never breaks.
+
+## Layout anatomy
+
+```
+┌─────────────────────────────────────┐
+│  ← chevron   ALBUM TITLE   queue → │  header
+│                                     │
+│          ╭──────────────╮           │
+│          │   ╭──╮       │           │  vinyl disc
+│          │   │  │ artwork│           │  (rotating)
+│          │   ╰──╯       │           │
+│          ╰──────────────╯           │
+│                                     │
+│  Track Title                        │  text
+│  Artist Name                        │
+│                                     │
+│  ▁▂▅▇▅▂▃▅▇▆▃▁▂▅▇▅▃▁               │  waveform
+│  0:42              -3:18            │  timestamps
+│                                     │
+│       ⏮      ▶ / ⏸      ⏭        │  transport
+│                                     │
+│  🔊  📻          NEXT Song  ≡      │  bottom row
+└─────────────────────────────────────┘
+
+┌─────────────────────────────────────┐
+│ ═══════════░░░░░░░░░░░░░░░░░░░░░░░ │  progress (2px)
+│ [art] Title · Artist   📻  ▶  ⏭   │  mini player
+└─────────────────────────────────────┘
+```
+
+## Component API
+
+### NowPlayingFull
+
+<table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
+  <thead>
+    <tr style={{ borderBottom: '1px solid #2A2A2E' }}>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>Prop</th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>Type</th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>currentTrack</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>NowPlayingTrack</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Title, artist, album title</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>isPlaying</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>boolean</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Controls rotation, play/pause icon, breath</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>volume</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>number</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>0–1, drives volume slider</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>positionMs</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>number</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Current position in milliseconds</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>durationMs</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>number</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Track duration in milliseconds</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>artworkUrl</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>string?</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Full-res artwork URL</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>albumColors</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>{'{ primary, secondary }'}</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Extracted album palette</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>nextTrack</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>{'{ title }?'}</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Shows "Next up" pill if provided</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>onCollapse</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>{'() => void'}</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Collapse back to mini player</td>
+    </tr>
+  </tbody>
+</table>
+
+### NowPlayingMini
+
+<table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
+  <thead>
+    <tr style={{ borderBottom: '1px solid #2A2A2E' }}>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>Prop</th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>Type</th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>currentTrack</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>NowPlayingTrack</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Title, artist</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>isPlaying</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>boolean</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Play/pause icon</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>positionMs</code> / <code style={{ color: '#D4A0FF' }}>durationMs</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>number</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Progress line</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>miniArtworkUrl</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>string?</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Small artwork (44x44)</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>albumColors</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>{'{ primary, secondary }'}</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Tints backdrop + progress</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>onExpand</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}><code style={{ color: '#D4A0FF' }}>{'() => void'}</code></td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Expand to full player</td>
+    </tr>
+  </tbody>
+</table>
+
+</div>

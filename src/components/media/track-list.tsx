@@ -1,0 +1,147 @@
+import type { ReactElement } from "react";
+import { useCallback, useMemo, useRef, useState, memo } from "react";
+import type { StyleProp, ViewStyle } from "react-native";
+import { View, FlatList } from "react-native";
+
+import type { TrackRow as TrackRowType } from "@/src/services/database/database.schemas";
+
+import { AlphabetScrubber } from "@/src/components/navigation/navigation";
+import { MediaRow } from "@/src/components/data-display/data-display";
+
+import { extractLetters } from "@/src/shared/lib/alphabet";
+
+
+
+const TRACK_ROW_HEIGHT = 56;
+const SCRUBBER_WIDTH = 36;
+
+type TrackListItem = TrackRowType & {
+  isPlaying?: boolean;
+  isDownloaded?: boolean;
+};
+
+interface TrackListProps {
+  tracks: TrackListItem[];
+  onTrackPress: (trackId: string) => void;
+  onTrackMorePress?: (track: TrackListItem) => void;
+  onToggleFavourite?: (track: TrackListItem) => void;
+  ListHeaderComponent?: ReactElement;
+  style?: StyleProp<ViewStyle>;
+}
+
+export function TrackList({
+  tracks,
+  onTrackPress,
+  onTrackMorePress,
+  onToggleFavourite,
+  ListHeaderComponent,
+  style,
+}: TrackListProps) {
+  const listRef = useRef<FlatList>(null);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+
+  const { letters, indices } = useMemo(
+    () =>
+      extractLetters(
+        tracks.map((t) => ({ key: t.title })),
+        (item) => item.key
+      ),
+    [tracks]
+  );
+
+  const handleSelect = useCallback(
+    (letter: string) => {
+      const index = indices[letter] as number | undefined;
+      if (index == null || !listRef.current) return;
+      listRef.current.scrollToOffset({
+        offset: index * TRACK_ROW_HEIGHT,
+        animated: true,
+      });
+    },
+    [indices]
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: TrackListItem }) => (
+      <MemoTrackListItem
+        item={item}
+        onTrackPress={onTrackPress}
+        onTrackMorePress={onTrackMorePress}
+        onToggleFavourite={onToggleFavourite}
+      />
+    ),
+    [onTrackPress, onTrackMorePress, onToggleFavourite]
+  );
+
+  return (
+    <View style={[{ flex: 1 }, style]}>
+      <FlatList
+        ref={listRef}
+        style={{ flex: 1 }}
+        scrollEnabled={scrollEnabled}
+        data={tracks}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        getItemLayout={getTrackItemLayout}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingBottom: 100,
+          paddingLeft: 16,
+          paddingRight: SCRUBBER_WIDTH,
+        }}
+        ListHeaderComponent={ListHeaderComponent}
+      />
+      {letters.length > 1 && (
+        <AlphabetScrubber
+          letters={letters}
+          onSelect={handleSelect}
+          onScrubStart={() => setScrollEnabled(false)}
+          onScrubEnd={() => setScrollEnabled(true)}
+        />
+      )}
+    </View>
+  );
+}
+
+const getTrackItemLayout = (_data: unknown, index: number) => ({
+  length: TRACK_ROW_HEIGHT,
+  offset: TRACK_ROW_HEIGHT * index,
+  index,
+});
+
+const MemoTrackListItem = memo(function MemoTrackListItem({
+  item,
+  onTrackPress,
+  onTrackMorePress,
+  onToggleFavourite,
+}: {
+  item: TrackListItem;
+  onTrackPress: (trackId: string) => void;
+  onTrackMorePress?: (track: TrackListItem) => void;
+  onToggleFavourite?: (track: TrackListItem) => void;
+}) {
+  const handlePress = useCallback(() => onTrackPress(item.id), [onTrackPress, item.id]);
+  const handleMore = useCallback(
+    () => onTrackMorePress?.(item),
+    [onTrackMorePress, item],
+  );
+  const handleFav = useCallback(
+    () => onToggleFavourite?.(item),
+    [onToggleFavourite, item],
+  );
+
+  return (
+    <MediaRow.Track
+      title={item.title}
+      artistName={item.artistName}
+      duration={item.duration}
+      trackNumber={item.trackNumber}
+      isPlaying={item.isPlaying}
+      isFavourite={!!item.isFavourite}
+      isDownloaded={item.isDownloaded}
+      onPress={handlePress}
+      onMorePress={onTrackMorePress ? handleMore : undefined}
+      onToggleFavourite={onToggleFavourite ? handleFav : undefined}
+    />
+  );
+});

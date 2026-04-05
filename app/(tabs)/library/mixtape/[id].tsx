@@ -1,49 +1,31 @@
-import { useCallback, useEffect, useMemo, useState, memo } from "react";
+import { useCallback, useMemo, memo } from "react";
 import { View, Text, FlatList, Pressable, Alert } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import Animated, { FadeInRight } from "react-native-reanimated";
-import { useShallow } from "zustand/react/shallow";
 
-import {
-  useLibraryStore,
-  TrackRow,
-  useTrackActions,
-  toActionTarget,
-} from "@/src/features/library/library";
-import type { PlaylistDetail, PlaylistTrackRow } from "@/src/features/library/library";
-import { usePlaybackStore } from "@/src/features/playback/playback";
+import type { PlaylistTrackRow } from "@/src/services/playlists/playlists";
+import { usePlayTracks, useCurrentTrack } from "@/src/hooks/playback/playback";
+import { useToggleTrackFavourite } from "@/src/hooks/tracks/tracks";
+import { usePlaylist, usePlaylistTracks, useDeletePlaylist } from "@/src/hooks/playlists/playlists";
 
-import { PressableScale } from "@/src/shared/components/pressable-scale";
+import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
+import { MediaRow } from "@/src/components/data-display/data-display";
+import { PressableScale } from "@/src/components/primitives/primitives";
+
 import { colors } from "@/src/shared/theme/theme";
 
 export default function PlaylistDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { playTracks, currentTrack } = usePlaybackStore(
-    useShallow((s) => ({ playTracks: s.playTracks, currentTrack: s.currentTrack })),
-  );
-  const { getPlaylist, getPlaylistTracks, toggleFavourite, deletePlaylist } = useLibraryStore(
-    useShallow((s) => ({
-      getPlaylist: s.getPlaylist,
-      getPlaylistTracks: s.getPlaylistTracks,
-      toggleFavourite: s.toggleFavourite,
-      deletePlaylist: s.deletePlaylist,
-    })),
-  );
+  const { mutate: playTracks } = usePlayTracks();
+  const { mutate: toggleFavourite } = useToggleTrackFavourite();
+  const { mutate: deletePlaylist } = useDeletePlaylist();
   const { showTrackActions } = useTrackActions();
-  const [playlist, setPlaylist] = useState<PlaylistDetail>();
-  const [tracks, setTracks] = useState<PlaylistTrackRow[]>([]);
+  const { data: playlist } = usePlaylist(id);
+  const { data: tracks = [] } = usePlaylistTracks(id);
 
-  useEffect(() => {
-    if (!id) return;
-    getPlaylist(id).then((result) => result && setPlaylist(result));
-    getPlaylistTracks(id).then(setTracks);
-  }, [id]);
-
-  const trackIds = useMemo(() => tracks.map((t) => t.track.id), [tracks]);
+  const trackIds = useMemo(() => tracks.map((t) => t.id), [tracks]);
 
   const handleDelete = useCallback(() => {
     if (!id || !playlist) return;
@@ -55,9 +37,8 @@ export default function PlaylistDetailScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: async () => {
-            await deletePlaylist(id);
-            router.back();
+          onPress: () => {
+            void deletePlaylist(id).then(() => router.back());
           },
         },
       ]
@@ -71,7 +52,7 @@ export default function PlaylistDetailScreen() {
       <FlatList
         style={{ flex: 1 }}
         data={tracks}
-        keyExtractor={(item) => item.track.id}
+        keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
@@ -122,7 +103,7 @@ export default function PlaylistDetailScreen() {
             {tracks.length > 0 && (
               <View className="flex-row px-4 mb-4 gap-3">
                 <PressableScale
-                  onPress={() => playTracks(tracks.map((t) => t.track.id))}
+                  onPress={() => playTracks({ trackIds: tracks.map((t) => t.id) })}
                   className="flex-1 flex-row items-center justify-center bg-fermata-text py-3 rounded-xl"
                 >
                   <Ionicons name="play" size={18} color={colors.bg} />
@@ -137,7 +118,7 @@ export default function PlaylistDetailScreen() {
                       const j = Math.floor(Math.random() * (i + 1));
                       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
                     }
-                    playTracks(shuffled.map((t) => t.track.id));
+                    void playTracks({ trackIds: shuffled.map((t) => t.id) });
                   }}
                   className="flex-1 flex-row items-center justify-center bg-fermata-elevated py-3 rounded-xl"
                 >
@@ -163,7 +144,6 @@ export default function PlaylistDetailScreen() {
         renderItem={({ item }) => (
           <MixtapeTrackItem
             item={item}
-            currentTrackId={currentTrack?.id}
             trackIds={trackIds}
             playTracks={playTracks}
             showTrackActions={showTrackActions}
@@ -177,41 +157,40 @@ export default function PlaylistDetailScreen() {
 
 const MixtapeTrackItem = memo(function MixtapeTrackItem({
   item,
-  currentTrackId,
   trackIds,
   playTracks,
   showTrackActions,
   toggleFavourite,
 }: {
   item: PlaylistTrackRow;
-  currentTrackId: string | undefined;
   trackIds: string[];
-  playTracks: (ids: string[], startIndex?: number) => Promise<void>;
+  playTracks: (params: { trackIds: string[]; startIndex?: number }) => Promise<void>;
   showTrackActions: (target: ReturnType<typeof toActionTarget>) => void;
   toggleFavourite: (id: string) => Promise<boolean>;
 }) {
+  const { data: currentTrack } = useCurrentTrack();
   const handlePress = useCallback(
-    () => playTracks(trackIds, item.position),
+    () => playTracks({ trackIds, startIndex: item.position }),
     [playTracks, trackIds, item.position],
   );
   const handleMore = useCallback(
-    () => showTrackActions(toActionTarget(item.track)),
-    [showTrackActions, item.track],
+    () => showTrackActions(toActionTarget(item)),
+    [showTrackActions, item],
   );
   const handleFav = useCallback(
-    () => toggleFavourite(item.track.id),
-    [toggleFavourite, item.track.id],
+    () => toggleFavourite(item.id),
+    [toggleFavourite, item.id],
   );
 
   return (
     <View className="px-4">
-      <TrackRow
-        title={item.track.title}
-        artistName={item.track.artistName}
-        duration={item.track.duration}
+      <MediaRow.Track
+        title={item.title}
+        artistName={item.artistName}
+        duration={item.duration}
         trackNumber={item.position + 1}
-        isPlaying={currentTrackId === item.track.id}
-        isFavourite={!!item.track.isFavourite}
+        isPlaying={currentTrack?.id === item.id}
+        isFavourite={!!item.isFavourite}
         onPress={handlePress}
         onMorePress={handleMore}
         onToggleFavourite={handleFav}

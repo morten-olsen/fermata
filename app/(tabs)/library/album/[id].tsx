@@ -3,87 +3,56 @@ import { View, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
-import { useShallow } from "zustand/react/shallow";
 
-import {
-  useLibraryStore,
-  TrackRow,
-  useTrackActions,
-  toActionTarget,
-} from "@/src/features/library/library";
-import type { AlbumRow, TrackRowType } from "@/src/features/library/library";
-import { usePlaybackStore } from "@/src/features/playback/playback";
-import { useDownloadStore, isTrackDownloaded, isTrackQueued } from "@/src/features/downloads/downloads";
-import { resolveArtworkUrl } from "@/src/features/artwork/artwork";
+import { useToggleTrackFavourite } from "@/src/hooks/tracks/tracks";
+import { useToggleAlbumFavourite , useAlbum, useAlbumTracks } from "@/src/hooks/albums/albums";
+import type { EnrichedTrack } from "@/src/hooks/albums/albums";
+import { useIsPinned, usePinForOffline, useUnpinOffline } from "@/src/hooks/downloads/downloads";
+import { usePlayAlbum, useShuffleAlbum } from "@/src/hooks/playback/playback";
 
-import { NavBar, NavBarAction } from "@/src/shared/components/nav-bar";
-import { DetailHeader } from "@/src/shared/components/detail-header";
-import { ActionButton } from "@/src/shared/components/action-button";
+import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
+import { ActionButton } from "@/src/components/controls/controls";
+import { NavBar, NavBarAction } from "@/src/components/navigation/navigation";
+import { DetailHeader, MediaRow } from "@/src/components/data-display/data-display";
+
 import { colors } from "@/src/shared/theme/theme";
 import { formatDurationLong, formatDownloadMeta } from "@/src/shared/lib/format";
 
 export default function AlbumDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getAlbum, getTracksByAlbum, toggleFavourite, toggleAlbumFavourite } = useLibraryStore(
-    useShallow((s) => ({
-      getAlbum: s.getAlbum,
-      getTracksByAlbum: s.getTracksByAlbum,
-      toggleFavourite: s.toggleFavourite,
-      toggleAlbumFavourite: s.toggleAlbumFavourite,
-    })),
-  );
-  const { playAlbum, shuffleAlbum, currentTrack } = usePlaybackStore(
-    useShallow((s) => ({
-      playAlbum: s.playAlbum,
-      shuffleAlbum: s.shuffleAlbum,
-      currentTrack: s.currentTrack,
-    })),
-  );
+  const { album } = useAlbum(id);
+  const { tracks } = useAlbumTracks(id);
+  const { mutate: toggleFavourite } = useToggleTrackFavourite();
+  const { mutate: toggleAlbumFavourite } = useToggleAlbumFavourite();
+  const { mutate: playAlbum } = usePlayAlbum();
+  const { mutate: shuffleAlbum } = useShuffleAlbum();
   const { showTrackActions } = useTrackActions();
-  const { pinForOffline, unpinOffline, isPinned } = useDownloadStore(
-    useShallow((s) => ({
-      pinForOffline: s.pinForOffline,
-      unpinOffline: s.unpinOffline,
-      isPinned: s.isPinned,
-    })),
-  );
-  const listRef = useRef<FlatList<TrackRowType>>(null);
-  const [isOfflinePinned, setIsOfflinePinned] = useState(false);
+  const { mutate: pinForOffline } = usePinForOffline();
+  const { mutate: unpinOffline } = useUnpinOffline();
+  const { data: isOfflinePinned = false } = useIsPinned("album", id);
+  const listRef = useRef<FlatList<EnrichedTrack>>(null);
   const [isFavourite, setIsFavourite] = useState(false);
-
-  const [album, setAlbum] = useState<AlbumRow>();
-  const [tracks, setTracks] = useState<TrackRowType[]>([]);
 
   useEffect(() => {
     if (!id) return;
-    void getAlbum(id).then((a) => {
-      setAlbum(a);
-      setIsFavourite(!!a?.isFavourite);
-    });
-    void getTracksByAlbum(id).then(setTracks);
-    void isPinned("album", id).then(setIsOfflinePinned);
-  }, [id, getAlbum, getTracksByAlbum, isPinned]);
+    setIsFavourite(!!album?.isFavourite);
+  }, [id, album]);
 
   const handleToggleFavourite = useCallback(
-    async (item: TrackRowType) => {
-      const newVal = await toggleFavourite(item.id);
-      setTracks((prev) =>
-        prev.map((t) =>
-          t.id === item.id ? { ...t, isFavourite: newVal ? 1 : 0 } : t
-        )
-      );
+    (item: EnrichedTrack) => {
+      void toggleFavourite(item.id);
     },
     [toggleFavourite]
   );
 
   const trackToAction = useCallback(
-    (item: TrackRowType) =>
-      toActionTarget(item, album?.artworkSourceItemId),
+    (item: EnrichedTrack) =>
+      toActionTarget({ ...item, artworkUri: item.artworkUri ?? album?.artworkUri }),
     [album]
   );
 
   const dlCount = useMemo(
-    () => tracks.filter((t) => isTrackDownloaded(t.id)).length,
+    () => tracks.filter((t) => t.isDownloaded).length,
     [tracks],
   );
 
@@ -92,24 +61,19 @@ export default function AlbumDetailScreen() {
     [tracks],
   );
 
-  const currentTrackId = currentTrack?.id;
+  const playingTrackId = useMemo(() => tracks.find((t) => t.isPlaying)?.id, [tracks]);
   useEffect(() => {
-    if (!currentTrackId || tracks.length === 0) return;
-    const idx = tracks.findIndex((t) => t.id === currentTrackId);
+    if (!playingTrackId || tracks.length === 0) return;
+    const idx = tracks.findIndex((t) => t.id === playingTrackId);
     if (idx <= 2) return;
     const timer = setTimeout(() => {
       listRef.current?.scrollToIndex({ index: idx, animated: true, viewOffset: 100 });
     }, 300);
     return () => clearTimeout(timer);
-  }, [currentTrackId, tracks]);
+  }, [playingTrackId, tracks]);
 
   if (!album) return null;
 
-  const artworkUrl = resolveArtworkUrl(
-    album.sourceId,
-    album.artworkSourceItemId,
-    "large"
-  );
   const dlMeta = formatDownloadMeta(isOfflinePinned, dlCount, tracks.length);
   const durationMeta = totalDurationSec > 0 ? ` · ${formatDurationLong(totalDurationSec)}` : "";
   const meta = `${album.year ? `${album.year} · ` : ""}${tracks.length} ${tracks.length === 1 ? "track" : "tracks"}${durationMeta}${dlMeta}`;
@@ -140,17 +104,15 @@ export default function AlbumDetailScreen() {
                 color={isOfflinePinned ? colors.accent : colors.muted}
                 onPress={async () => {
                   if (isOfflinePinned) {
-                    await unpinOffline("album", id);
-                    setIsOfflinePinned(false);
+                    await unpinOffline({ entityType: "album", entityId: id });
                   } else {
-                    await pinForOffline("album", id, album.sourceId);
-                    setIsOfflinePinned(true);
+                    await pinForOffline({ entityType: "album", entityId: id, sourceId: album.sourceId });
                   }
                 }}
               />
             </NavBar>
             <DetailHeader
-              artworkUri={artworkUrl}
+              artworkUri={album.artworkUri}
               title={album.title}
               subtitle={album.artistName}
               onSubtitlePress={() =>
@@ -166,7 +128,7 @@ export default function AlbumDetailScreen() {
                     label="Play"
                     icon="play"
                     variant="primary"
-                    onPress={() => id && playAlbum(id)}
+                    onPress={() => id && playAlbum({ albumId: id })}
                   />
                   <ActionButton
                     label="Shuffle"
@@ -184,7 +146,6 @@ export default function AlbumDetailScreen() {
             item={item}
             index={index}
             albumId={id}
-            currentTrackId={currentTrack?.id}
             playAlbum={playAlbum}
             showTrackActions={showTrackActions}
             trackToAction={trackToAction}
@@ -200,36 +161,34 @@ const AlbumTrackItem = memo(function AlbumTrackItem({
   item,
   index,
   albumId,
-  currentTrackId,
   playAlbum,
   showTrackActions,
   trackToAction,
   handleToggleFavourite,
 }: {
-  item: TrackRowType;
+  item: EnrichedTrack;
   index: number;
   albumId: string;
-  currentTrackId: string | undefined;
-  playAlbum: (albumId: string, startIndex?: number) => Promise<void>;
+  playAlbum: (params: { albumId: string; startIndex?: number }) => Promise<void>;
   showTrackActions: (target: ReturnType<typeof toActionTarget>) => void;
-  trackToAction: (item: TrackRowType) => ReturnType<typeof toActionTarget>;
-  handleToggleFavourite: (item: TrackRowType) => void;
+  trackToAction: (item: EnrichedTrack) => ReturnType<typeof toActionTarget>;
+  handleToggleFavourite: (item: EnrichedTrack) => void;
 }) {
-  const handlePress = useCallback(() => playAlbum(albumId, index), [playAlbum, albumId, index]);
+  const handlePress = useCallback(() => playAlbum({ albumId, startIndex: index }), [playAlbum, albumId, index]);
   const handleMore = useCallback(() => showTrackActions(trackToAction(item)), [showTrackActions, trackToAction, item]);
   const handleFav = useCallback(() => handleToggleFavourite(item), [handleToggleFavourite, item]);
 
   return (
     <View className="px-4">
-      <TrackRow
+      <MediaRow.Track
         title={item.title}
         artistName={item.artistName}
         duration={item.duration}
         trackNumber={item.trackNumber}
-        isPlaying={currentTrackId === item.id}
+        isPlaying={item.isPlaying}
         isFavourite={!!item.isFavourite}
-        isDownloaded={isTrackDownloaded(item.id)}
-        isQueued={isTrackQueued(item.id)}
+        isDownloaded={item.isDownloaded}
+        isQueued={item.isQueued}
         onPress={handlePress}
         onMorePress={handleMore}
         onToggleFavourite={handleFav}

@@ -22,10 +22,6 @@ const config: StorybookConfig = {
         ...config.resolve,
         alias: {
           ...(config.resolve?.alias ?? {}),
-          "react-native-track-player": path.resolve(
-            __dirname,
-            "mocks/react-native-track-player.ts",
-          ),
           "@/src/features/artwork/artwork": path.resolve(
             __dirname,
             "mocks/artwork.ts",

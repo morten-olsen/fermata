@@ -1,5 +1,4 @@
 import { File, Directory, Paths } from "expo-file-system";
-import * as FileSystem from "expo-file-system";
 
 export interface FsEntry {
   name: string;
@@ -16,7 +15,7 @@ function resolveFile(...segments: string[]): File {
   return new File(Paths.document, ...segments);
 }
 
-export async function ensureDir(...segments: string[]): Promise<void> {
+export function ensureDir(...segments: string[]): void {
   // Build up directory path incrementally
   for (let i = 1; i <= segments.length; i++) {
     const dir = resolveDir(...segments.slice(0, i));
@@ -24,16 +23,16 @@ export async function ensureDir(...segments: string[]): Promise<void> {
   }
 }
 
-export async function listFiles(...segments: string[]): Promise<FsEntry[]> {
+export function listFiles(...segments: string[]): FsEntry[] {
   const dir = resolveDir(...segments);
   if (!dir.exists) return [];
   return dir
     .list()
     .filter((entry): entry is File => entry instanceof File)
-    .map((file) => ({ name: file.name ?? "", uri: file.uri }));
+    .map((file) => ({ name: file.name, uri: file.uri }));
 }
 
-export async function deleteDir(...segments: string[]): Promise<void> {
+export function deleteDir(...segments: string[]): void {
   const dir = resolveDir(...segments);
   if (dir.exists) dir.delete();
 }
@@ -47,7 +46,7 @@ export async function downloadFile(
   const downloaded = await File.downloadFileAsync(url, destFile);
   return {
     uri: downloaded.uri,
-    size: downloaded.size ?? 0,
+    size: downloaded.size,
     status: 200,
   };
 }
@@ -57,16 +56,16 @@ export async function downloadToUri(
   ...destSegments: string[]
 ): Promise<{ uri: string; status: number }> {
   const destFile = resolveFile(...destSegments);
-  const result = await FileSystem.downloadAsync(url, destFile.uri);
-  return { uri: result.uri, status: result.status };
+  const result = await File.downloadFileAsync(url, destFile);
+  return { uri: result.uri, status: 200 };
 }
 
-export async function fileExists(...segments: string[]): Promise<boolean> {
+export function fileExists(...segments: string[]): boolean {
   const file = resolveFile(...segments);
   return file.exists;
 }
 
-export async function deleteFile(...segments: string[]): Promise<void> {
+export function deleteFile(...segments: string[]): void {
   const file = resolveFile(...segments);
   if (file.exists) file.delete();
 }

@@ -1,46 +1,25 @@
 import "../global.css";
 
 import { useEffect } from "react";
-import { View, ActivityIndicator, Text } from "react-native";
+import "react-native";
 
 import { ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 
-import { useSourcesStore, cleanupOrphanedEntities } from "@/src/features/sources/sources";
-import {
-  usePlaybackStore,
-  setAdapterResolver,
-  setOutputResolver,
-  setLocalAdapterResolver,
-  PlayerOverlay,
-} from "@/src/features/playback/playback";
-import { useDownloadStore, setDownloadAdapterResolver } from "@/src/features/downloads/downloads";
-import { useOutputsStore, setTransferPlaybackCallback } from "@/src/features/outputs/outputs";
-import { TrackActionsProvider } from "@/src/features/library/library";
-import { initArtworkCache } from "@/src/features/artwork/artwork";
+import { useService } from "@/src/hooks/service/service";
+import { DownloadService } from "@/src/services/downloads/downloads";
+import { NowPlayingService } from "@/src/services/now-playing/now-playing.service";
+import { OutputsService } from "@/src/services/outputs/outputs.service";
+import { ProgressService } from "@/src/services/progress/progress";
+import { registerOpfsServiceWorker } from "@/src/services/filesystem/filesystem.register-sw";
 
-import migrations from "@/drizzle/migrations";
+import { PlayerOverlay } from "@/src/components/playback/player-overlay";
+import { ServicesProvider } from "@/src/components/services-provider";
+import { TrackActionsProvider } from "@/src/components/library/track-actions";
 
-import { useMigrations } from "@/src/shared/db/db.migrator";
-import { db } from "@/src/shared/db/db.client";
 import { fermataTheme } from "@/src/shared/theme/theme";
-
-// Register background playback service once (safe if native module missing)
-let _playbackServiceRegistered = false;
-if (!_playbackServiceRegistered) {
-  try {
-    const TrackPlayer = require("react-native-track-player").default;
-    TrackPlayer.registerPlaybackService(
-      // eslint-disable-next-line boundaries/dependencies -- RNTP requires direct module path for service registration
-      () => require("@/src/features/playback/playback.service").PlaybackService
-    );
-    _playbackServiceRegistered = true;
-  } catch {
-    // Track Player not available (Expo Go) — audio features disabled
-  }
-}
 
 export { ErrorBoundary } from "expo-router";
 
@@ -51,60 +30,9 @@ export const unstable_settings = {
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const { success, error } = useMigrations(db, migrations);
-  const loadSources = useSourcesStore((s) => s.loadSources);
-  const initializePlayer = usePlaybackStore((s) => s.initialize);
-  const initializeDownloads = useDownloadStore((s) => s.initialize);
-  const initializeOutputs = useOutputsStore((s) => s.initialize);
-
-  useEffect(() => {
-    if (success) {
-      void initArtworkCache();
-      // Clean up orphaned entities from sources deleted before
-      // foreign_keys pragma was enabled
-      void cleanupOrphanedEntities();
-      void Promise.all([
-        loadSources(),
-        initializeOutputs(),
-        initializeDownloads(),
-      ]).then(() => {
-        const getAdapter = (sourceId: string) =>
-          useSourcesStore.getState().getAdapter(sourceId);
-        setAdapterResolver(getAdapter);
-        setDownloadAdapterResolver(getAdapter);
-        setOutputResolver(() => useOutputsStore.getState().getActiveAdapter());
-        setLocalAdapterResolver(() => useOutputsStore.getState().localAdapter);
-        setTransferPlaybackCallback(() =>
-          usePlaybackStore.getState().transferPlayback()
-        );
-        // Initialize playback after outputs are ready
-        void initializePlayer();
-        // Resume pending downloads now that adapters are wired
-        void useDownloadStore.getState().resumeDownloads();
-        void SplashScreen.hideAsync();
-      });
-    }
-  }, [success]);
-
-  if (error) {
-    return (
-      <View style={{ flex: 1, backgroundColor: "#0A0A0B", alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ color: "#E8E8ED", fontSize: 16 }}>
-          Database error: {error.message}
-        </Text>
-      </View>
-    );
-  }
-
-  if (!success) {
-    return (
-      <View style={{ flex: 1, backgroundColor: "#0A0A0B", alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator color="#D4A0FF" />
-      </View>
-    );
-  }
-
   return (
+    <ServicesProvider>
+    <ServiceInitializer />
     <ThemeProvider value={fermataTheme}>
       <TrackActionsProvider>
         <Stack
@@ -120,5 +48,28 @@ export default function RootLayout() {
       </TrackActionsProvider>
       <StatusBar style="light" />
     </ThemeProvider>
+    </ServicesProvider>
   );
+}
+
+function ServiceInitializer() {
+  const downloadService = useService(DownloadService);
+  const nowPlayingService = useService(NowPlayingService);
+  const outputsService = useService(OutputsService);
+  const progressService = useService(ProgressService);
+
+  useEffect(() => {
+    nowPlayingService.initialize();
+    progressService.initialize();
+    void Promise.all([
+      registerOpfsServiceWorker(),
+      downloadService.initialize(),
+      outputsService.initialize(),
+    ]).then(() => {
+      downloadService.processQueue();
+      void SplashScreen.hideAsync();
+    });
+  }, [downloadService, nowPlayingService, outputsService, progressService]);
+
+  return null;
 }

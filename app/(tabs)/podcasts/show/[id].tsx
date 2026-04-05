@@ -1,148 +1,87 @@
-import { useEffect, useState, useCallback, useMemo, memo, useRef } from "react";
-import { View, FlatList } from "react-native";
+import { useCallback, useMemo, memo, useState } from "react";
+import { View, Text, FlatList, Pressable } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
-import { useShallow } from "zustand/react/shallow";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
-import {
-  useLibraryStore,
-  EpisodeRow,
-} from "@/src/features/library/library";
-import type { AlbumRow, TrackRowType } from "@/src/features/library/library";
-import { usePlaybackStore } from "@/src/features/playback/playback";
-import { useDownloadStore, isTrackDownloaded } from "@/src/features/downloads/downloads";
-import { getProgressBatch } from "@/src/features/progress/progress";
-import type { ProgressEntry } from "@/src/features/progress/progress";
-import { resolveArtworkUrl } from "@/src/features/artwork/artwork";
+import { usePlayTracks } from "@/src/hooks/playback/playback";
+import { useShow, useShowEpisodes, useToggleShowFavourite } from "@/src/hooks/shows/shows";
+import type { EnrichedEpisode } from "@/src/hooks/shows/shows";
+import { useIsPinned, usePinForOffline, useUnpinOffline, useIsDownloaded } from "@/src/hooks/downloads/downloads";
+import { DownloadService } from "@/src/services/downloads/downloads";
+import { useService } from "@/src/hooks/service/service";
 
-import { NavBar, NavBarAction } from "@/src/shared/components/nav-bar";
-import { DetailHeader } from "@/src/shared/components/detail-header";
-import { ActionButton } from "@/src/shared/components/action-button";
+import { PressableScale } from "@/src/components/primitives/primitives";
+import { ActionButton } from "@/src/components/controls/controls";
+import { NavBar } from "@/src/components/navigation/navigation";
+import { BottomSheet } from "@/src/components/layout/layout";
+import { DetailHeader, MediaRow } from "@/src/components/data-display/data-display";
+
 import { colors } from "@/src/shared/theme/theme";
-import { formatDownloadMeta } from "@/src/shared/lib/format";
 
 export default function PodcastShowScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getAlbum, getTracksByAlbum } = useLibraryStore(
-    useShallow((s) => ({
-      getAlbum: s.getAlbum,
-      getTracksByAlbum: s.getTracksByAlbum,
-    })),
-  );
-  const { playTracks, currentTrack } = usePlaybackStore(
-    useShallow((s) => ({
-      playTracks: s.playTracks,
-      currentTrack: s.currentTrack,
-    })),
-  );
-  const { pinForOffline, unpinOffline, isPinned } = useDownloadStore(
-    useShallow((s) => ({
-      pinForOffline: s.pinForOffline,
-      unpinOffline: s.unpinOffline,
-      isPinned: s.isPinned,
-    })),
-  );
-
-  const listRef = useRef<FlatList<TrackRowType>>(null);
-  const [show, setShow] = useState<AlbumRow>();
-  const [episodes, setEpisodes] = useState<TrackRowType[]>([]);
-  const [progressMap, setProgressMap] = useState(() => new Map<string, ProgressEntry>());
-  const [isOfflinePinned, setIsOfflinePinned] = useState(false);
-
-  useEffect(() => {
-    if (!id) return;
-    void getAlbum(id).then(setShow);
-    void isPinned("album", id).then(setIsOfflinePinned);
-    void getTracksByAlbum(id).then((tracks) => {
-      const sorted = [...tracks].sort((a, b) => {
-        if (a.publishedAt && b.publishedAt) {
-          return b.publishedAt.localeCompare(a.publishedAt);
-        }
-        return (b.episodeNumber ?? 0) - (a.episodeNumber ?? 0);
-      });
-      setEpisodes(sorted);
-      const ids = sorted.map((t) => t.id);
-      void getProgressBatch(ids).then(setProgressMap);
-    });
-  }, [id, getAlbum, getTracksByAlbum, isPinned]);
+  const { show } = useShow(id);
+  const { episodes } = useShowEpisodes(id);
+  const { mutate: playTracks } = usePlayTracks();
+  const { mutate: toggleFavourite } = useToggleShowFavourite();
+  const { data: isPinned } = useIsPinned('show', id);
+  const { mutate: pin } = usePinForOffline();
+  const { mutate: unpin } = useUnpinOffline();
+  const [isFav, setIsFav] = useState<boolean | null>(null);
+  const [actionEpisode, setActionEpisode] = useState<EnrichedEpisode | null>(null);
 
   const episodeIds = useMemo(() => episodes.map((e) => e.id), [episodes]);
 
+  // Use local optimistic state, fall back to DB value
+  const showIsFav = isFav ?? !!show?.isFavourite;
+
   const handleEpisodePress = useCallback(
     (episodeId: string) => {
-      const idx = episodeIds.indexOf(episodeId);
-      if (idx >= 0) {
-        void playTracks(episodeIds, idx);
-      }
+      void playTracks({ trackIds: [episodeId] });
     },
-    [episodeIds, playTracks],
+    [playTracks],
   );
-
-  const dlCount = useMemo(
-    () => episodes.filter((t) => isTrackDownloaded(t.id)).length,
-    [episodes],
-  );
-
-  const resumeEpisode = useMemo(() => {
-    for (const ep of episodes) {
-      const p = progressMap.get(ep.id);
-      if (p && p.positionMs > 0 && !p.isCompleted) return ep;
-    }
-    return null;
-  }, [episodes, progressMap]);
 
   const handlePlayLatest = useCallback(() => {
-    if (episodes.length > 0) {
-      void playTracks(episodeIds, 0);
+    if (episodeIds.length > 0) {
+      void playTracks({ trackIds: [episodeIds[0]] });
     }
-  }, [episodes.length, playTracks, episodeIds]);
+  }, [playTracks, episodeIds]);
 
-  const handleResume = useCallback(() => {
-    if (resumeEpisode) {
-      handleEpisodePress(resumeEpisode.id);
+  const handleToggleFavourite = useCallback(() => {
+    const newVal = !showIsFav;
+    setIsFav(newVal);
+    void Haptics.impactAsync(
+      newVal ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
+    );
+    void toggleFavourite(id);
+  }, [showIsFav, toggleFavourite, id]);
+
+  const handleTogglePin = useCallback(() => {
+    if (!show) return;
+    if (isPinned) {
+      void unpin({ entityType: 'show', entityId: id });
+    } else {
+      void pin({ entityType: 'show', entityId: id, sourceId: show.sourceId });
     }
-  }, [resumeEpisode, handleEpisodePress]);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [show, isPinned, pin, unpin, id]);
 
-  const currentTrackId = currentTrack?.id;
-  useEffect(() => {
-    if (!currentTrackId || episodes.length === 0) return;
-    const idx = episodes.findIndex((e) => e.id === currentTrackId);
-    if (idx <= 0) return;
-    const timer = setTimeout(() => {
-      listRef.current?.scrollToIndex({ index: idx, animated: true, viewOffset: 100 });
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [currentTrackId, episodes]);
+  const handleEpisodeMore = useCallback(
+    (episode: EnrichedEpisode) => setActionEpisode(episode),
+    [],
+  );
 
   if (!show) return null;
 
-  const artworkUrl = resolveArtworkUrl(
-    show.sourceId,
-    show.artworkSourceItemId,
-    "large",
-  );
-  const dlMeta = formatDownloadMeta(isOfflinePinned, dlCount, episodes.length);
-  const meta = `${episodes.length} ${episodes.length === 1 ? "episode" : "episodes"}${dlMeta}`;
-
-  let headerActions;
-  if (resumeEpisode) {
-    headerActions = (
-      <>
-        <ActionButton label="Resume" icon="play" variant="primary" onPress={handleResume} />
-        <ActionButton label="Latest" icon="play-skip-forward" variant="secondary" onPress={handlePlayLatest} />
-      </>
-    );
-  } else if (episodes.length > 0) {
-    headerActions = (
-      <ActionButton label="Play Latest" icon="play" variant="primary" onPress={handlePlayLatest} />
-    );
-  }
+  const meta = `${episodes.length} ${episodes.length === 1 ? "episode" : "episodes"}`;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
       <FlatList
-        ref={listRef}
         style={{ flex: 1 }}
         data={episodes}
         keyExtractor={(item) => item.id}
@@ -150,61 +89,78 @@ export default function PodcastShowScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         ListHeaderComponent={
           <View>
-            <NavBar>
-              <NavBarAction
-                icon={isOfflinePinned ? "cloud-done" : "cloud-download-outline"}
-                color={isOfflinePinned ? colors.accent : colors.muted}
-                onPress={async () => {
-                  if (isOfflinePinned) {
-                    await unpinOffline("album", id);
-                    setIsOfflinePinned(false);
-                  } else {
-                    await pinForOffline("album", id, show.sourceId);
-                    setIsOfflinePinned(true);
-                  }
-                }}
-              />
-            </NavBar>
+            <NavBar />
             <DetailHeader
-              artworkUri={artworkUrl}
+              artworkUri={show.artworkUri}
               fallbackIcon="mic"
               title={show.title}
-              subtitle={show.artistName}
+              subtitle={show.authorName ?? "Unknown"}
               meta={meta}
-              actions={headerActions}
+              actions={
+                episodes.length > 0 ? (
+                  <>
+                    <ActionButton label="Play Latest" icon="play" variant="primary" onPress={handlePlayLatest} />
+                    <PressableScale
+                      onPress={handleToggleFavourite}
+                      className="items-center justify-center rounded-xl bg-fermata-elevated"
+                      style={{ width: 48 }}
+                    >
+                      <Ionicons
+                        name={showIsFav ? "heart" : "heart-outline"}
+                        size={20}
+                        color={showIsFav ? colors.accent : colors.text}
+                      />
+                    </PressableScale>
+                    <PressableScale
+                      onPress={handleTogglePin}
+                      className="items-center justify-center rounded-xl bg-fermata-elevated"
+                      style={{ width: 48 }}
+                    >
+                      <Ionicons
+                        name={isPinned ? "cloud-done" : "cloud-download-outline"}
+                        size={20}
+                        color={isPinned ? colors.accent : colors.text}
+                      />
+                    </PressableScale>
+                  </>
+                ) : undefined
+              }
             />
           </View>
         }
         renderItem={({ item }) => (
           <ShowEpisodeItem
             item={item}
-            currentTrackId={currentTrack?.id}
-            progress={progressMap.get(item.id)}
             onPress={handleEpisodePress}
+            onMorePress={handleEpisodeMore}
           />
         )}
       />
+
+      {actionEpisode && (
+        <EpisodeActionSheet
+          episode={actionEpisode}
+          sourceId={show.sourceId}
+          onDismiss={() => setActionEpisode(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
+// ── Episode list item ────────────────────────────────
+
 const ShowEpisodeItem = memo(function ShowEpisodeItem({
   item,
-  currentTrackId,
-  progress,
   onPress,
+  onMorePress,
 }: {
-  item: TrackRowType;
-  currentTrackId: string | undefined;
-  progress: ProgressEntry | undefined;
+  item: EnrichedEpisode;
   onPress: (id: string) => void;
+  onMorePress: (episode: EnrichedEpisode) => void;
 }) {
   const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
-
-  const progressFraction =
-    progress && progress.durationMs > 0
-      ? progress.positionMs / progress.durationMs
-      : undefined;
+  const handleMore = useCallback(() => onMorePress(item), [onMorePress, item]);
 
   const dateLabel = item.publishedAt
     ? new Date(item.publishedAt).toLocaleDateString(undefined, {
@@ -212,21 +168,80 @@ const ShowEpisodeItem = memo(function ShowEpisodeItem({
         day: "numeric",
         year: "numeric",
       })
-    : item.artistName;
+    : "";
 
   return (
     <View className="px-4">
-      <EpisodeRow
+      <MediaRow.Episode
         title={item.title}
         dateLabel={dateLabel}
         duration={item.duration}
-        episodeNumber={item.episodeNumber ?? item.trackNumber}
-        isPlaying={currentTrackId === item.id}
-        isDownloaded={isTrackDownloaded(item.id)}
-        progress={progressFraction}
-        isCompleted={progress?.isCompleted}
+        episodeNumber={item.episodeNumber}
+        isPlaying={item.isPlaying}
+        isDownloaded={item.isDownloaded}
+        progress={item.progress ?? undefined}
+        isCompleted={item.isCompleted}
         onPress={handlePress}
+        onMorePress={handleMore}
       />
     </View>
   );
 });
+
+// ── Episode action sheet ─────────────────────────────
+
+function EpisodeActionSheet({
+  episode,
+  sourceId,
+  onDismiss,
+}: {
+  episode: EnrichedEpisode;
+  sourceId: string;
+  onDismiss: () => void;
+}) {
+  const downloadService = useService(DownloadService);
+  const isDownloaded = useIsDownloaded(episode.id, 'episode');
+
+  const handleToggleDownload = useCallback(() => {
+    if (isDownloaded) {
+      void downloadService.removeDownload(episode.id, 'episode');
+    } else {
+      void downloadService.enqueueItem({
+        id: episode.id,
+        type: 'episode',
+        sourceId,
+        sourceItemId: episode.sourceItemId,
+        contentUrl: episode.contentUrl,
+      });
+    }
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onDismiss();
+  }, [isDownloaded, downloadService, episode, sourceId, onDismiss]);
+
+  return (
+    <BottomSheet visible onDismiss={onDismiss}>
+      <View style={{ paddingHorizontal: 20 }}>
+        <View style={{ marginBottom: 16 }}>
+          <Text style={{ color: colors.text, fontSize: 16, fontWeight: "500" }} numberOfLines={2}>
+            {episode.title}
+          </Text>
+        </View>
+
+        <Pressable onPress={handleToggleDownload}>
+          <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 13, paddingHorizontal: 4 }}>
+            <Ionicons
+              name={isDownloaded ? "cloud-done" : "cloud-download-outline"}
+              size={20}
+              color={isDownloaded ? colors.accent : colors.text}
+            />
+            <Text style={{ flex: 1, fontSize: 15, fontWeight: "500", color: colors.text, marginLeft: 14 }}>
+              {isDownloaded ? "Downloaded" : "Download Episode"}
+            </Text>
+          </View>
+        </Pressable>
+
+        <View style={{ height: 8 }} />
+      </View>
+    </BottomSheet>
+  );
+}

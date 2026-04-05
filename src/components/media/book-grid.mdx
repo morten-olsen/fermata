@@ -1,0 +1,80 @@
+import { Meta, Canvas } from "@storybook/addon-docs/blocks";
+import * as BookGridStories from "./book-grid.stories";
+
+<Meta of={BookGridStories} />
+
+<div style={{ color: '#E8E8ED', fontFamily: 'system-ui, -apple-system, sans-serif', maxWidth: 680 }}>
+
+# BookGrid
+
+<p style={{ color: '#9898A3', fontSize: 16, marginBottom: 24 }}>
+  A 3-column portrait grid for audiobooks — the bookshelf view. Visually distinct from the 2-column square album grid.
+</p>
+
+<Canvas of={BookGridStories.Default} />
+
+## Design rationale
+
+The BookGrid is the audiobooks tab's equivalent of AlbumGrid. The key difference: **3 columns of portrait cards** versus 2 columns of square cards. This creates a bookshelf aesthetic that immediately communicates "these are books."
+
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '24px 0' }}>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>3 columns</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Portrait cards are narrower than square cards, so 3 fit comfortably. This also means more books visible per screen — appropriate for audiobook libraries which tend to be browsed, not scrolled.</p>
+  </div>
+  <div style={{ padding: 16, backgroundColor: '#141416', borderRadius: 12 }}>
+    <p style={{ fontWeight: 600, color: '#D4A0FF', marginBottom: 4 }}>Progress-aware</p>
+    <p style={{ fontSize: 13, color: '#9898A3' }}>Accepts a <code style={{ color: '#D4A0FF' }}>progressMap</code> prop that passes per-book progress to each <code style={{ color: '#D4A0FF' }}>BookCard</code>. Progress badges appear on in-progress books.</p>
+  </div>
+</div>
+
+## Variants
+
+### Default
+<Canvas of={BookGridStories.Default} />
+
+### With header
+<Canvas of={BookGridStories.WithHeader} />
+
+## AlbumGrid vs BookGrid
+
+<table style={{ width: '100%', borderCollapse: 'collapse', margin: '16px 0' }}>
+  <thead>
+    <tr style={{ borderBottom: '1px solid #2A2A2E' }}>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}></th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>AlbumGrid</th>
+      <th style={{ textAlign: 'left', padding: '8px 12px', color: '#9898A3', fontSize: 13, fontWeight: 600 }}>BookGrid</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600 }}>Columns</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>2</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>3</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600 }}>Card shape</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Square (1:1)</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Portrait (3:4)</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600 }}>Card component</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>AlbumCard</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>BookCard</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600 }}>Progress</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>None</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Per-book progress map</td>
+    </tr>
+    <tr style={{ borderBottom: '1px solid #1C1C1F' }}>
+      <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600 }}>Feel</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Record shelf</td>
+      <td style={{ padding: '8px 12px', fontSize: 13 }}>Bookshelf</td>
+    </tr>
+  </tbody>
+</table>
+
+Both grids use FlashList for performance, AlphabetScrubber for navigation, and consistent padding/scrubber width.
+
+</div>

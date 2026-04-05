@@ -1,1 +1,2 @@
 - [project_fermata.md](project_fermata.md) — Fermata project overview, core identity, and design north star
+- [feedback_broken_glass.md](feedback_broken_glass.md) — No hacks, refactor properly. Services = domain logic, hooks = reactive read-side.

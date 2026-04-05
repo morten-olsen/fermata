@@ -7,7 +7,7 @@ A calm, multi-source media player built with Expo (React Native). Supports music
 - **Expo SDK 55** with Expo Router (file-based routing in `app/`)
 - **NativeWind v4** (Tailwind CSS for React Native) — use `className` not `StyleSheet`
 - **Drizzle ORM** with **expo-sqlite** — typed schema, queries, and migrations
-- **react-native-track-player v5** — audio playback (requires dev build, not Expo Go). Alpha version needed for RN 0.83 new arch compatibility.
+- **expo-audio** — audio playback with `AudioPlaylist` (gapless queue, lock screen, background audio, web support)
 - **Zustand** — state management
 - **TypeScript** — strict mode
 - **ESLint 9** — flat config (`eslint.config.mjs`) enforcing architecture boundaries
@@ -101,24 +101,45 @@ src/
         home-assistant.api.ts     # HA WebSocket client
         home-assistant.types.ts
 
-  shared/                         # Cross-cutting infrastructure
-    db/
-      db.ts                       # Barrel
-      db.schema.ts                # Drizzle table definitions (source of truth)
-      db.client.ts                # Drizzle client
-    components/                   # UI primitives (EmptyState, SegmentedControl, etc.)
-    lib/
-      ids.ts                      # stableId(), generateId()
-      format.ts                   # formatDuration()
-      log.ts                      # Dev-only logging
-      alphabet.ts                 # Letter extraction for scrubbers
-    theme/
-      theme.ts                    # Barrel (colors + nav theme)
+  components/                       # Design system (composable, responsive)
+    components.ts                   # Top-level barrel
+    primitives/                     # PressableScale, Artwork, SourceArtwork
+      primitives.ts                 # Barrel
+    controls/                       # ActionButton, SegmentedControl, Slider
+      controls.ts
+    feedback/                       # ProgressBar, EmptyState
+      feedback.ts
+    navigation/                     # NavBar, AlphabetScrubber
+      navigation.ts
+    layout/                         # BottomSheet, HorizontalList, SectionHeader, responsive hooks
+      layout.ts
+      responsive.tsx                # useBreakpoint(), useColumns(), useResponsiveValue()
+    data-display/                   # DetailHeader, SettingsRow, StatRow, MediaRow, MediaCard
+      data-display.ts
+      media-row.tsx                 # Compound: MediaRow.Track, .Episode, .Chapter
+      media-card.tsx                # Compound: MediaCard.Album, .Show, .Book
+    media/                          # AlbumGrid, BookGrid, TrackList, ArtistRow, etc.
+    playback/                       # PlayerOverlay, NowPlaying, QueueSheet, EqualizerBars
+    library/                        # TrackActions
+    outputs/                        # OutputPicker
 
-app/                              # Expo Router screens (thin, delegate to features)
-drizzle/                          # Generated SQL migrations
-patches/                          # patch-package patches
-docs/                             # Architecture, design, standards, code guidelines
+  shared/                           # Cross-cutting infrastructure
+    db/
+      db.ts                         # Barrel
+      db.schema.ts                  # Drizzle table definitions (source of truth)
+      db.client.ts                  # Drizzle client
+    lib/
+      ids.ts                        # stableId(), generateId()
+      format.ts                     # formatDuration()
+      log.ts                        # Dev-only logging
+      alphabet.ts                   # Letter extraction for scrubbers
+    theme/
+      theme.ts                      # Barrel (colors + nav theme)
+
+app/                                # Expo Router screens (thin, delegate to features)
+drizzle/                            # Generated SQL migrations
+patches/                            # patch-package patches
+docs/                               # Architecture, design, standards, code guidelines
 ```
 
 ## Key Patterns
@@ -134,20 +155,24 @@ docs/                             # Architecture, design, standards, code guidel
 - **Library sync, not live fetch** — UI reads from local SQLite, never remote APIs directly.
 - **Artwork is a source item ID** — DB stores `artworkSourceItemId`, not URLs. Resolve via `resolveArtworkUrl()` at read time.
 - **Deterministic IDs** — `stableId(sourceId, sourceItemId)` for synced entities, `generateId()` for local-only. Both in `shared/lib/ids.ts`.
-- **Lazy Track Player** — loaded via `require()` in try/catch. App works in Expo Go without audio.
+- **expo-audio playback** — `AudioPlaylist` for gapless queue, `AudioPlayer` for lock screen metadata. Background audio via `setAudioModeAsync`.
 - **Media types** — `albums` and `tracks` have a `mediaType` column: `'music' | 'podcast' | 'audiobook'`. Defaults to `'music'`. Library queries accept an optional `mediaType` filter.
 - **Playback progress** — `playback_progress` table tracks position/completion for podcast and audiobook tracks. `needsSync` flag enables offline-first bidirectional sync. Not used for music. `QueueTrack.tracksProgress` boolean (pre-computed from `mediaType`) avoids runtime type checks during playback.
 - **Scoped sourceItemId** — Audiobookshelf episodes/chapters use `"{libraryItemId}:{subId}"` format since they're nested under library items. Parsed by `splitSourceItemId()` in the adapter. Streaming path, chapter offsets, and artwork IDs are separate DB columns (`contentUrl`, `chapterStartMs`, `artworkSourceItemId` on tracks), not packed into the ID.
 - **Mix tapes** — Fermata's term for playlists.
 - **Stores are decoupled** — Zustand stores don't import other stores directly; dependencies passed as arguments.
 - **Screens are thin** — business logic lives in feature stores and queries, not in `app/` files.
+- **Compound components** — complex UI uses Radix-like compound pattern: `MediaRow.Track`, `MediaCard.Album`, `BottomSheet.Item`, `DetailHeader.Root`. Presets for standard layouts, composable sub-components for custom ones.
+- **Responsive design** — breakpoints in `tailwind.config.js` (sm/md/lg/xl). Use NativeWind responsive prefixes (`sm:px-6 md:px-8`) or hooks (`useBreakpoint()`, `useColumns()`, `useResponsiveValue()`) for imperative logic.
+- **Design system in `src/components/`** — grouped by function (primitives, controls, feedback, navigation, layout, data-display). Each group has a barrel file. `src/shared/` is for non-UI infrastructure only.
 
 ## Import Conventions
 
 - **Within a feature**: relative imports (`./library.store`)
 - **Between features**: barrel import (`@/src/features/playback/playback`)
+- **From components**: barrel import (`@/src/components/primitives/primitives`, `@/src/components/layout/layout`)
 - **From shared**: direct path (`@/src/shared/theme/theme`, `@/src/shared/lib/log`)
-- **Import order**: React → third-party → features → shared → relative
+- **Import order**: React → third-party → features → components → shared → relative
 - **`import type`** for type-only imports
 
 ## Dependency Graph
@@ -187,6 +212,7 @@ npm run lint:fix         # Auto-fix ESLint issues
 - `docs/OUTPUT-ADAPTERS.md` — output adapter design (Spotify Connect-like speaker routing)
 - `docs/AUDIOBOOKSHELF.md` — Audiobookshelf adapter: API, data mapping, compound IDs, progress sync
 - `docs/PROGRESS-TRACKING.md` — playback progress: schema, local tracking, bidirectional sync protocol
+- `docs/MIGRATION.md` — migration guide: features → services architecture, status tracker
 
 ## License
 

@@ -1,24 +1,18 @@
-import { useEffect, useState } from "react";
 import { View, Text, Pressable } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useLibraryStore, AlbumGrid } from "@/src/features/library/library";
-import type { AlbumRow } from "@/src/features/library/library";
+import { useAlbumsByArtist } from "@/src/hooks/albums/albums";
+
+import { AlbumGrid } from "@/src/components/media/album-grid";
 
 import { colors } from "@/src/shared/theme/theme";
 
 export default function ArtistDetailScreen() {
   const { name } = useLocalSearchParams<{ name: string }>();
-  const getAlbumsByArtist = useLibraryStore((s) => s.getAlbumsByArtist);
-  const [albums, setAlbums] = useState<AlbumRow[]>([]);
-
-  useEffect(() => {
-    if (!name) return;
-    getAlbumsByArtist(name).then(setAlbums);
-  }, [name]);
+  const { albums } = useAlbumsByArtist(name);
 
   const header = (
     <View style={{ marginBottom: 16 }}>

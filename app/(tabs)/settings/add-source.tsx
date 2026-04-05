@@ -13,9 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useSourcesStore } from "@/src/features/sources/sources";
-import { useSyncStore } from "@/src/features/sync/sync";
-import { useLibraryStore } from "@/src/features/library/library";
+import { useAddSource } from "@/src/hooks/sources/sources";
 
 import { colors } from "@/src/shared/theme/theme";
 import { isValidHttpUrl } from "@/src/shared/lib/validate";
@@ -26,8 +24,7 @@ const SOURCE_TYPES = [
 ];
 
 export default function AddSourceScreen() {
-  const addSource = useSourcesStore((s) => s.addSource);
-  const syncOne = useSyncStore((s) => s.syncOne);
+  const { mutate: addSource } = useAddSource();
 
   const [sourceType, setSourceType] = useState(SOURCE_TYPES[0]);
   const [name, setName] = useState("");
@@ -48,23 +45,17 @@ export default function AddSourceScreen() {
     setError(null);
 
     try {
-      await addSource(sourceType.type, name.trim(), serverUrl.trim(), {
-        username: username.trim(),
-        password: password.trim(),
+      await addSource({
+        type: sourceType.type as 'jellyfin' | 'audiobookshelf',
+        name: name.trim(),
+        credentials: {
+          baseUrl: serverUrl.trim(),
+          username: username.trim(),
+          password: password.trim(),
+        },
       });
 
-      // Navigate back immediately — sync runs in the background
       router.back();
-
-      // Kick off sync without blocking the UI
-      const adapter = useSourcesStore
-        .getState()
-        .sources.at(-1)?.adapter;
-      if (adapter) {
-        syncOne(adapter).then(() => {
-          useLibraryStore.getState().refreshAll();
-        });
-      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Connection failed");
       setIsConnecting(false);
