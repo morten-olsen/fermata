@@ -1,15 +1,12 @@
-import { useCallback, useEffect, useMemo, useState, memo } from "react";
+import { useCallback, useMemo, memo } from "react";
 import { View, Text, FlatList, Pressable, Alert } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import Animated, { FadeInRight } from "react-native-reanimated";
 
 import { TrackRow } from "@/src/components/media/track-row";
 import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
-import type { PlaylistRow as PlaylistDetail } from "@/src/services/database/database.schemas";
 import type { PlaylistTrackRow } from "@/src/services/playlists/playlists";
 import { usePlayTracks, useCurrentTrack } from "@/src/hooks/playback/playback";
 import { useToggleTrackFavourite } from "@/src/hooks/tracks/tracks";
@@ -39,9 +36,8 @@ export default function PlaylistDetailScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: async () => {
-            await deletePlaylist(id);
-            router.back();
+          onPress: () => {
+            void deletePlaylist(id).then(() => router.back());
           },
         },
       ]
@@ -121,7 +117,7 @@ export default function PlaylistDetailScreen() {
                       const j = Math.floor(Math.random() * (i + 1));
                       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
                     }
-                    playTracks({ trackIds: shuffled.map((t) => t.id) });
+                    void playTracks({ trackIds: shuffled.map((t) => t.id) });
                   }}
                   className="flex-1 flex-row items-center justify-center bg-fermata-elevated py-3 rounded-xl"
                 >

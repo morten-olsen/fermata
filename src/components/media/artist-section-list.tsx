@@ -22,13 +22,13 @@ type ArtistListItem =
 function buildSections(artists: ArtistRowType[]) {
   const items: ArtistListItem[] = [];
   const letterIndices: Record<string, number> = {};
-  const groups: Record<string, ArtistRowType[]> = {};
+  const groups: Partial<Record<string, ArtistRowType[]>> = {};
 
   for (const artist of artists) {
     const firstChar = artist.name.charAt(0).toUpperCase();
     const key = /[A-Z]/.test(firstChar) ? firstChar : "#";
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(artist);
+    const group = groups[key] ?? (groups[key] = []);
+    group.push(artist);
   }
 
   const sortedKeys = Object.keys(groups).sort((a, b) =>
@@ -91,7 +91,7 @@ export function ArtistSectionList({
 
   const handleSelect = useCallback(
     (letter: string) => {
-      const index = letterIndices[letter];
+      const index = letterIndices[letter] as number | undefined;
       if (index != null && listRef.current) {
         listRef.current.scrollToOffset({
           offset: offsets[index]?.offset ?? 0,

@@ -72,7 +72,7 @@ class HAPlaybackPlayer extends PlaybackPlayer {
   public reconcile = async (payload: ReconcilePayload) => {
     this.#cancelPendingSeek();
 
-    const item = payload.queue[payload.currentIndex];
+    const item = payload.queue[payload.currentIndex] as ReconcilePayload['queue'][number] | undefined;
     if (!item) {
       warn("HAPlaybackPlayer: no item at index", payload.currentIndex);
       return;
@@ -101,9 +101,10 @@ class HAPlaybackPlayer extends PlaybackPlayer {
    * The service resolves the URL and calls reconcile with a single-item payload.
    * This method is here for interface compliance but the service uses reconcile directly.
    */
-  public skipTo = async (_index: number, _positionMs: number) => {
+  public skipTo = (_index: number, _positionMs: number): Promise<void> => {
     // Not called directly — the service calls reconcile for non-queue players
     warn("HAPlaybackPlayer.skipTo should not be called directly");
+    return Promise.resolve();
   };
 
   public pause = async () => {
@@ -132,7 +133,7 @@ class HAPlaybackPlayer extends PlaybackPlayer {
     }
   };
 
-  public dispose = async () => {
+  public dispose = (): Promise<void> => {
     this.#cancelPendingSeek();
     this.#entityUnsub?.();
     this.#entityUnsub = null;
@@ -142,6 +143,7 @@ class HAPlaybackPlayer extends PlaybackPlayer {
       this.#positionInterval = null;
     }
     // Do NOT close the connection — OutputsService owns it
+    return Promise.resolve();
   };
 
   // ── Private ─────────────────────────────────────────

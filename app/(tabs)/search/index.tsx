@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { View, Text, TextInput, FlatList, SectionList, Pressable } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { View, Text, TextInput, FlatList, Pressable } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
-import { AlbumCard } from "@/src/components/media/album-card";
 import { ArtistRow } from "@/src/components/media/artist-row";
 import { TrackRow } from "@/src/components/media/track-row";
 import { useTrackActions, toActionTarget } from "@/src/components/library/track-actions";
@@ -45,20 +44,21 @@ export default function SearchScreen() {
       return;
     }
 
-    debounceRef.current = setTimeout(async () => {
+    debounceRef.current = setTimeout(() => {
       const q = query.trim();
-      const [artists, albums, tracks] = await Promise.all([
+      void Promise.all([
         artistsService.search(q),
         albumsService.search(q),
         tracksService.search(q),
-      ]);
-      setResults({ artists, albums, tracks });
+      ]).then(([artists, albums, tracks]) => {
+        setResults({ artists, albums, tracks });
+      });
     }, 300);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [query]);
+  }, [query, artistsService, albumsService, tracksService]);
 
   const hasResults =
     results &&

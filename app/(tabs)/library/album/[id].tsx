@@ -42,13 +42,8 @@ export default function AlbumDetailScreen() {
   }, [id, album]);
 
   const handleToggleFavourite = useCallback(
-    async (item: TrackRowType) => {
-      const newVal = await toggleFavourite(item.id);
-      setTracks((prev) =>
-        prev.map((t) =>
-          t.id === item.id ? { ...t, isFavourite: newVal ? 1 : 0 } : t
-        )
-      );
+    (item: TrackRowType) => {
+      void toggleFavourite(item.id);
     },
     [toggleFavourite]
   );

@@ -107,38 +107,40 @@ function TrackActionSheetContent({
   const [isFav, setIsFav] = useState(track.isFavourite);
   const [addedToPlaylists, setAddedToPlaylists] = useState(new Set<string>());
 
-  const handleToggleFavourite = async () => {
+  const handleToggleFavourite = () => {
     const newVal = !isFav;
     setIsFav(newVal);
-    Haptics.impactAsync(
+    void Haptics.impactAsync(
       newVal
         ? Haptics.ImpactFeedbackStyle.Medium
         : Haptics.ImpactFeedbackStyle.Light
     );
 
-    await toggleFavourite(track.id);
-
-    // Sync favourite to source if adapter supports it
-    const source = await sourcesService.findById(track.sourceId);
-    if (source) {
-      const adapter = sourcesService.getAdapter(source);
-      adapter.toggleFavourite?.(track.sourceItemId, newVal).catch(() => {});
-    }
+    void toggleFavourite(track.id).then(async () => {
+      // Sync favourite to source if adapter supports it
+      const source = await sourcesService.findById(track.sourceId);
+      if (source) {
+        const adapter = sourcesService.getAdapter(source);
+        void adapter.toggleFavourite?.(track.sourceItemId, newVal).catch(() => {});
+      }
+    });
   };
 
-  const handleAddToPlaylist = async (playlistId: string) => {
-    await addTrackToPlaylist({ playlistId, trackId: track.id });
-    setAddedToPlaylists((prev) => new Set(prev).add(playlistId));
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setTimeout(onDismiss, 400);
+  const handleAddToPlaylist = (playlistId: string) => {
+    void addTrackToPlaylist({ playlistId, trackId: track.id }).then(() => {
+      setAddedToPlaylists((prev) => new Set(prev).add(playlistId));
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTimeout(onDismiss, 400);
+    });
   };
 
-  const handleNewPlaylist = async () => {
+  const handleNewPlaylist = () => {
     const name = `Playlist ${playlists.length + 1}`;
-    const id = await createPlaylist(name);
-    await addTrackToPlaylist({ playlistId: id, trackId: track.id });
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setTimeout(onDismiss, 400);
+    void createPlaylist(name).then(async (id) => {
+      await addTrackToPlaylist({ playlistId: id, trackId: track.id });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTimeout(onDismiss, 400);
+    });
   };
 
   const handleGoToAlbum = () => {

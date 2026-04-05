@@ -36,6 +36,8 @@ export default tseslint.config(
       "public/",
       "storybook-static/",
       ".storybook/",
+      "modules/",
+      "scripts/",
       "*.config.js",
       "*.config.mjs",
       "babel.config.js",

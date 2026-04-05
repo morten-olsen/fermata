@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 // Lazy-load to avoid crash when native module isn't available (Expo Go)
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 let ImageColors: typeof import("react-native-image-colors").default | null =
   null;
 try {
@@ -30,7 +31,7 @@ export function useImageColors(uri: string | undefined): AlbumColors {
 
     let cancelled = false;
 
-    ImageColors.getColors(uri, {
+    void ImageColors.getColors(uri, {
       fallback: "#0A0A0B",
       cache: true,
       key: uri,

@@ -178,13 +178,12 @@ class OutputsService extends EventEmitter<OutputsServiceEvents> {
 
     // Stop current player
     const playbackService = this.#services.get(PlaybackService);
-    try { await playbackService.getState().status !== 'idle' && await this.#getCurrentPlayer()?.stop(); } catch { /* best effort */ }
+    try { if (playbackService.getState().status !== 'idle') await this.#getCurrentPlayer()?.stop(); } catch { /* best effort */ }
 
     // Create HA player for this entity
     const haPlayer = new HAPlaybackPlayer(entry.connection, entityId);
     haPlayer.start((cb) => {
       // Wire entity state updates to the player
-      const key = `player-${entityId}`;
       const handler = () => cb(entry.entityStates);
       // Call immediately with current state
       handler();
@@ -260,8 +259,8 @@ class OutputsService extends EventEmitter<OutputsServiceEvents> {
 
   #connectHA = async (entry: OutputEntry) => {
     const { config } = entry;
-    const url = config.config.url ?? '';
-    const accessToken = config.config.accessToken ?? '';
+    const url = config.config.url;
+    const accessToken = config.config.accessToken;
 
     if (!url || !accessToken) {
       warn("OutputsService: missing HA config for", config.name);

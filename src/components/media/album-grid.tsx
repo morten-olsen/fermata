@@ -61,7 +61,7 @@ export function AlbumGrid({
 
   const handleSelect = useCallback(
     (letter: string) => {
-      const itemIndex = indices[letter];
+      const itemIndex = indices[letter] as number | undefined;
       if (itemIndex == null || !listRef.current) return;
       // FlashList scrollToIndex uses flat item indices even with numColumns
       listRef.current.scrollToIndex({

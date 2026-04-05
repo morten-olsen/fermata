@@ -26,6 +26,7 @@ export async function registerOpfsServiceWorker(): Promise<void> {
   } catch (e) {
     // Service worker registration failed — OPFS URLs won't work,
     // but the app can still function with remote URLs.
+    // eslint-disable-next-line no-console
     console.warn('OPFS service worker registration failed:', e);
   }
 }

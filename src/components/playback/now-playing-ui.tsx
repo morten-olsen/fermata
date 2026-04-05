@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef, useCallback, memo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
   Pressable,
-  PanResponder,
   useWindowDimensions,
 } from "react-native";
 
@@ -20,7 +19,6 @@ import Animated, {
   withSequence,
   withRepeat,
   cancelAnimation,
-  interpolate,
   Easing,
 } from "react-native-reanimated";
 
@@ -33,11 +31,8 @@ import { WaveformBar } from "./waveform-bar";
 
 // ── Constants ──
 
-const TAB_BAR_HEIGHT = 85;
-const SPRING_CONFIG = { damping: 28, stiffness: 340, mass: 0.8 };
 const ROTATION_DURATION = 30_000;
 const VINYL_HOLE_RATIO = 0.14;
-const VINYL_RING_RATIO = 0.38;
 
 // ── Color helpers ──
 
@@ -121,7 +116,6 @@ export function NowPlayingFull({
   // Brighten the extracted colors for UI elements and atmosphere
   const tintLight = lighten(albumColors.primary, 0.5);
   const tintVibrant = lighten(albumColors.primary, 0.65);
-  const tintSecondary = lighten(albumColors.secondary, 0.4);
   const progressColor = tintVibrant;
   const playButtonBg = lighten(albumColors.primary, 0.75);
   const playButtonFg = colors.bg;
@@ -129,9 +123,7 @@ export function NowPlayingFull({
   const upNextBg = withOpacity(albumColors.primary, 0.2);
   // Full-screen color wash — blended mid-tone for the entire background
   const bgWash = lighten(albumColors.primary, 0.08);
-  const bgWashSecondary = lighten(albumColors.secondary, 0.06);
   const vinylHoleSize = artworkSize * VINYL_HOLE_RATIO;
-  const vinylRingSize = artworkSize * VINYL_RING_RATIO;
 
   // ── Album art rotation (vinyl) ──
 
@@ -191,7 +183,7 @@ export function NowPlayingFull({
   );
 
   const handlePlayPause = useCallback(() => {
-    Haptics.impactAsync(
+    void Haptics.impactAsync(
       isPlaying
         ? Haptics.ImpactFeedbackStyle.Medium
         : Haptics.ImpactFeedbackStyle.Light,
@@ -680,7 +672,7 @@ export function NowPlayingMini({
   const miniBg = withOpacity(albumColors.primary, 0.2);
 
   const handlePlayPause = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onTogglePlayPause();
   }, [onTogglePlayPause]);
 

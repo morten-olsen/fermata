@@ -57,7 +57,7 @@ export function AlphabetScrubber({
       stripPageYRef.current = y;
     });
     onScrubStart?.();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     // Use the stored position for first touch (may be slightly stale but close enough)
     handleMove(e);
   }

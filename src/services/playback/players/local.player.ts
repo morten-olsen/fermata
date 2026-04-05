@@ -83,12 +83,14 @@ class LocalPlaybackPlayer extends PlaybackPlayer {
     }
   };
 
-  public pause = async () => {
+  public pause = (): Promise<void> => {
     this.#playlist?.pause();
+    return Promise.resolve();
   };
 
-  public resume = async () => {
+  public resume = (): Promise<void> => {
     this.#playlist?.play();
+    return Promise.resolve();
   };
 
   public seek = async (positionMs: number) => {
@@ -96,22 +98,25 @@ class LocalPlaybackPlayer extends PlaybackPlayer {
     await this.#playlist.seekTo(positionMs / 1000);
   };
 
-  public setVolume = async (volume: number) => {
+  public setVolume = (volume: number): Promise<void> => {
     if (this.#playlist) {
       this.#playlist.volume = volume;
     }
+    return Promise.resolve();
   };
 
-  public stop = async () => {
+  public stop = (): Promise<void> => {
     this.#playlist?.pause();
     this.#playlist?.clear();
     this.#lastIndex = -1;
+    return Promise.resolve();
   };
 
-  public dispose = async () => {
+  public dispose = (): Promise<void> => {
     this.#playlist?.destroy();
     this.#playlist = null;
     this.#lastIndex = -1;
+    return Promise.resolve();
   };
 
 }

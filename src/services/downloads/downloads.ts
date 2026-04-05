@@ -14,7 +14,6 @@ import type {
   DownloadRow,
   DownloadServiceEvents,
   DownloadStats,
-  DownloadStatus,
   PinEntityType,
   PinRow,
 } from "./downloads.types";
@@ -270,13 +269,13 @@ class DownloadService extends EventEmitter<DownloadServiceEvents> {
     this.#isProcessing = true;
 
     const fs = this.#fs();
-    fs.ensureDir(...DOWNLOAD_DIR).then(() => {
+    void fs.ensureDir(...DOWNLOAD_DIR).then(() => {
       this.#scheduleNext();
     });
   };
 
   #scheduleNext = () => {
-    setTimeout(async () => {
+    setTimeout(() => void (async () => {
       const db = await this.#db();
       type PendingRow = { itemId: string; itemType: DownloadItemType; sourceId: string };
       const pending = await db.sql<PendingRow>`
@@ -294,7 +293,7 @@ class DownloadService extends EventEmitter<DownloadServiceEvents> {
       await this.#downloadItem(item.itemId, item.itemType, item.sourceId);
       this.emit('statusChanged');
       this.#scheduleNext();
-    }, 0);
+    })(), 0);
   };
 
   // ── Private helpers ─────────────────────────────────
@@ -417,13 +416,10 @@ class DownloadService extends EventEmitter<DownloadServiceEvents> {
       `.first();
     }
 
-    if (itemType === 'audiobook') {
-      return db.sql<InfoRow>`
-        SELECT sourceItemId, NULL as contentUrl, title, syncedAt FROM audiobooks WHERE id = ${itemId}
-      `.first();
-    }
-
-    return null;
+    // itemType === 'audiobook'
+    return db.sql<InfoRow>`
+      SELECT sourceItemId, NULL as contentUrl, title, syncedAt FROM audiobooks WHERE id = ${itemId}
+    `.first();
   };
 
   #resolvePin = async (
@@ -472,16 +468,13 @@ class DownloadService extends EventEmitter<DownloadServiceEvents> {
       return row ? [{ id: row.id, type: 'audiobook', sourceId, sourceItemId: row.sourceItemId, contentUrl: row.contentUrl }] : [];
     }
 
-    if (entityType === 'playlist') {
-      const rows = await db.sql<ItemRow>`
-        SELECT t.id, t.sourceItemId, NULL as contentUrl FROM tracks t
-        INNER JOIN playlistTracks pt ON pt.trackId = t.id
-        WHERE pt.playlistId = ${entityId}
-      `;
-      return rows.map((r) => ({ id: r.id, type: 'track' as const, sourceId, sourceItemId: r.sourceItemId, contentUrl: r.contentUrl }));
-    }
-
-    return [];
+    // entityType === 'playlist'
+    const rows = await db.sql<ItemRow>`
+      SELECT t.id, t.sourceItemId, NULL as contentUrl FROM tracks t
+      INNER JOIN playlistTracks pt ON pt.trackId = t.id
+      WHERE pt.playlistId = ${entityId}
+    `;
+    return rows.map((r) => ({ id: r.id, type: 'track' as const, sourceId, sourceItemId: r.sourceItemId, contentUrl: r.contentUrl }));
   };
 
   #findOrphans = async (): Promise<Array<{ itemId: string; itemType: DownloadItemType }>> => {

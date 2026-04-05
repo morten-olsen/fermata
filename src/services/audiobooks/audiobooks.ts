@@ -37,7 +37,7 @@ class AudiobooksService extends EventEmitter<AudiobooksServiceEvents> {
   public findAll = async (): Promise<AudiobookRow[]> => {
     const db = await this.#db();
     const rows = await db.sql<AudiobookRow>`SELECT * FROM audiobooks ORDER BY title ASC`;
-    return rows.map(AudiobooksService.#parseChapters);
+    return rows.map((row) => AudiobooksService.#parseChapters(row));
   };
 
   public findById = async (id: string): Promise<AudiobookRow | null> => {

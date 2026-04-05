@@ -4,8 +4,9 @@ type OnOptions = {
   abortSignal?: AbortSignal;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 class EventEmitter<T extends Record<string, (...args: any[]) => void | Promise<void>>> {
-  #listeners = new Map<keyof T, Set<EventListener<ExplicitAny>>>();
+  #listeners = new Map<keyof T, Set<EventListener<unknown[]>>>();
 
   on = <K extends keyof T>(event: K, callback: EventListener<Parameters<T[K]>>, options: OnOptions = {}) => {
     const { abortSignal } = options;
@@ -48,7 +49,7 @@ class EventEmitter<T extends Record<string, (...args: any[]) => void | Promise<v
       return;
     }
     for (const listener of listeners) {
-      listener(...args);
+      void listener(...args);
     }
   };
 
@@ -57,7 +58,7 @@ class EventEmitter<T extends Record<string, (...args: any[]) => void | Promise<v
     if (!listeners) {
       return;
     }
-    await Promise.all([...listeners].map((listener) => listener(...args)));
+    await Promise.all([...listeners].map((listener) => Promise.resolve(listener(...args))));
   };
 }
 

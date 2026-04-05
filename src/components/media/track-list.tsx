@@ -46,7 +46,7 @@ export function TrackList({
 
   const handleSelect = useCallback(
     (letter: string) => {
-      const index = indices[letter];
+      const index = indices[letter] as number | undefined;
       if (index == null || !listRef.current) return;
       listRef.current.scrollToOffset({
         offset: index * TRACK_ROW_HEIGHT,

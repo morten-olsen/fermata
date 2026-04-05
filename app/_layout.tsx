@@ -1,7 +1,7 @@
 import "../global.css";
 
 import { useEffect } from "react";
-import { View, ActivityIndicator, Text } from "react-native";
+import "react-native";
 
 import { ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
@@ -65,7 +65,7 @@ function ServiceInitializer() {
       downloadService.processQueue();
       void SplashScreen.hideAsync();
     });
-  }, [downloadService, outputsService]);
+  }, [downloadService, nowPlayingService, outputsService]);
 
   return null;
 }

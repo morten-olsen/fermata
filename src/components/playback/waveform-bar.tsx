@@ -1,4 +1,4 @@
-import { useMemo, useRef, useCallback } from "react";
+import { useMemo, useRef } from "react";
 import { View, PanResponder } from "react-native";
 
 import { colors } from "@/src/shared/theme/theme";
@@ -115,8 +115,6 @@ export function WaveformBar({
   ).current;
 
   const activeIndex = Math.floor(progress * BAR_COUNT);
-  const barWidth =
-    (1 / BAR_COUNT) * 100; // percentage per bar
 
   return (
     <View
