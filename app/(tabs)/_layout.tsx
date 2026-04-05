@@ -1,11 +1,28 @@
+import { useMemo } from "react";
+
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
+import { useLibraryStats } from "@/src/hooks/library/library";
 import { colors } from "@/src/shared/theme/theme";
 
 export default function TabLayout() {
+  const stats = useLibraryStats();
+
+  const hasMusic = stats.tracks > 0;
+  const hasPodcasts = stats.shows > 0;
+  const hasAudiobooks = stats.audiobooks > 0;
+
+  const initialTab = useMemo(() => {
+    if (hasMusic) return "library";
+    if (hasPodcasts) return "podcasts";
+    if (hasAudiobooks) return "audiobooks";
+    return "settings";
+  }, [hasMusic, hasPodcasts, hasAudiobooks]);
+
   return (
     <Tabs
+      initialRouteName={initialTab}
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -27,6 +44,7 @@ export default function TabLayout() {
         name="library"
         options={{
           title: "Music",
+          href: hasMusic ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="musical-notes" size={size} color={color} />
           ),
@@ -36,6 +54,7 @@ export default function TabLayout() {
         name="podcasts"
         options={{
           title: "Podcasts",
+          href: hasPodcasts ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="mic" size={size} color={color} />
           ),
@@ -45,6 +64,7 @@ export default function TabLayout() {
         name="audiobooks"
         options={{
           title: "Audiobooks",
+          href: hasAudiobooks ? undefined : null,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="book" size={size} color={color} />
           ),

@@ -61,6 +61,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     ["expo-audio", { enableBackgroundPlayback: true }],
     "./modules/now-playing/app.plugin.js",
+    "expo-secure-store",
     "expo-font",
     "expo-image",
     "expo-web-browser",

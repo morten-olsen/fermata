@@ -7,7 +7,7 @@ import { useServiceQuery } from "../service/service.query";
 import { useServiceMutation } from "../service/service.mutation";
 import { useService } from "../service/service";
 
-const sourceEvents = ['sourceAdded', 'sourceRemoved', 'sourceUpdated'] as const;
+const sourceEvents = ['sourceAdded', 'sourceRemoved', 'sourceUpdated', 'sourceAuthExpired'] as const;
 
 const useSources = () => {
   const sourcesService = useService(SourcesService);

@@ -80,19 +80,12 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: gradle/actions/setup-gradle@v4
-
       - run: npm ci
 
-      - name: Generate native Android project
-        run: npx expo prebuild --platform android --no-install
-
       - name: Build Android APK
-        working-directory: android
-        run: ./gradlew assembleRelease -x lintVitalAnalyzeRelease
-
-      - name: Move APK to workspace root
-        run: mv android/app/build/outputs/apk/release/app-release.apk fermata.apk
+        run: npx eas-cli build --platform android --profile preview --local --output fermata.apk --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

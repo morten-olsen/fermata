@@ -7,7 +7,6 @@ import { router } from "expo-router";
 import { useShows, useLatestUnplayed } from "@/src/hooks/shows/shows";
 import type { EnrichedLatestEpisode } from "@/src/hooks/shows/shows";
 import { usePlayTracks } from "@/src/hooks/playback/playback";
-import { useLibraryStats } from "@/src/hooks/library/library";
 import type { ShowRow } from "@/src/services/database/database.schemas";
 
 import { MediaCard } from "@/src/components/data-display/data-display";
@@ -19,10 +18,9 @@ import { HorizontalList } from "@/src/components/layout/layout";
 import { colors } from "@/src/shared/theme/theme";
 
 export default function PodcastsScreen() {
-  const { shows } = useShows();
+  const { shows, loading } = useShows();
   const { episodes: latestEpisodes } = useLatestUnplayed();
   const { mutate: playTracks } = usePlayTracks();
-  const stats = useLibraryStats();
   const { width: screenWidth } = useWindowDimensions();
   const gridCardWidth = Math.floor((screenWidth - 16 - 36 - 12 * 2) / 3);
 
@@ -124,7 +122,7 @@ export default function PodcastsScreen() {
     </View>
   );
 
-  if (stats.shows === 0) {
+  if (!loading && shows.length === 0) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
         {listHeader}

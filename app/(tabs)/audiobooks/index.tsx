@@ -6,7 +6,6 @@ import { router } from "expo-router";
 
 import { useAudiobooks } from "@/src/hooks/audiobooks/audiobooks";
 import type { EnrichedAudiobook } from "@/src/hooks/audiobooks/audiobooks";
-import { useLibraryStats } from "@/src/hooks/library/library";
 
 import { BookGrid } from "@/src/components/media/book-grid";
 import { MediaCard } from "@/src/components/data-display/data-display";
@@ -16,8 +15,7 @@ import { HorizontalList } from "@/src/components/layout/layout";
 import { colors } from "@/src/shared/theme/theme";
 
 export default function AudiobooksScreen() {
-  const { audiobooks } = useAudiobooks();
-  const stats = useLibraryStats();
+  const { audiobooks, loading } = useAudiobooks();
   const { width: screenWidth } = useWindowDimensions();
   const gridCardWidth = Math.floor((screenWidth - 16 - 36 - 12 * 2) / 3);
 
@@ -88,7 +86,7 @@ export default function AudiobooksScreen() {
     </View>
   );
 
-  if (stats.audiobooks === 0) {
+  if (!loading && audiobooks.length === 0) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
         {listHeader}

@@ -1,20 +1,34 @@
+import { generateRandomId } from "@/src/utils/utils.id";
+
 import { AuthExpiredError } from "@/src/shared/lib/errors";
 import { fetchWithTimeout } from "@/src/shared/lib/fetch";
+import { getSecureItem, setSecureItem } from "@/src/shared/lib/secure-store";
 
 const CLIENT_NAME = "Fermata";
 const CLIENT_VERSION = "0.1.0";
 const DEVICE_NAME = "Fermata Mobile";
+const DEVICE_ID_KEY = "jellyfin-device-id";
 
-function getDeviceId(): string {
-  // TODO: use expo-secure-store to persist a unique device ID
-  return "fermata-device-001";
+let cachedDeviceId: string | null = null;
+
+async function getDeviceId(): Promise<string> {
+  if (cachedDeviceId) return cachedDeviceId;
+  const stored = await getSecureItem(DEVICE_ID_KEY);
+  if (stored) {
+    cachedDeviceId = stored;
+    return stored;
+  }
+  const id = `fermata-${generateRandomId()}`;
+  await setSecureItem(DEVICE_ID_KEY, id);
+  cachedDeviceId = id;
+  return id;
 }
 
-function buildAuthHeader(accessToken?: string): string {
+function buildAuthHeader(deviceId: string, accessToken?: string): string {
   const parts = [
     `Client="${CLIENT_NAME}"`,
     `Device="${DEVICE_NAME}"`,
-    `DeviceId="${getDeviceId()}"`,
+    `DeviceId="${deviceId}"`,
     `Version="${CLIENT_VERSION}"`,
   ];
   if (accessToken) {
@@ -73,8 +87,9 @@ async function apiFetch<T>(
     }
   }
 
+  const deviceId = await getDeviceId();
   const response = await fetchWithTimeout(url.toString(), {
-    headers: { Authorization: buildAuthHeader(accessToken) },
+    headers: { Authorization: buildAuthHeader(deviceId, accessToken) },
   });
 
   if (response.status === 401) {
@@ -98,12 +113,13 @@ const authenticate = async (
   password: string,
 ): Promise<JellyfinAuthResult> => {
   const url = new URL("/Users/AuthenticateByName", baseUrl);
+  const deviceId = await getDeviceId();
 
   const response = await fetchWithTimeout(url.toString(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: buildAuthHeader(),
+      Authorization: buildAuthHeader(deviceId),
     },
     body: JSON.stringify({ Username: username, Pw: password }),
   });
