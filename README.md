@@ -1,102 +1,62 @@
 # Fermata 𝄐
 
-*Rediscovering the joy of listening to music.*
+*Rediscovering the joy of listening.*
 
-There was a time when listening to music was an act — deliberate, personal, joyful. You dropped a needle on vinyl and sat with an album. You pressed play on a Walkman and the world became a soundtrack. You scrolled the click wheel on an iPod and disappeared into your collection. Each generation had a device that made music feel like it mattered.
+There was a time when listening was an act — deliberate, personal, joyful. You dropped a needle on vinyl and sat with an album. You pressed play on a Walkman and the world became a soundtrack. You scrolled the click wheel on an iPod and disappeared into your collection. You tuned into a voice on the radio and felt someone speaking just to you. You pulled a book from the shelf and picked up right where you left off.
 
-Then music became a utility. Infinite catalogs, algorithmic playlists, auto-playing queues, social feeds, podcasts wedged between songs. The music is still there, but the *listening* got lost.
+Then media became a utility. Infinite catalogs, algorithmic playlists, auto-playing queues. The content is still there, but the *listening* got lost.
 
-Fermata is a music player for people who want it back.
+Fermata is a media player for people who want it back.
+
+## What it does
+
+**Music.** Connect your Jellyfin server and browse your entire library — albums, artists, tracks — with artwork front and center. Build mix tapes (playlists), favourite tracks, and play albums front to back with gapless transitions. The Now Playing screen wraps your album art in a vinyl disc that spins while you listen, bathed in colors pulled from the cover.
+
+**Podcasts.** Connect Audiobookshelf and browse your shows. Track which episodes you've played, pick up where you left off, and sync progress back to your server automatically.
+
+**Audiobooks.** Same Audiobookshelf connection. Navigate by chapter, resume exactly where you stopped, and watch your progress sync across devices.
+
+**One app, all your listening.** Everything lives in a single, calm interface. No context switching between apps.
+
+## How it works
+
+Fermata connects to media servers you already run. It syncs your libraries to the device so browsing is instant and works offline. Your data stays yours — there are no accounts, no cloud services, no tracking.
+
+### Supported sources
+
+- **Jellyfin** — music libraries (albums, artists, tracks, playlists)
+- **Audiobookshelf** — podcasts and audiobooks (with bidirectional progress sync)
+
+### Play anywhere
+
+Listen on the device, or route playback to speakers around your home via Home Assistant — like Spotify Connect, but for your own library.
+
+### Runs everywhere
+
+iOS, Android, and web. Responsive from phone to tablet to desktop.
 
 ## Philosophy
 
-- **The art of listening** — music deserves your attention, not your background. Fermata is designed for the moments you choose to listen.
 - **Calm by design** — no ads, no algorithms, no interruptions. The app waits for you, not the other way around.
-- **Your libraries, unified** — connect multiple sources (Jellyfin, and more to come) into a single, beautiful collection that feels like yours.
-- **Mix tapes** — the joy of hand-picking tracks and pressing play. Personal, curated, and the quickest way into a great session.
-- **Play anywhere** — local playback today, with output routing to external systems tomorrow.
+- **Album art is the interface** — artwork drives the visual experience. UI chrome recedes.
+- **Your library, your rules** — Fermata doesn't curate for you. It presents what you have and gets out of the way.
+- **Offline-first** — everything syncs locally. Browsing and playback work without a connection.
+- **Open** — GPL-3.0. Free to use, inspect, modify, and share.
 
-## Architecture
+## For developers
 
-```
-┌─────────────────────────────────────┐
-│            Fermata App              │
-│         (Expo / React Native)       │
-├──────────┬──────────┬───────────────┤
-│  Source   │  Library │    Output     │
-│ Adapters  │  (SQLite)│   Adapters    │
-├──────────┤          ├───────────────┤
-│ Jellyfin │  Synced  │    Local      │
-│ (multi)  │  & merged│  (RN Track    │
-│          │          │   Player)     │
-│ Local*   │          │               │
-│ Plex*    │          │  Music        │
-│ Tidal*   │          │  Assistant*   │
-└──────────┴──────────┴───────────────┘
-                                * = future
-```
+Fermata is built with Expo (React Native), NativeWind, expo-sqlite, and expo-audio. The codebase is organized by domain feature with a composable design system documented in Storybook.
 
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Framework | Expo SDK 55 (React Native 0.83) |
-| UI | NativeWind v4 (Tailwind CSS for React Native) |
-| State | Zustand |
-| Local DB | Drizzle ORM + expo-sqlite |
-| Audio | React Native Track Player (patched for RN 0.83) |
-| Source protocol | Adapter interface + registry (Jellyfin first) |
-| Output protocol | Adapter interface (local first) |
-
-## Features
-
-### v1 — Foundation
-
-- [x] Jellyfin source adapter (multi-instance)
-- [x] Library sync to local SQLite (incremental, via Drizzle ORM)
-- [x] Unified library browsing (albums, artists, tracks)
-- [x] Album-focused browsing with prominent artwork
-- [x] Playback queue management
-- [x] Local audio playback via RN Track Player
-- [x] Search across unified library
-- [x] Now Playing screen with full album art
-- [ ] Mix tapes — delightful playlist building with mosaic artwork
-- [ ] Quick play — tap a mix tape to instantly start a session
-
-### v2 — Expand
-
-- [ ] Additional source adapters (local files, Plex)
-- [ ] Output routing to Music Assistant
-- [ ] Offline playback (downloaded tracks)
-- [ ] Sync playlists from sources as mix tapes
-
-### Future
-
-- [ ] Tidal / streaming service adapters
-- [ ] DLNA / Chromecast / AirPlay output
-- [ ] Crossfade and gapless playback
-- [ ] Lyrics display
-
-## Development
+See [CLAUDE.md](CLAUDE.md) for architecture, conventions, and the full dependency graph.
 
 ```bash
-# Install dependencies
-npm install          # patch-package runs automatically via postinstall
-
-# Start dev server (Expo Go — no audio playback)
-npx expo start
-
-# Build & run with full audio (requires dev build)
-npx expo run:ios
-npx expo run:android
-# Or use EAS cloud builds:
-eas build --platform android --profile development
-
-# After schema changes
-npx drizzle-kit generate
+npm install              # Install dependencies
+npx expo start           # Dev server
+npx expo run:ios         # iOS dev build
+npx expo run:android     # Android dev build
+npx expo start --web     # Web
+npm run storybook        # Design system on port 6006
 ```
-
-> **Note:** React Native Track Player requires a dev build. In Expo Go, the app works fully except audio playback is silently disabled.
 
 ## License
 

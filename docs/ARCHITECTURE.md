@@ -50,9 +50,9 @@ src/hooks/
 └── library/library.ts             # useLibraryStats()
 ```
 
-### Features (`src/features/`)
+### Components (`src/components/`)
 
-Legacy layer — being migrated to services + hooks. Each feature is self-contained with a barrel file. See [MIGRATION.md](./MIGRATION.md) for the transition plan.
+Design system and domain UI. Organized by function: `primitives/`, `controls/`, `feedback/`, `layout/`, `navigation/`, `data-display/` for the shared design system, plus `media/`, `playback/`, `library/`, `outputs/` for domain-specific UI. Complex components use the compound pattern (e.g. `MediaRow.Track`, `MediaCard.Album`, `BottomSheet.Item`).
 
 ### Screens (`app/`)
 
@@ -197,18 +197,18 @@ const { mutate, loading, error } = useServiceMutation(sourcesService.add);
 
 ```
 1. User taps track / album / episode
-2. Playback store loads track(s) from SQLite
+2. Playback service loads track(s) from SQLite
 3. Resolve stream URL via adapter.getStreamUrl(sourceItemId)
-4. Add to React Native Track Player queue
-5. Track Player streams audio from source server
-6. Lock screen / notification controls via PlaybackService
+4. Add to expo-audio AudioPlaylist queue
+5. AudioPlaylist streams audio from source server (gapless)
+6. Lock screen / notification controls via expo-audio AudioPlayer
 ```
 
 ## Output Adapters
 
 Each output implements `OutputAdapter` for playback control. The playback store delegates transport to the active output.
 
-- **Local** — wraps React Native Track Player
+- **Local** — wraps expo-audio AudioPlaylist
 - **Home Assistant** — routes commands via HA WebSocket API
 
 See [OUTPUT-ADAPTERS.md](./OUTPUT-ADAPTERS.md) for details.
