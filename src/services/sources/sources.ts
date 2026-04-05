@@ -9,7 +9,6 @@ import type { Services } from "../services/services";
 import type { SourceAdapter } from "./sources.adapter";
 import type { SourceCredentials } from "./sources.registry";
 import { createAdapter, authenticateSource } from "./sources.registry";
-import { saveCredentials, deleteCredentials } from "./sources.credentials";
 
 type SourcesServiceEvents = {
   sourceAdded: (item: SourceRow) => void;
@@ -107,20 +106,10 @@ class SourcesService extends EventEmitter<SourcesServiceEvents> {
     credentials: SourceCredentials;
   }): Promise<SourceRow> => {
     const config = await authenticateSource(params.type, params.credentials);
-    const source = await this.add({ type: params.type, name: params.name, config, lastSyncedAt: null });
-    await saveCredentials(source.id, {
-      username: params.credentials.username,
-      password: params.credentials.password,
-    });
-    return source;
+    return this.add({ type: params.type, name: params.name, config, lastSyncedAt: null });
   };
 
-  public getAdapter = (source: SourceRow): SourceAdapter => createAdapter(source, {
-    onConfigRefreshed: (sourceId, config) => {
-      void this.update(sourceId, { config });
-      this.clearAuthExpired(sourceId);
-    },
-  });
+  public getAdapter = (source: SourceRow): SourceAdapter => createAdapter(source);
 
   // ── Auth state ──────────────────────────────────────
 
@@ -142,10 +131,6 @@ class SourcesService extends EventEmitter<SourcesServiceEvents> {
     if (!source) throw new Error('Source not found');
     const config = await authenticateSource(source.type, credentials);
     await this.update(sourceId, { config });
-    await saveCredentials(sourceId, {
-      username: credentials.username,
-      password: credentials.password,
-    });
     this.clearAuthExpired(sourceId);
   };
 
@@ -155,7 +140,6 @@ class SourcesService extends EventEmitter<SourcesServiceEvents> {
     const db = await this.#db();
 
     await db.sql`DELETE FROM sources WHERE id = ${id}`;
-    await deleteCredentials(id);
 
     await db.save();
     this.emit('sourceRemoved', existing);

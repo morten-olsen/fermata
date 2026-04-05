@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { View } from "react-native";
 
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,18 +7,24 @@ import { useLibraryStats } from "@/src/hooks/library/library";
 import { colors } from "@/src/shared/theme/theme";
 
 export default function TabLayout() {
-  const stats = useLibraryStats();
+  const { stats, loading } = useLibraryStats();
 
   const hasMusic = stats.tracks > 0;
   const hasPodcasts = stats.shows > 0;
   const hasAudiobooks = stats.audiobooks > 0;
 
-  const initialTab = useMemo(() => {
-    if (hasMusic) return "library";
-    if (hasPodcasts) return "podcasts";
-    if (hasAudiobooks) return "audiobooks";
-    return "settings";
-  }, [hasMusic, hasPodcasts, hasAudiobooks]);
+  // Wait for stats before rendering tabs so initialRouteName is correct
+  if (loading) {
+    return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
+  }
+
+  const initialTab = hasMusic
+    ? "library"
+    : hasPodcasts
+      ? "podcasts"
+      : hasAudiobooks
+        ? "audiobooks"
+        : "settings";
 
   return (
     <Tabs

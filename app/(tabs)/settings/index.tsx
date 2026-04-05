@@ -46,7 +46,7 @@ export default function SettingsScreen() {
   const { mutate: removeSource } = useRemoveSource();
   const { mutate: syncAll } = useSyncAll();
   const { isSyncing, progress } = useSyncProgress();
-  const stats = useLibraryStats();
+  const { stats } = useLibraryStats();
   const { data: dlStats } = useDownloadStats();
   const { mutate: retryFailed } = useRetryFailedDownloads();
   const { mutate: removeAllDownloads } = useRemoveAllDownloads();

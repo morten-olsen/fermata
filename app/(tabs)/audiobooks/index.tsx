@@ -10,9 +10,7 @@ import type { EnrichedAudiobook } from "@/src/hooks/audiobooks/audiobooks";
 import { BookGrid } from "@/src/components/media/book-grid";
 import { MediaCard } from "@/src/components/data-display/data-display";
 import { EmptyState } from "@/src/components/feedback/feedback";
-import { HorizontalList } from "@/src/components/layout/layout";
-
-import { colors } from "@/src/shared/theme/theme";
+import { SectionHeader, HorizontalList } from "@/src/components/layout/layout";
 
 export default function AudiobooksScreen() {
   const { audiobooks, loading } = useAudiobooks();
@@ -45,20 +43,7 @@ export default function AudiobooksScreen() {
     [handleBookPress],
   );
 
-  const renderFavouriteCard = useCallback(
-    (item: EnrichedAudiobook) => (
-      <MediaCard.Book
-        id={item.id}
-        title={item.title}
-        artistName={item.authorName}
-        artworkUri={item.artworkUri}
-        progress={item.progress ?? undefined}
-        isDownloaded={item.isDownloaded}
-        onPress={() => handleBookPress(item.id)}
-      />
-    ),
-    [handleBookPress],
-  );
+  const hasFavourites = favourites.length > 0;
 
   const listHeader = (
     <View>
@@ -68,27 +53,29 @@ export default function AudiobooksScreen() {
         </Text>
       </View>
 
-      {favourites.length > 0 && (
+      {hasFavourites && (
         <View className="mb-4">
-          <Text className="text-lg font-semibold text-fermata-text px-4 mb-2">
-            Favourites
-          </Text>
+          <SectionHeader title="Favourites" />
           <HorizontalList
             data={favourites}
             keyExtractor={(item) => item.id}
-            renderItem={renderFavouriteCard}
+            renderItem={renderBookCard}
             itemWidth={gridCardWidth}
           />
         </View>
       )}
 
-      <View className="h-px bg-fermata-border mx-4 mt-2 mb-8" />
+      {hasFavourites && (
+        <View className="mb-2">
+          <SectionHeader title="All Books" />
+        </View>
+      )}
     </View>
   );
 
   if (!loading && audiobooks.length === 0) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
+      <SafeAreaView className="flex-1 bg-fermata-bg" edges={["top"]}>
         {listHeader}
         <EmptyState
           icon="book-outline"
@@ -100,7 +87,7 @@ export default function AudiobooksScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-fermata-bg" edges={["top"]}>
       <BookGrid
         style={{ flex: 1 }}
         books={audiobooks}

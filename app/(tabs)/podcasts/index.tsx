@@ -13,9 +13,7 @@ import { MediaCard } from "@/src/components/data-display/data-display";
 import { EpisodeCard } from "@/src/components/media/episode-card";
 import { AlbumGrid } from "@/src/components/media/album-grid";
 import { EmptyState } from "@/src/components/feedback/feedback";
-import { HorizontalList } from "@/src/components/layout/layout";
-
-import { colors } from "@/src/shared/theme/theme";
+import { SectionHeader, HorizontalList } from "@/src/components/layout/layout";
 
 export default function PodcastsScreen() {
   const { shows, loading } = useShows();
@@ -56,20 +54,6 @@ export default function PodcastsScreen() {
     [handleShowPress],
   );
 
-  const renderFavouriteCard = useCallback(
-    (item: ShowRow) => (
-      <MediaCard.Show
-        id={item.id}
-        title={item.title}
-        artistName={item.authorName ?? "Unknown"}
-        episodeCount={item.episodeCount ?? undefined}
-        artworkUri={item.artworkUri}
-        onPress={() => handleShowPress(item.id)}
-      />
-    ),
-    [handleShowPress],
-  );
-
   const renderLatestCard = useCallback(
     (item: EnrichedLatestEpisode) => (
       <EpisodeCard
@@ -82,6 +66,8 @@ export default function PodcastsScreen() {
     [handleEpisodePress],
   );
 
+  const hasHorizontalSections = latestEpisodes.length > 0 || favourites.length > 0;
+
   const listHeader = (
     <View>
       <View className="px-4">
@@ -92,9 +78,7 @@ export default function PodcastsScreen() {
 
       {latestEpisodes.length > 0 && (
         <View className="mb-4">
-          <Text className="text-lg font-semibold text-fermata-text px-4 mb-2">
-            Latest
-          </Text>
+          <SectionHeader title="Latest" />
           <HorizontalList
             data={latestEpisodes}
             keyExtractor={(item) => item.id}
@@ -106,25 +90,27 @@ export default function PodcastsScreen() {
 
       {favourites.length > 0 && (
         <View className="mb-4">
-          <Text className="text-lg font-semibold text-fermata-text px-4 mb-2">
-            Favourites
-          </Text>
+          <SectionHeader title="Favourites" />
           <HorizontalList
             data={favourites}
             keyExtractor={(item) => item.id}
-            renderItem={renderFavouriteCard}
+            renderItem={renderShowCard}
             itemWidth={gridCardWidth}
           />
         </View>
       )}
 
-      <View className="h-px bg-fermata-border mx-4 mt-2 mb-8" />
+      {hasHorizontalSections && (
+        <View className="mb-2">
+          <SectionHeader title="All Shows" />
+        </View>
+      )}
     </View>
   );
 
   if (!loading && shows.length === 0) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
+      <SafeAreaView className="flex-1 bg-fermata-bg" edges={["top"]}>
         {listHeader}
         <EmptyState
           icon="mic-outline"
@@ -136,7 +122,7 @@ export default function PodcastsScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-fermata-bg" edges={["top"]}>
       <AlbumGrid
         style={{ flex: 1 }}
         albums={shows}

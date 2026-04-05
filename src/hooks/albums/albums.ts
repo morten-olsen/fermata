@@ -110,6 +110,40 @@ const useAlbumTracks = (albumId: string) => {
   return { tracks, loading };
 };
 
+const useFavouriteAlbums = () => {
+  const albumsService = useService(AlbumsService);
+  const syncService = useService(SyncService);
+  const query = useCallback(() => albumsService.findFavourites(), [albumsService]);
+
+  const { data: albums = [], loading } = useServiceQuery({
+    emitter: albumsService,
+    query,
+    events: [...albumEvents],
+    invalidateOn: [
+      { emitter: syncService, events: ['syncCompleted'] },
+    ],
+  });
+
+  return { albums, loading };
+};
+
+const useRecentlyAddedAlbums = (limit = 20) => {
+  const albumsService = useService(AlbumsService);
+  const syncService = useService(SyncService);
+  const query = useCallback(() => albumsService.findRecentlyAdded(limit), [albumsService, limit]);
+
+  const { data: albums = [], loading } = useServiceQuery({
+    emitter: albumsService,
+    query,
+    events: [...albumEvents],
+    invalidateOn: [
+      { emitter: syncService, events: ['syncCompleted'] },
+    ],
+  });
+
+  return { albums, loading };
+};
+
 // ── Single item hooks ────────────────────────────────────
 
 const useAlbum = (id: string) => {
@@ -158,4 +192,4 @@ const useSearchAlbums = () => {
 };
 
 export type { EnrichedTrack };
-export { useAlbums, useAlbum, useAlbumTracks, useAlbumsByArtist, useToggleAlbumFavourite, useSearchAlbums };
+export { useAlbums, useAlbum, useAlbumTracks, useAlbumsByArtist, useFavouriteAlbums, useRecentlyAddedAlbums, useToggleAlbumFavourite, useSearchAlbums };

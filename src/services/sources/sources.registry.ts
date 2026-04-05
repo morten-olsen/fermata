@@ -2,26 +2,25 @@ import type { SourceRow } from "../database/database.schemas";
 
 import type { SourceAdapter } from "./sources.adapter";
 import { createJellyfinAdapter } from "./jellyfin/jellyfin.adapter";
-import type { AdapterOptions } from "./jellyfin/jellyfin.adapter";
 import { authenticate as jellyfinAuth } from "./jellyfin/jellyfin.api";
 import { createAudiobookshelfAdapter } from "./audiobookshelf/audiobookshelf.adapter";
 import { authenticate as absAuth } from "./audiobookshelf/audiobookshelf.api";
 
 // ── Adapter factory ───────────────────────────────────
 
-type AdapterFactory = (source: SourceRow, options?: AdapterOptions) => SourceAdapter;
+type AdapterFactory = (source: SourceRow) => SourceAdapter;
 
 const adapterRegistry = new Map<string, AdapterFactory>([
   ['jellyfin', createJellyfinAdapter],
   ['audiobookshelf', createAudiobookshelfAdapter],
 ]);
 
-const createAdapter = (source: SourceRow, options?: AdapterOptions): SourceAdapter => {
+const createAdapter = (source: SourceRow): SourceAdapter => {
   const factory = adapterRegistry.get(source.type);
   if (!factory) {
     throw new Error(`Unknown source adapter type: "${source.type}"`);
   }
-  return factory(source, options);
+  return factory(source);
 };
 
 // ── Authentication ────────────────────────────────────

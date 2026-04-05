@@ -20,13 +20,13 @@ const useLibraryStats = () => {
   const syncService = useService(SyncService);
   const query = useCallback(() => syncService.getStats(), [syncService]);
 
-  const { data: stats = emptyStats } = useServiceQuery({
+  const { data: stats = emptyStats, loading } = useServiceQuery({
     emitter: syncService,
     query,
     events: [...syncEvents],
   });
 
-  return stats;
+  return { stats, loading };
 };
 
 export { useLibraryStats };

@@ -1,12 +1,7 @@
-import { AuthExpiredError } from "@/src/shared/lib/errors";
-
 import type { SourceRow } from "../../database/database.schemas";
 import type { SourceAdapter, Artist, Album, Track, ImageSize } from "../sources.adapter";
-import type { SourceConfig } from "../sources.registry";
-import { loadCredentials } from "../sources.credentials";
 
 import {
-  authenticate,
   fetchArtists,
   fetchAlbums,
   fetchTracks,
@@ -53,55 +48,24 @@ const mapTrack = (item: JellyfinItem): Track => ({
 
 // ── Adapter ───────────────────────────────────────────
 
-type AdapterOptions = {
-  onConfigRefreshed?: (sourceId: string, config: SourceConfig) => void;
-};
-
-const createJellyfinAdapter = (
-  source: SourceRow,
-  options?: AdapterOptions,
-): SourceAdapter => {
-  const { baseUrl, userId } = source.config;
-  let { accessToken } = source.config;
-
-  const refreshAuth = async (): Promise<void> => {
-    const creds = await loadCredentials(source.id);
-    if (!creds) throw new AuthExpiredError('Jellyfin');
-    const result = await authenticate(baseUrl, creds.username, creds.password);
-    accessToken = result.accessToken;
-    options?.onConfigRefreshed?.(source.id, { baseUrl, userId, accessToken });
-  };
-
-  const withRetry = async <T>(fn: (token: string) => Promise<T>): Promise<T> => {
-    try {
-      return await fn(accessToken);
-    } catch (e) {
-      if (e instanceof AuthExpiredError) {
-        await refreshAuth();
-        return fn(accessToken);
-      }
-      throw e;
-    }
-  };
+const createJellyfinAdapter = (source: SourceRow): SourceAdapter => {
+  const { baseUrl, userId, accessToken } = source.config;
 
   return {
-    getArtists: () =>
-      withRetry(async (token) => {
-        const items = await fetchArtists(baseUrl, token, userId);
-        return items.map(mapArtist);
-      }),
+    getArtists: async () => {
+      const items = await fetchArtists(baseUrl, accessToken, userId);
+      return items.map(mapArtist);
+    },
 
-    getAlbums: () =>
-      withRetry(async (token) => {
-        const items = await fetchAlbums(baseUrl, token, userId);
-        return items.map(mapAlbum);
-      }),
+    getAlbums: async () => {
+      const items = await fetchAlbums(baseUrl, accessToken, userId);
+      return items.map(mapAlbum);
+    },
 
-    getTracks: () =>
-      withRetry(async (token) => {
-        const items = await fetchTracks(baseUrl, token, userId);
-        return items.map(mapTrack);
-      }),
+    getTracks: async () => {
+      const items = await fetchTracks(baseUrl, accessToken, userId);
+      return items.map(mapTrack);
+    },
 
     // Jellyfin doesn't serve podcasts or audiobooks
     getShows: () => Promise.resolve([]),
@@ -117,4 +81,3 @@ const createJellyfinAdapter = (
 };
 
 export { createJellyfinAdapter };
-export type { AdapterOptions };

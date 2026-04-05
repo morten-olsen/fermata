@@ -52,6 +52,16 @@ class AlbumsService extends EventEmitter<AlbumsServiceEvents> {
     return newValue;
   };
 
+  public findFavourites = async (): Promise<AlbumRow[]> => {
+    const db = await this.#db();
+    return db.sql<AlbumRow>`SELECT * FROM albums WHERE isFavourite = 1 ORDER BY title ASC`;
+  };
+
+  public findRecentlyAdded = async (limit = 20): Promise<AlbumRow[]> => {
+    const db = await this.#db();
+    return db.sql<AlbumRow>`SELECT * FROM albums ORDER BY syncedAt DESC LIMIT ${limit}`;
+  };
+
   public search = async (query: string, limit = 20): Promise<AlbumRow[]> => {
     const db = await this.#db();
     const pattern = `%${query}%`;
