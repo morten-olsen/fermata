@@ -3,14 +3,20 @@ import { View, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 import { ChapterRow } from "@/src/components/media/chapter-row";
 import { usePlayTracks, useSeekTo } from "@/src/hooks/playback/playback";
-import { useAudiobook } from "@/src/hooks/audiobooks/audiobooks";
+import { useProgress } from "@/src/hooks/progress/progress";
+import { useAudiobook, useToggleAudiobookFavourite } from "@/src/hooks/audiobooks/audiobooks";
+import { useIsPinned, usePinForOffline, useUnpinOffline } from "@/src/hooks/downloads/downloads";
+import { ProgressService } from "@/src/services/progress/progress";
 
 import { NavBar } from "@/src/shared/components/nav-bar";
 import { DetailHeader } from "@/src/shared/components/detail-header";
 import { ActionButton } from "@/src/shared/components/action-button";
+import { PressableScale } from "@/src/shared/components/pressable-scale";
 import { colors } from "@/src/shared/theme/theme";
 import { formatDurationLong } from "@/src/shared/lib/format";
 
@@ -21,8 +27,25 @@ export default function BookDetailScreen() {
   const { audiobook } = useAudiobook(id);
   const { mutate: playTracks } = usePlayTracks();
   const { mutate: seekTo } = useSeekTo();
+  const { mutate: toggleFavourite } = useToggleAudiobookFavourite();
+  const { data: isPinned } = useIsPinned('audiobook', id);
+  const { mutate: pin } = usePinForOffline();
+  const { mutate: unpin } = useUnpinOffline();
 
   const chapters = useMemo(() => audiobook?.chapters ?? [], [audiobook]);
+  const { data: bookProgress } = useProgress(id);
+
+  const chapterProgress = useMemo(
+    () =>
+      ProgressService.computeBookChapterProgress(
+        chapters,
+        bookProgress?.positionMs ?? 0,
+        bookProgress?.isCompleted ?? false,
+      ),
+    [chapters, bookProgress?.positionMs, bookProgress?.isCompleted],
+  );
+
+  const isFav = !!audiobook?.isFavourite;
 
   const handlePlay = useCallback(() => {
     if (!audiobook) return;
@@ -38,6 +61,24 @@ export default function BookDetailScreen() {
     },
     [audiobook, chapters, playTracks, seekTo],
   );
+
+  const handleToggleFavourite = useCallback(() => {
+    if (!audiobook) return;
+    void Haptics.impactAsync(
+      !isFav ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light,
+    );
+    void toggleFavourite(id);
+  }, [audiobook, isFav, toggleFavourite, id]);
+
+  const handleTogglePin = useCallback(() => {
+    if (!audiobook) return;
+    if (isPinned) {
+      void unpin({ entityType: 'audiobook', entityId: id });
+    } else {
+      void pin({ entityType: 'audiobook', entityId: id, sourceId: audiobook.sourceId });
+    }
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [audiobook, isPinned, pin, unpin, id]);
 
   const totalDurationSec = useMemo(
     () => chapters.reduce((sum, c) => sum + (c.endMs - c.startMs), 0) / 1000,
@@ -68,24 +109,53 @@ export default function BookDetailScreen() {
               subtitle={audiobook.authorName}
               meta={meta}
               actions={
-                <ActionButton
-                  label="Play"
-                  icon="play"
-                  variant="primary"
-                  onPress={handlePlay}
-                />
+                <>
+                  <ActionButton
+                    label="Play"
+                    icon="play"
+                    variant="primary"
+                    onPress={handlePlay}
+                  />
+                  <PressableScale
+                    onPress={handleToggleFavourite}
+                    className="items-center justify-center rounded-xl bg-fermata-elevated"
+                    style={{ width: 48 }}
+                  >
+                    <Ionicons
+                      name={isFav ? "heart" : "heart-outline"}
+                      size={20}
+                      color={isFav ? colors.accent : colors.text}
+                    />
+                  </PressableScale>
+                  <PressableScale
+                    onPress={handleTogglePin}
+                    className="items-center justify-center rounded-xl bg-fermata-elevated"
+                    style={{ width: 48 }}
+                  >
+                    <Ionicons
+                      name={isPinned ? "cloud-done" : "cloud-download-outline"}
+                      size={20}
+                      color={isPinned ? colors.accent : colors.text}
+                    />
+                  </PressableScale>
+                </>
               }
             />
           </View>
         }
-        renderItem={({ item, index }) => (
-          <BookChapterItem
-            item={item}
-            index={index}
-            isPlaying={false}
-            onPress={handleChapterPress}
-          />
-        )}
+        renderItem={({ item, index }) => {
+          const cp = chapterProgress.get(index);
+          return (
+            <BookChapterItem
+              item={item}
+              index={index}
+              isPlaying={false}
+              progress={cp?.fraction}
+              isCompleted={cp?.isCompleted}
+              onPress={handleChapterPress}
+            />
+          );
+        }}
       />
     </SafeAreaView>
   );
@@ -95,11 +165,15 @@ const BookChapterItem = memo(function BookChapterItem({
   item,
   index,
   isPlaying,
+  progress,
+  isCompleted,
   onPress,
 }: {
   item: Chapter;
   index: number;
   isPlaying: boolean;
+  progress?: number;
+  isCompleted?: boolean;
   onPress: (index: number) => void;
 }) {
   const handlePress = useCallback(() => onPress(index), [onPress, index]);
@@ -108,11 +182,13 @@ const BookChapterItem = memo(function BookChapterItem({
   return (
     <View className="px-4">
       <ChapterRow
-        title={item.title}
+        title={item.title || `Chapter ${index + 1}`}
         duration={duration}
         chapterNumber={index + 1}
         isPlaying={isPlaying}
         isDownloaded={false}
+        progress={progress}
+        isCompleted={isCompleted}
         onPress={handlePress}
       />
     </View>

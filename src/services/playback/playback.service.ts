@@ -5,6 +5,7 @@ import { log, warn } from "@/src/shared/lib/log";
 import { DatabaseService } from "../database/database.service";
 import { DownloadService } from "../downloads/downloads";
 import { FileSystemService } from "../filesystem/filesystem";
+import { ProgressService } from "../progress/progress";
 import { SourcesService } from "../sources/sources";
 import type { Services } from "../services/services";
 import type { TrackRow, EpisodeRow, AudiobookRow } from "../database/database.schemas";
@@ -298,6 +299,13 @@ class PlaybackService extends EventEmitter<PlaybackServiceEvents> {
       await this.#player.reconcile(payload);
       this.#status = 'playing';
       this.#startProgressInterval();
+
+      // Start remote push interval for podcast/audiobook
+      if (current?.tracksProgress) {
+        const progressService = this.#services.get(ProgressService);
+        progressService.startPushInterval(current.sourceId);
+      }
+
       this.emit('stateChanged');
     } catch (e) {
       warn("reconcile failed:", e);
@@ -376,6 +384,10 @@ class PlaybackService extends EventEmitter<PlaybackServiceEvents> {
       // Record progress on pause transition
       if (this.#wasPlaying && !isPlaying && this.#positionMs > 0) {
         this.#saveCurrentTrackProgress();
+        const current = this.getCurrentTrack();
+        if (current?.tracksProgress) {
+          void this.#services.get(ProgressService).pushNow();
+        }
       }
 
       // Manage progress interval
@@ -407,6 +419,7 @@ class PlaybackService extends EventEmitter<PlaybackServiceEvents> {
         // Queue finished
         this.#status = 'idle';
         this.#stopProgressInterval();
+        this.#services.get(ProgressService).stopPushInterval();
         this.emit('stateChanged');
       }
     }));
@@ -465,6 +478,9 @@ class PlaybackService extends EventEmitter<PlaybackServiceEvents> {
     `;
     await db.save();
     log("Progress saved:", itemId, `${Math.round(positionMs / 1000)}s`, isCompleted ? "(completed)" : "");
+
+    const progressService = this.#services.get(ProgressService);
+    progressService.notifyChanged(itemId);
   };
 
   #getResumePosition = async (itemId: string): Promise<number> => {

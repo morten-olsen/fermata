@@ -1,11 +1,13 @@
 import type { SourceRow } from "../../database/database.schemas";
-import type { SourceAdapter, Artist, Show, Episode, Audiobook, ImageSize } from "../sources.adapter";
+import type { SourceAdapter, RemoteProgressEntry, Artist, Show, Episode, Audiobook, ImageSize } from "../sources.adapter";
 
 import {
   fetchLibraries,
   fetchAllLibraryItems,
   startPlaySession,
   getArtworkUrl as apiGetArtworkUrl,
+  reportProgress as apiReportProgress,
+  fetchUserProgress,
 } from "./audiobookshelf.api";
 import type { AbsLibraryItem, AbsPodcastMedia, AbsBookMedia } from "./audiobookshelf.types";
 import { isBookMedia, isPodcastMedia } from "./audiobookshelf.types";
@@ -160,6 +162,27 @@ const createAudiobookshelfAdapter = (source: SourceRow): SourceAdapter => {
 
     getArtworkUrl: (itemId: string, size?: ImageSize) =>
       apiGetArtworkUrl(baseUrl, itemId, size),
+
+    reportProgress: async (sourceItemId: string, positionMs: number, durationMs: number, isCompleted: boolean): Promise<void> => {
+      const { libraryItemId, subId } = splitSourceItemId(sourceItemId);
+      await apiReportProgress(baseUrl, accessToken, libraryItemId, subId || undefined, positionMs, durationMs, isCompleted);
+    },
+
+    getProgress: async (): Promise<RemoteProgressEntry[]> => {
+      const entries = await fetchUserProgress(baseUrl, accessToken);
+      return entries.map((entry) => {
+        const sourceItemId = entry.episodeId
+          ? makeSourceItemId(entry.libraryItemId, entry.episodeId)
+          : entry.libraryItemId;
+        return {
+          sourceItemId,
+          positionMs: Math.round(entry.currentTime * 1000),
+          durationMs: Math.round(entry.duration * 1000),
+          isCompleted: entry.isFinished,
+          updatedAt: new Date(entry.lastUpdate).toISOString(),
+        };
+      });
+    },
   };
 };
 

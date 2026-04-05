@@ -4,8 +4,9 @@ import { init } from "./migrations.001-init";
 import { downloads } from "./migrations.002-downloads";
 import { outputs } from "./migrations.003-outputs";
 import { artworkUri } from "./migrations.004-artwork-uri";
+import { favourites } from "./migrations.005-favourites";
 
-const migrations = [init, downloads, outputs, artworkUri];
+const migrations = [init, downloads, outputs, artworkUri, favourites];
 
 const applyMigrations = async (db: DatabaseInstance) => {
   await db.sql`

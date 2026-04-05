@@ -45,6 +45,17 @@ class AudiobooksService extends EventEmitter<AudiobooksServiceEvents> {
     const row = await db.sql<AudiobookRow>`SELECT * FROM audiobooks WHERE id = ${id}`.first();
     return row ? AudiobooksService.#parseChapters(row) : null;
   };
+
+  public toggleFavourite = async (id: string): Promise<boolean> => {
+    const db = await this.#db();
+    const book = await this.findById(id);
+    if (!book) return false;
+    const newValue = !book.isFavourite;
+    await db.sql`UPDATE audiobooks SET isFavourite = ${newValue ? 1 : 0} WHERE id = ${id}`;
+    await db.save();
+    this.emit('changed');
+    return newValue;
+  };
 }
 
 export { AudiobooksService };

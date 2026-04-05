@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { ShowsService } from "@/src/services/shows/shows";
 
 import { useService } from "../service/service";
+import { useServiceMutation } from "../service/service.mutation";
 import { useServiceQuery } from "../service/service.query";
 
 const showEvents = ['changed'] as const;
@@ -46,4 +47,9 @@ const useShowEpisodes = (showId: string) => {
   return { episodes, loading };
 };
 
-export { useShows, useShow, useShowEpisodes };
+const useToggleShowFavourite = () => {
+  const showsService = useService(ShowsService);
+  return useServiceMutation(showsService.toggleFavourite);
+};
+
+export { useShows, useShow, useShowEpisodes, useToggleShowFavourite };

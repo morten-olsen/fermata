@@ -5,6 +5,7 @@ import { stableId } from "@/src/shared/lib/ids";
 import type { SourceRow } from "../database/database.schemas";
 import { DatabaseService } from "../database/database.service";
 import type { Services } from "../services/services";
+import { ProgressService } from "../progress/progress";
 import { SourcesService } from "../sources/sources";
 import { FileSystemService } from "../filesystem/filesystem";
 
@@ -234,6 +235,11 @@ class SyncService extends EventEmitter<SyncServiceEvents> {
       )
       WHERE tracks.artworkUri IS NULL AND tracks.albumId IS NOT NULL AND tracks.sourceId = ${sid}
     `;
+
+    // ── Progress ──────────────────────────────────
+    const progressService = this.#services.get(ProgressService);
+    await progressService.pushToSource(adapter, sid);
+    await progressService.pullFromSource(adapter, sid);
 
     // ── Update source last sync time ────────────────
     await sourcesService.update(source.id, { lastSyncedAt: now });

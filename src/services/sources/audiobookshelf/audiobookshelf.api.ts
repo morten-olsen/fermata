@@ -7,6 +7,7 @@ import type {
   AbsLibrary,
   AbsLibraryItem,
   AbsLibraryItemsResponse,
+  AbsMediaProgress,
 } from "./audiobookshelf.types";
 
 const PAGE_LIMIT = 100;
@@ -192,6 +193,52 @@ const getArtworkUrl = (
   return url.toString();
 };
 
+// ── Progress ─────────────────────────────────────────
+
+const reportProgress = async (
+  baseUrl: string,
+  token: string,
+  libraryItemId: string,
+  episodeId: string | undefined,
+  positionMs: number,
+  durationMs: number,
+  isFinished: boolean,
+): Promise<void> => {
+  const path = episodeId
+    ? `/api/me/progress/${libraryItemId}/${episodeId}`
+    : `/api/me/progress/${libraryItemId}`;
+  const url = new URL(path, baseUrl);
+
+  const currentTime = positionMs / 1000;
+  const duration = durationMs / 1000;
+  const progress = duration > 0 ? currentTime / duration : 0;
+
+  const response = await fetchWithTimeout(url.toString(), {
+    method: "PATCH",
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ currentTime, duration, progress, isFinished }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`ABS reportProgress failed: ${response.status} ${response.statusText}`);
+  }
+};
+
+const fetchUserProgress = async (
+  baseUrl: string,
+  token: string,
+): Promise<AbsMediaProgress[]> => {
+  const data = await apiFetch<{ mediaProgress?: AbsMediaProgress[] }>(
+    baseUrl,
+    "/api/me",
+    token,
+  );
+  return data.mediaProgress ?? [];
+};
+
 export type { AbsAuthResult };
 export {
   authenticate,
@@ -199,4 +246,6 @@ export {
   fetchAllLibraryItems,
   startPlaySession,
   getArtworkUrl,
+  reportProgress,
+  fetchUserProgress,
 };

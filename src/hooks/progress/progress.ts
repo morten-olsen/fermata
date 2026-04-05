@@ -1,44 +1,41 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 import { ProgressService } from "@/src/services/progress/progress";
-import { PlaybackService } from "@/src/services/playback/playback.service";
 
 import { useService } from "../service/service";
 import { useServiceQuery } from "../service/service.query";
 
 const useProgress = (itemId: string) => {
   const service = useService(ProgressService);
-  const playbackService = useService(PlaybackService);
   const query = useCallback(() => service.getProgress(itemId), [service, itemId]);
+  const events = useMemo(() => [`changed:${itemId}` as const], [itemId]);
 
   return useServiceQuery({
-    emitter: playbackService,
+    emitter: service,
     query,
-    events: ['stateChanged'],
+    events,
   });
 };
 
 const useProgressBatch = (itemIds: string[]) => {
   const service = useService(ProgressService);
-  const playbackService = useService(PlaybackService);
   const query = useCallback(() => service.getProgressBatch(itemIds), [service, itemIds]);
 
   return useServiceQuery({
-    emitter: playbackService,
+    emitter: service,
     query,
-    events: ['stateChanged'],
+    events: ['changed'],
   });
 };
 
 const useShowProgressSummaries = (showIds: string[]) => {
   const service = useService(ProgressService);
-  const playbackService = useService(PlaybackService);
   const query = useCallback(() => service.getShowProgressSummaries(showIds), [service, showIds]);
 
   return useServiceQuery({
-    emitter: playbackService,
+    emitter: service,
     query,
-    events: ['stateChanged'],
+    events: ['changed'],
   });
 };
 

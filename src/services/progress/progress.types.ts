@@ -5,6 +5,7 @@ type ProgressEntry = {
   durationMs: number;
   isCompleted: boolean;
   updatedAt: string;
+  needsSync: boolean;
 };
 
 type AlbumProgressState = 'none' | 'in_progress' | 'finished';
@@ -18,6 +19,7 @@ type AlbumProgressSummary = {
 
 type ProgressServiceEvents = {
   changed: () => void;
+  [key: `changed:${string}`]: () => void;
 };
 
 export type {

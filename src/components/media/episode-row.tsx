@@ -22,6 +22,7 @@ interface EpisodeRowProps {
   /** Whether the episode has been fully played. */
   isCompleted?: boolean;
   onPress: () => void;
+  onMorePress?: () => void;
 }
 
 export const EpisodeRow = memo(function EpisodeRow({
@@ -34,6 +35,7 @@ export const EpisodeRow = memo(function EpisodeRow({
   progress,
   isCompleted,
   onPress,
+  onMorePress,
 }: EpisodeRowProps) {
   const hasPartialProgress = progress != null && progress > 0 && !isCompleted;
 
@@ -81,6 +83,12 @@ export const EpisodeRow = memo(function EpisodeRow({
       <Text className="text-fermata-muted text-sm ml-2">
         {formatRemainingDuration(duration, progress, isCompleted)}
       </Text>
+
+      {onMorePress && (
+        <Pressable onPress={onMorePress} hitSlop={8} style={{ padding: 6 }}>
+          <Ionicons name="ellipsis-vertical" size={16} color={colors.muted} />
+        </Pressable>
+      )}
     </Pressable>
   );
 });

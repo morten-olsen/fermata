@@ -14,6 +14,7 @@ import { useService } from "@/src/hooks/service/service";
 import { DownloadService } from "@/src/services/downloads/downloads";
 import { NowPlayingService } from "@/src/services/now-playing/now-playing.service";
 import { OutputsService } from "@/src/services/outputs/outputs.service";
+import { ProgressService } from "@/src/services/progress/progress";
 import { PlayerOverlay } from "@/src/components/playback/player-overlay";
 import { registerOpfsServiceWorker } from "@/src/services/filesystem/filesystem.register-sw";
 
@@ -54,9 +55,11 @@ function ServiceInitializer() {
   const downloadService = useService(DownloadService);
   const nowPlayingService = useService(NowPlayingService);
   const outputsService = useService(OutputsService);
+  const progressService = useService(ProgressService);
 
   useEffect(() => {
     nowPlayingService.initialize();
+    progressService.initialize();
     void Promise.all([
       registerOpfsServiceWorker(),
       downloadService.initialize(),
@@ -65,7 +68,7 @@ function ServiceInitializer() {
       downloadService.processQueue();
       void SplashScreen.hideAsync();
     });
-  }, [downloadService, nowPlayingService, outputsService]);
+  }, [downloadService, nowPlayingService, outputsService, progressService]);
 
   return null;
 }

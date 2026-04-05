@@ -41,6 +41,17 @@ class ShowsService extends EventEmitter<ShowsServiceEvents> {
     const db = await this.#db();
     return db.sql<EpisodeRow>`SELECT * FROM episodes WHERE showId = ${showId} ORDER BY publishedAt DESC, episodeNumber DESC`;
   };
+
+  public toggleFavourite = async (id: string): Promise<boolean> => {
+    const db = await this.#db();
+    const show = await this.findById(id);
+    if (!show) return false;
+    const newValue = !show.isFavourite;
+    await db.sql`UPDATE shows SET isFavourite = ${newValue ? 1 : 0} WHERE id = ${id}`;
+    await db.save();
+    this.emit('changed');
+    return newValue;
+  };
 }
 
 export { ShowsService };

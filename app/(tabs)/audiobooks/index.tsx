@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { View, Text } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,11 +11,17 @@ import { useLibraryStats } from "@/src/hooks/library/library";
 import type { AudiobookRow } from "@/src/services/database/database.schemas";
 
 import { EmptyState } from "@/src/shared/components/empty-state";
+import { HorizontalList } from "@/src/shared/components/horizontal-list";
 import { colors } from "@/src/shared/theme/theme";
 
 export default function AudiobooksScreen() {
   const { audiobooks } = useAudiobooks();
   const stats = useLibraryStats();
+
+  const favourites = useMemo(
+    () => audiobooks.filter((b) => !!b.isFavourite),
+    [audiobooks],
+  );
 
   const handleBookPress = useCallback(
     (id: string) =>
@@ -36,11 +42,40 @@ export default function AudiobooksScreen() {
     [handleBookPress],
   );
 
+  const renderFavouriteCard = useCallback(
+    (item: AudiobookRow) => (
+      <BookCard
+        id={item.id}
+        title={item.title}
+        artistName={item.authorName}
+        artworkUri={item.artworkUri}
+        onPress={() => handleBookPress(item.id)}
+      />
+    ),
+    [handleBookPress],
+  );
+
   const listHeader = (
-    <View className="px-4">
-      <Text className="text-3xl font-bold text-fermata-text mt-4 mb-4">
-        Audiobooks
-      </Text>
+    <View>
+      <View className="px-4">
+        <Text className="text-3xl font-bold text-fermata-text mt-4 mb-4">
+          Audiobooks
+        </Text>
+      </View>
+
+      {favourites.length > 0 && (
+        <View className="mb-4">
+          <Text className="text-lg font-semibold text-fermata-text px-4 mb-2">
+            Favourites
+          </Text>
+          <HorizontalList
+            data={favourites}
+            keyExtractor={(item) => item.id}
+            renderItem={renderFavouriteCard}
+            itemWidth={110}
+          />
+        </View>
+      )}
     </View>
   );
 

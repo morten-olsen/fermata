@@ -39,10 +39,21 @@ type SourceAdapter = {
   getStreamHeaders?(): Record<string, string>;
   getArtworkUrl(itemId: string, size?: ImageSize): string;
   toggleFavourite?(sourceItemId: string, isFavourite: boolean): Promise<void>;
+  reportProgress?(sourceItemId: string, positionMs: number, durationMs: number, isCompleted: boolean): Promise<void>;
+  getProgress?(): Promise<Array<RemoteProgressEntry>>;
+};
+
+type RemoteProgressEntry = {
+  sourceItemId: string;
+  positionMs: number;
+  durationMs: number;
+  isCompleted: boolean;
+  updatedAt: string;
 };
 
 export type {
   SourceAdapter,
+  RemoteProgressEntry,
   Artist,
   Album,
   Track,

@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { AudiobooksService } from "@/src/services/audiobooks/audiobooks";
 
 import { useService } from "../service/service";
+import { useServiceMutation } from "../service/service.mutation";
 import { useServiceQuery } from "../service/service.query";
 
 const audiobookEvents = ['changed'] as const;
@@ -33,4 +34,9 @@ const useAudiobook = (id: string) => {
   return { audiobook, loading };
 };
 
-export { useAudiobooks, useAudiobook };
+const useToggleAudiobookFavourite = () => {
+  const audiobooksService = useService(AudiobooksService);
+  return useServiceMutation(audiobooksService.toggleFavourite);
+};
+
+export { useAudiobooks, useAudiobook, useToggleAudiobookFavourite };

@@ -117,6 +117,7 @@ const audiobookRowSchema = z.object({
   duration: z.number(),
   artworkSourceItemId: z.string().nullish(),
   artworkUri: z.string().nullish(),
+  isFavourite: z.boolean().nullish(),
   chapters: z.array(z.object({
     title: z.string(),
     startMs: z.number(),
@@ -138,6 +139,7 @@ const showRowSchema = z.object({
   description: z.string().nullish(),
   artworkSourceItemId: z.string().nullish(),
   artworkUri: z.string().nullish(),
+  isFavourite: z.boolean().nullish(),
   episodeCount: z.number().nullish(),
   syncedAt: z.string(),
 });

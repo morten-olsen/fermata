@@ -1,9 +1,10 @@
 import { EventEmitter } from "@/src/utils/utils.event-emitter";
 
-import { warn } from "@/src/shared/lib/log";
+import { log, warn } from "@/src/shared/lib/log";
 
 import { DatabaseService } from "../database/database.service";
 import type { Services } from "../services/services";
+import { SourcesService } from "../sources/sources";
 
 import type {
   AlbumProgressState,
@@ -12,8 +13,13 @@ import type {
   ProgressServiceEvents,
 } from "./progress.types";
 
+/** Remote push interval */
+const PUSH_INTERVAL_MS = 60_000;
+
 class ProgressService extends EventEmitter<ProgressServiceEvents> {
   #services: Services;
+  #pushInterval: ReturnType<typeof setInterval> | null = null;
+  #pushSourceId: string | null = null;
 
   constructor(services: Services) {
     super();
@@ -25,22 +31,29 @@ class ProgressService extends EventEmitter<ProgressServiceEvents> {
     return databaseService.getInstance();
   };
 
+  // ── Notify ─────────────────────────────────────────
+
+  public notifyChanged = (itemId: string) => {
+    this.emit('changed');
+    this.emit(`changed:${itemId}`);
+  };
+
   // ── Read ────────────────────────────────────────────
 
   public getProgress = async (itemId: string): Promise<ProgressEntry | null> => {
     const db = await this.#db();
-    type Row = { itemId: string; itemType: string; positionMs: number; durationMs: number; isCompleted: number; updatedAt: string };
+    type Row = { itemId: string; itemType: string; positionMs: number; durationMs: number; isCompleted: number; updatedAt: string; needsSync: number };
     const row = await db.sql<Row>`
       SELECT * FROM playbackProgress WHERE itemId = ${itemId}
     `.first();
-    return row ? { ...row, isCompleted: !!row.isCompleted } : null;
+    return row ? { ...row, isCompleted: !!row.isCompleted, needsSync: !!row.needsSync } : null;
   };
 
   public getProgressBatch = async (itemIds: string[]): Promise<Map<string, ProgressEntry>> => {
     if (itemIds.length === 0) return new Map();
 
     const db = await this.#db();
-    type Row = { itemId: string; itemType: string; positionMs: number; durationMs: number; isCompleted: number; updatedAt: string };
+    type Row = { itemId: string; itemType: string; positionMs: number; durationMs: number; isCompleted: number; updatedAt: string; needsSync: number };
 
     // SQLite doesn't support array binds in tagged templates — query all and filter
     const rows = await db.sql<Row>`SELECT * FROM playbackProgress`;
@@ -49,7 +62,7 @@ class ProgressService extends EventEmitter<ProgressServiceEvents> {
     const map = new Map<string, ProgressEntry>();
     for (const row of rows) {
       if (idSet.has(row.itemId)) {
-        map.set(row.itemId, { ...row, isCompleted: !!row.isCompleted });
+        map.set(row.itemId, { ...row, isCompleted: !!row.isCompleted, needsSync: !!row.needsSync });
       }
     }
     return map;
@@ -91,6 +104,42 @@ class ProgressService extends EventEmitter<ProgressServiceEvents> {
       }
     }
     return map;
+  };
+
+  // ── Push lifecycle ─────────────────────────────────
+
+  public startPushInterval = (sourceId: string) => {
+    this.stopPushInterval();
+    this.#pushSourceId = sourceId;
+    this.#pushInterval = setInterval(() => {
+      void this.#pushPending();
+    }, PUSH_INTERVAL_MS);
+  };
+
+  public stopPushInterval = () => {
+    if (this.#pushInterval) {
+      clearInterval(this.#pushInterval);
+      this.#pushInterval = null;
+    }
+    this.#pushSourceId = null;
+  };
+
+  public pushNow = async () => {
+    await this.#pushPending();
+  };
+
+  #pushPending = async () => {
+    if (!this.#pushSourceId) return;
+    try {
+      const sourcesService = this.#services.get(SourcesService);
+      const source = await sourcesService.findById(this.#pushSourceId);
+      if (!source) return;
+      const adapter = sourcesService.getAdapter(source);
+      const count = await this.pushToSource(adapter, this.#pushSourceId);
+      if (count > 0) log("Pushed", count, "progress entries to source");
+    } catch (e) {
+      warn("Progress push failed:", e);
+    }
   };
 
   // ── Sync helpers ────────────────────────────────────
@@ -165,6 +214,97 @@ class ProgressService extends EventEmitter<ProgressServiceEvents> {
     }
 
     return pushed.length;
+  };
+
+  // ── Pull ───────────────────────────────────────────
+
+  public pullFromSource = async (
+    adapter: { getProgress?(): Promise<Array<{ sourceItemId: string; positionMs: number; durationMs: number; isCompleted: boolean; updatedAt: string }>> },
+    sourceId: string,
+  ): Promise<number> => {
+    if (!adapter.getProgress) return 0;
+
+    const remoteEntries = await adapter.getProgress();
+    const db = await this.#db();
+    let updated = 0;
+
+    for (const remote of remoteEntries) {
+      const resolved = await this.#resolveLocalId(remote.sourceItemId, sourceId);
+      if (!resolved) continue;
+
+      const local = await this.getProgress(resolved.id);
+
+      // Skip if local has unpushed changes
+      if (local?.needsSync) continue;
+
+      // Skip if local is newer or equal
+      if (local && local.updatedAt >= remote.updatedAt) continue;
+
+      // Accept remote
+      await db.sql`
+        INSERT INTO playbackProgress (itemId, itemType, positionMs, durationMs, isCompleted, updatedAt, needsSync)
+        VALUES (${resolved.id}, ${resolved.itemType}, ${remote.positionMs}, ${remote.durationMs}, ${remote.isCompleted ? 1 : 0}, ${remote.updatedAt}, 0)
+        ON CONFLICT (itemId, itemType) DO UPDATE SET
+          positionMs = ${remote.positionMs},
+          durationMs = ${remote.durationMs},
+          isCompleted = ${remote.isCompleted ? 1 : 0},
+          updatedAt = ${remote.updatedAt},
+          needsSync = 0
+      `;
+      this.notifyChanged(resolved.id);
+      updated++;
+    }
+
+    if (updated > 0) {
+      await db.save();
+      log("Pulled", updated, "progress entries from source");
+    }
+    return updated;
+  };
+
+  #resolveLocalId = async (
+    sourceItemId: string,
+    sourceId: string,
+  ): Promise<{ id: string; itemType: string } | null> => {
+    const db = await this.#db();
+    type Row = { id: string };
+
+    const ep = await db.sql<Row>`
+      SELECT id FROM episodes WHERE sourceItemId = ${sourceItemId} AND sourceId = ${sourceId}
+    `.first();
+    if (ep) return { id: ep.id, itemType: 'episode' };
+
+    const ab = await db.sql<Row>`
+      SELECT id FROM audiobooks WHERE sourceItemId = ${sourceItemId} AND sourceId = ${sourceId}
+    `.first();
+    if (ab) return { id: ab.id, itemType: 'audiobook' };
+
+    return null;
+  };
+
+  // ── Foreground sync ───────────────────────────────
+
+  public initialize = () => {
+    const RN = require("react-native") as { AppState: { addEventListener(type: string, handler: (state: string) => void): void } };
+    RN.AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        void this.#pullAllSources();
+      }
+    });
+  };
+
+  #pullAllSources = async () => {
+    try {
+      const sourcesService = this.#services.get(SourcesService);
+      const sources = await sourcesService.findAll();
+      for (const source of sources) {
+        const adapter = sourcesService.getAdapter(source);
+        await this.pushToSource(adapter, source.id);
+        await this.pullFromSource(adapter, source.id);
+      }
+    } catch (e) {
+      warn("Foreground progress sync failed:", e);
+    }
   };
 
   // ── Pure helpers (static) ───────────────────────────
