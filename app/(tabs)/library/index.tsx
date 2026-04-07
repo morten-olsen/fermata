@@ -50,6 +50,12 @@ function sortAlbums(albums: AlbumRow[], sort: SortOption): AlbumRow[] {
   }
 }
 
+const SCRUBBER_KEYS: Record<SortOption, (item: AlbumRow) => string> = {
+  title: (a) => a.title,
+  artist: (a) => a.artistName,
+  year: (a) => String(a.year ?? ""),
+};
+
 // ── Screen ────────────────────────────────────────────────
 
 export default function LibraryScreen() {
@@ -248,6 +254,7 @@ export default function LibraryScreen() {
         albums={sortedAlbums}
         onAlbumPress={handleAlbumPress}
         columns={3}
+        scrubberKey={SCRUBBER_KEYS[sort]}
         ListHeaderComponent={listHeader}
       />
     </SafeAreaView>

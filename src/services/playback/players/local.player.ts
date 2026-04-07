@@ -12,6 +12,7 @@ class LocalPlaybackPlayer extends PlaybackPlayer {
   #playlist: AudioPlaylist | null = null;
   #lastPlaying = false;
   #lastIndex = -1;
+  #reconciling = false;
 
   public setup = async () => {
     await setAudioModeAsync({
@@ -35,7 +36,14 @@ class LocalPlaybackPlayer extends PlaybackPlayer {
     });
 
     this.#playlist.addListener('trackChanged', ({ currentIndex }: { previousIndex: number; currentIndex: number }) => {
-      if (this.#lastIndex >= 0 && currentIndex !== this.#lastIndex) {
+      if (this.#reconciling) {
+        this.#lastIndex = currentIndex;
+        return;
+      }
+      // Only emit trackEnded for natural auto-advance (sequential next track).
+      // User-initiated skips are driven by the service via skipTo(), which
+      // updates #lastIndex before the playlist fires this event.
+      if (this.#lastIndex >= 0 && currentIndex === this.#lastIndex + 1) {
         this.emit('trackEnded');
       }
       this.#lastIndex = currentIndex;
@@ -46,6 +54,8 @@ class LocalPlaybackPlayer extends PlaybackPlayer {
 
   public reconcile = async (payload: ReconcilePayload) => {
     if (!this.#playlist) return;
+
+    this.#reconciling = true;
 
     this.#playlist.clear();
 
@@ -69,6 +79,12 @@ class LocalPlaybackPlayer extends PlaybackPlayer {
     if (payload.positionMs > 0) {
       await this.#playlist.seekTo(payload.positionMs / 1000);
     }
+
+    // Allow a microtask for any pending trackChanged events to settle before
+    // re-enabling the listener, so the skip during setup isn't misread as a
+    // track-ended transition.
+    await new Promise<void>((r) => setTimeout(r, 0));
+    this.#reconciling = false;
 
     log("LocalPlaybackPlayer reconciled:", payload.queue.length, "tracks, index:", payload.currentIndex);
   };

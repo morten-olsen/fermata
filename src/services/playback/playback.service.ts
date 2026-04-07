@@ -87,6 +87,8 @@ class PlaybackService extends EventEmitter<PlaybackServiceEvents> {
     }
   };
 
+  public getPlayer = (): PlaybackPlayer | null => this.#player;
+
   // ── Getters ─────────────────────────────────────────
 
   public getCurrentTrack = (): QueueItem | null =>

@@ -38,6 +38,7 @@ type OutputEntry = {
   entityUnsub: (() => void) | null;
   entities: OutputEntity[];
   entityStates: Partial<Record<string, HAMediaPlayerState>>;
+  entityStateListener: ((states: Partial<Record<string, HAMediaPlayerState>>) => void) | null;
   reconnectAttempts: number;
   reconnectTimer: ReturnType<typeof setTimeout> | null;
 };
@@ -184,12 +185,18 @@ class OutputsService extends EventEmitter<OutputsServiceEvents> {
     const haPlayer = new HAPlaybackPlayer(entry.connection, entityId);
     haPlayer.start((cb) => {
       // Wire entity state updates to the player
-      const handler = () => cb(entry.entityStates);
+      entry.entityStateListener = cb;
       // Call immediately with current state
-      handler();
-      // Return a cleanup function — we'll track this via the entry
-      return () => { /* cleanup handled by haPlayer.dispose() */ };
+      cb(entry.entityStates);
+      // Return a cleanup function
+      return () => { entry.entityStateListener = null; };
     });
+
+    // Sync volume from the speaker so we don't blast it at full
+    const speakerVolume = entry.entityStates[entityId]?.attributes.volume_level;
+    if (speakerVolume != null) {
+      playbackService.setVolume(speakerVolume);
+    }
 
     this.#activeTarget = { outputId, entityId };
     this.#connectionState = 'connected';
@@ -221,9 +228,8 @@ class OutputsService extends EventEmitter<OutputsServiceEvents> {
   // ── Private ─────────────────────────────────────────
 
   #getCurrentPlayer = (): PlaybackPlayer | null => {
-    if (!this.#activeTarget) return this.#localPlayer;
-    // The current player is whatever the PlaybackService has
-    return null; // PlaybackService manages its own player reference
+    const playbackService = this.#services.get(PlaybackService);
+    return playbackService.getPlayer();
   };
 
   #loadOutputs = async () => {
@@ -253,6 +259,7 @@ class OutputsService extends EventEmitter<OutputsServiceEvents> {
     entityUnsub: null,
     entities: [],
     entityStates: {},
+    entityStateListener: null,
     reconnectAttempts: 0,
     reconnectTimer: null,
   });
@@ -287,6 +294,7 @@ class OutputsService extends EventEmitter<OutputsServiceEvents> {
         entities.some((e, i) => e.entityId !== entry.entities[i]?.entityId || e.state !== entry.entities[i]?.state);
 
       entry.entityStates = raw;
+      entry.entityStateListener?.(raw);
       if (changed) {
         entry.entities = entities;
         this.emit('speakersChanged');
@@ -309,6 +317,7 @@ class OutputsService extends EventEmitter<OutputsServiceEvents> {
     }
     entry.entities = [];
     entry.entityStates = {};
+    entry.entityStateListener = null;
   };
 
   #scheduleReconnect = (entry: OutputEntry) => {

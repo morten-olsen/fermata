@@ -27,6 +27,8 @@ interface AlbumGridProps {
   columns?: number;
   /** Card artwork aspect ratio for row height estimation. Defaults to 1 (square). */
   aspectRatio?: number;
+  /** Extract the scrubber letter from each album. Defaults to title. */
+  scrubberKey?: (item: AlbumRow) => string;
   ListHeaderComponent?: ReactElement;
   style?: StyleProp<ViewStyle>;
 }
@@ -37,6 +39,7 @@ export function AlbumGrid({
   renderCard,
   columns: columnsProp,
   aspectRatio = 1,
+  scrubberKey,
   ListHeaderComponent,
   style,
 }: AlbumGridProps) {
@@ -50,13 +53,15 @@ export function AlbumGrid({
   const cardWidth = (screenWidth - PADDING - SCRUBBER_WIDTH - GAP * (columns - 1)) / columns;
   const rowHeight = cardWidth * aspectRatio + 48;
 
+  const getKey = scrubberKey ?? ((a: AlbumRow) => a.title);
   const { letters, indices } = useMemo(
     () =>
       extractLetters(
-        albums.map((a) => ({ key: a.title })),
+        albums.map((a) => ({ key: getKey(a) })),
         (item) => item.key,
       ),
-    [albums],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [albums, getKey],
   );
 
   const handleSelect = useCallback(
